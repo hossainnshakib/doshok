@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { UpdateOrderStatus } from "@/components/admin/update-order-status"
+import { OrderShipment } from "@/components/admin/order-shipment"
 import { AdminPageHeader, AdminSectionCard, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 
 export default async function AdminOrderDetailPage({
@@ -16,7 +17,7 @@ export default async function AdminOrderDetailPage({
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: true, address: true },
+    include: { items: true, address: true, shipment: true },
   })
 
   if (!order) notFound()
@@ -26,11 +27,11 @@ export default async function AdminOrderDetailPage({
       <AdminPageHeader
         eyebrow="Sales"
         title={`Order ${order.orderNumber}`}
-        description={`Placed on ${order.createdAt.toLocaleString()}. Review customer, fulfillment, and totals.`}
+        description={`Placed on ${order.createdAt.toLocaleString()}. Review customer details, fulfillment status, and order totals.`}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AdminSectionCard title="Customer Details" description="Customer contact and delivery address.">
+        <AdminSectionCard title="Customer Details" description="Contact information and delivery address.">
           <div className="space-y-3 text-sm">
             {[
               ["Name", order.customerName],
@@ -61,7 +62,7 @@ export default async function AdminOrderDetailPage({
           </div>
         </AdminSectionCard>
 
-        <AdminSectionCard title="Order Status" description="Update fulfillment and payment status safely.">
+        <AdminSectionCard title="Order Status" description="Fulfillment and payment status with safe inline updates.">
           <div className="flex flex-wrap gap-2 mb-4">
             <AdminStatusBadge status={order.paymentStatus} type="payment" />
             <AdminStatusBadge status={order.orderStatus} type="order" />
@@ -76,7 +77,9 @@ export default async function AdminOrderDetailPage({
         </AdminSectionCard>
       </div>
 
-      <AdminSectionCard title="Items" description="Products, variants, quantities, and order totals.">
+      <OrderShipment orderId={order.id} initialShipment={order.shipment} />
+
+      <AdminSectionCard title="Items" description="Products ordered, variants, quantities, and order totals.">
         <AdminTableShell>
           <Table>
             <TableHeader>

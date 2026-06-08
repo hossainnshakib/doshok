@@ -152,7 +152,7 @@ export default function EditProductPage() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <AdminPageHeader eyebrow="Commerce" title="Edit Product" description="Update catalog details, stock variants, and campaign landing content without changing product APIs." />
+      <AdminPageHeader eyebrow="Commerce" title="Edit Product" description="Update catalog details, stock variants, and optional landing-page campaign content." />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs defaultValue="general">
@@ -167,31 +167,31 @@ export default function EditProductPage() {
               <CardContent className="pt-6 space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Classic T-Shirt" required />
+                    <Label htmlFor="name">Name <span className="text-muted-foreground">*</span></Label>
+                    <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Premium Cotton Panjabi" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="slug">Slug *</Label>
-                    <Input id="slug" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} placeholder="e.g. classic-t-shirt" required />
+                    <Label htmlFor="slug">Slug <span className="text-muted-foreground">*</span></Label>
+                    <Input id="slug" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} placeholder="e.g. premium-cotton-panjabi" required />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe your product in detail..." />
+                  <Textarea id="description" rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Write the product description customers will see on the storefront." />
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price (BDT) *</Label>
-                    <Input id="price" type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="e.g. 1500" required />
+                    <Label htmlFor="price">Price (BDT) <span className="text-muted-foreground">*</span></Label>
+                    <Input id="price" type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} placeholder="e.g. 2490" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="oldPrice">Compare Price (BDT)</Label>
-                    <Input id="oldPrice" type="number" value={formData.oldPrice} onChange={(e) => setFormData({ ...formData, oldPrice: e.target.value })} placeholder="e.g. 2000" />
+                    <Label htmlFor="oldPrice">Compare price (BDT) <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input id="oldPrice" type="number" value={formData.oldPrice} onChange={(e) => setFormData({ ...formData, oldPrice: e.target.value })} placeholder="e.g. 2990" />
                   </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="categoryId">Category *</Label>
+                    <Label htmlFor="categoryId">Category <span className="text-muted-foreground">*</span></Label>
                     <Select value={formData.categoryId} onValueChange={(v) => v && setFormData({ ...formData, categoryId: v })}>
                       <SelectTrigger>
                         <SelectValue />
@@ -204,7 +204,7 @@ export default function EditProductPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pageType">Page Type</Label>
+                    <Label htmlFor="pageType">Page type</Label>
                     <Select value={pageType} onValueChange={(v) => v && setPageType(v)}>
                       <SelectTrigger>
                         <SelectValue />
@@ -217,11 +217,11 @@ export default function EditProductPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="images">Image URLs (one per line)</Label>
-                  <Textarea id="images" rows={3} value={formData.images} onChange={(e) => setFormData({ ...formData, images: e.target.value })} placeholder="https://res.cloudinary.com/..." />
+                  <Label htmlFor="images">Image URLs <span className="text-muted-foreground">(one per line)</span></Label>
+                  <Textarea id="images" rows={3} value={formData.images} onChange={(e) => setFormData({ ...formData, images: e.target.value })} placeholder="Paste Cloudinary image URL" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="defaultCouponCode">Default Coupon Code</Label>
+                  <Label htmlFor="defaultCouponCode">Default coupon code <span className="text-muted-foreground">(optional)</span></Label>
                   <Input id="defaultCouponCode" value={formData.defaultCouponCode} onChange={(e) => setFormData({ ...formData, defaultCouponCode: e.target.value })} placeholder="WELCOME10" className="uppercase" />
                 </div>
                 <div className="flex items-center gap-6">
@@ -244,14 +244,14 @@ export default function EditProductPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-black">Size / Color / Stock</h2>
-                    <p className="text-sm text-muted-foreground">Keep variants clear so fulfillment and checkout remain predictable.</p>
+                    <p className="text-sm text-muted-foreground">Each variant controls what customers can buy at checkout. Add all size and color combinations.</p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={addVariant}>
-                    Add Variant
+                    Add variant
                   </Button>
                 </div>
                 {variants.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No variants yet.</p>
+                  <p className="text-sm text-muted-foreground">No variants yet. Add one to manage inventory.</p>
                 )}
                 {variants.map((v, i) => (
                   <div key={i} className="grid gap-3 rounded-2xl border p-3 md:grid-cols-[90px_1fr_100px_100px_auto] md:items-end">
@@ -264,8 +264,8 @@ export default function EditProductPage() {
                       <Input value={v.color} onChange={(e) => updateVariant(i, "color", e.target.value)} className="w-24 h-8" placeholder="Black" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Hex</Label>
-                      <Input value={v.colorHex} onChange={(e) => updateVariant(i, "colorHex", e.target.value)} className="w-20 h-8" placeholder="#000" />
+                      <Label className="text-xs">Hex <span className="text-muted-foreground">(opt.)</span></Label>
+                      <Input value={v.colorHex} onChange={(e) => updateVariant(i, "colorHex", e.target.value)} className="w-20 h-8" placeholder="#000000" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Stock</Label>
@@ -283,20 +283,20 @@ export default function EditProductPage() {
               <Card className="rounded-[1.5rem] border-black/5 shadow-sm">
                 <CardContent className="pt-6 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="landingHeadline">Landing Headline</Label>
+                    <Label htmlFor="landingHeadline">Landing headline</Label>
                     <Input id="landingHeadline" value={formData.landingHeadline} onChange={(e) => setFormData({ ...formData, landingHeadline: e.target.value })} placeholder="Limited Edition Drop" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="landingSubheadline">Landing Subheadline</Label>
-                    <Input id="landingSubheadline" value={formData.landingSubheadline} onChange={(e) => setFormData({ ...formData, landingSubheadline: e.target.value })} placeholder="Premium quality at the best price" />
+                    <Label htmlFor="landingSubheadline">Landing subheadline</Label>
+                    <Input id="landingSubheadline" value={formData.landingSubheadline} onChange={(e) => setFormData({ ...formData, landingSubheadline: e.target.value })} placeholder="Crafted for the season" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="landingCopy">Landing Copy</Label>
-                    <Textarea id="landingCopy" rows={4} value={formData.landingCopy} onChange={(e) => setFormData({ ...formData, landingCopy: e.target.value })} placeholder="Detailed landing page copy..." />
+                    <Label htmlFor="landingCopy">Landing copy</Label>
+                    <Textarea id="landingCopy" rows={4} value={formData.landingCopy} onChange={(e) => setFormData({ ...formData, landingCopy: e.target.value })} placeholder="Write the campaign copy customers will see on the landing page." />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="landingHeroImage">Landing Hero Image URL</Label>
-                    <Input id="landingHeroImage" value={formData.landingHeroImage} onChange={(e) => setFormData({ ...formData, landingHeroImage: e.target.value })} placeholder="https://res.cloudinary.com/..." />
+                    <Label htmlFor="landingHeroImage">Landing hero image URL</Label>
+                    <Input id="landingHeroImage" value={formData.landingHeroImage} onChange={(e) => setFormData({ ...formData, landingHeroImage: e.target.value })} placeholder="Paste Cloudinary image URL" />
                   </div>
                 </CardContent>
               </Card>

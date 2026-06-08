@@ -82,10 +82,10 @@ export default function AdminAbandonedDetailPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <AdminPageHeader eyebrow="Sales" title="Abandoned Checkout" description={`Lead ID ${item.id}. Review checkout details and record recovery follow-up.`} />
+      <AdminPageHeader eyebrow="Sales" title="Abandoned Checkout" description={`Review checkout details and track recovery follow-up for this lead.`} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AdminSectionCard title="Customer Info">
+        <AdminSectionCard title="Customer Info" description="Contact details captured during the abandoned checkout.">
           <div className="space-y-2 text-sm">
             <div><span className="font-medium">Name:</span> {item.name || "-"}</div>
             <div><span className="font-medium">Phone:</span> {item.phone || "-"}</div>
@@ -94,17 +94,17 @@ export default function AdminAbandonedDetailPage() {
           </div>
         </AdminSectionCard>
 
-        <AdminSectionCard title="Checkout Details">
+        <AdminSectionCard title="Checkout Details" description="Step at which the customer abandoned and what was in their cart.">
           <div className="space-y-2 text-sm">
             <div>
               <span className="font-medium">Step:</span>{" "}
               <Badge variant="secondary">{item.step}</Badge>
             </div>
             <div><span className="font-medium">Landing:</span> {item.landingSlug ? `/${item.landingSlug}` : "-"}</div>
-            <div><span className="font-medium">Product ID:</span> {item.productId ? <span className="font-mono text-xs">{item.productId}</span> : "-"}</div>
+            <div><span className="font-medium">Product:</span> {item.productId ? <span className="font-mono text-xs">{item.productId}</span> : "-"}</div>
             <div><span className="font-medium">Variant:</span> {[item.size, item.color].filter(Boolean).join(" / ") || "-"}</div>
             <div><span className="font-medium">Quantity:</span> {item.quantity ?? "-"}</div>
-            <div><span className="font-medium">Delivery Zone:</span> {item.deliveryZone || "-"}</div>
+            <div><span className="font-medium">Delivery zone:</span> {item.deliveryZone || "-"}</div>
             <Separator />
             <div>
               <span className="font-medium">Created:</span>{" "}

@@ -23,6 +23,7 @@ import {
   SlidersHorizontal,
   Pin,
   PinOff,
+  Truck,
 } from "lucide-react"
 
 const STORAGE_KEY = "doshok_admin_sidebar_pinned"
@@ -71,6 +72,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/site-settings", label: "Site Settings", icon: Settings },
       { href: "/admin/payment-methods", label: "Payment Methods", icon: Wallet },
       { href: "/admin/delivery-zones", label: "Delivery Zones", icon: MapPin },
+      { href: "/admin/courier-methods", label: "Courier Methods", icon: Truck },
     ],
   },
 ]

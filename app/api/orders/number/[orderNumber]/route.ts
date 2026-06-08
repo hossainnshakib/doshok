@@ -10,7 +10,18 @@ export async function GET(
 
   const order = await prisma.order.findUnique({
     where: { orderNumber },
-    include: { items: true, address: true },
+    include: {
+      items: true,
+      address: true,
+      shipment: {
+        select: {
+          courierProvider: true,
+          status: true,
+          trackingCode: true,
+          customerNote: true,
+        },
+      },
+    },
   })
 
   if (!order) return error("Not found", 404)

@@ -90,12 +90,12 @@ export default function AdminDeliveryZonesPage() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader eyebrow="Settings" title="Delivery Zones" description="Control checkout delivery fees by customer area." />
+      <AdminPageHeader eyebrow="Settings" title="Delivery Zones" description="Control checkout delivery fees by customer area. Names should be short and recognisable." />
 
-      <AdminSectionCard title="Create Delivery Zone" description="Keep names short and recognizable for checkout.">
+      <AdminSectionCard title="Create Delivery Zone" description="Add a new zone with a flat delivery fee charged at checkout.">
           <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-[1fr_160px_auto] md:items-end">
             <div className="space-y-1">
-              <Label htmlFor="zoneName">Zone Name</Label>
+              <Label htmlFor="zoneName">Zone name</Label>
               <Input
                 id="zoneName"
                 value={newName}
@@ -111,12 +111,12 @@ export default function AdminDeliveryZonesPage() {
                 type="number"
                 value={newFee}
                 onChange={(e) => setNewFee(e.target.value)}
-                placeholder="100"
+                placeholder="e.g. 100"
                 required
               />
             </div>
             <Button type="submit" disabled={loading} className="h-10 rounded-full px-5">
-              <Plus className="h-4 w-4 mr-1" /> Add Zone
+              <Plus className="h-4 w-4 mr-1" /> Add zone
             </Button>
           </form>
       </AdminSectionCard>

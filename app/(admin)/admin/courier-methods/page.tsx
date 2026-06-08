@@ -7,148 +7,81 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
   ChevronDown,
   ChevronUp,
   Save,
-  Wallet,
-  CreditCard,
-  Building2,
-  Smartphone,
-  Landmark,
-  Banknote,
-  Truck,
+  Package,
 } from "lucide-react"
 import { AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
+import { ALLOWED_COURIERS, COURIER_LABELS, COURIER_CREDENTIAL_FIELDS, type CourierProvider } from "@/types"
 
-type PaymentMethod = {
+type CourierMethod = {
   id: string
   provider: string
   displayName: string
   enabled: boolean
   mode: string
-  supportsFullPayment: boolean
-  supportsPartialPayment: boolean
-  supportsCodDeliveryCharge: boolean
+  isDefault: boolean
   instructions: string
+  pickupName: string
+  pickupPhone: string
+  pickupAddress: string
+  pickupCity: string
+  pickupZone: string
   credentials: Record<string, string>
 }
 
-const PROVIDER_ICONS: Record<string, React.ReactNode> = {
-  BKASH: <Smartphone className="size-5" />,
-  NAGAD: <Smartphone className="size-5" />,
-  ROCKET: <Smartphone className="size-5" />,
-  UPAY: <Smartphone className="size-5" />,
-  SSLCOMMERZ: <Building2 className="size-5" />,
-  AAMARPAY: <CreditCard className="size-5" />,
-  COD: <Truck className="size-5" />,
-}
+const COURIER_PROVIDERS: CourierProvider[] = ["PATHAO", "STEADFAST", "REDX"]
 
-const PROVIDER_LABELS: Record<string, string> = {
-  BKASH: "bKash",
-  NAGAD: "Nagad",
-  ROCKET: "Rocket",
-  UPAY: "Upay",
-  SSLCOMMERZ: "SSLCommerz",
-  AAMARPAY: "aamarPay",
-  COD: "Cash on Delivery",
-}
-
-const PROVIDER_CREDENTIAL_FIELDS: Record<string, { key: string; label: string; type?: string }[]> = {
-  BKASH: [
-    { key: "merchantNumber", label: "Merchant Number" },
-    { key: "appKey", label: "App Key" },
-    { key: "appSecret", label: "App Secret", type: "password" },
-    { key: "username", label: "Username" },
-    { key: "password", label: "Password", type: "password" },
-    { key: "baseUrl", label: "Base URL" },
-    { key: "callbackUrl", label: "Callback URL" },
-  ],
-  NAGAD: [
-    { key: "merchantId", label: "Merchant ID" },
-    { key: "merchantNumber", label: "Merchant Number" },
-    { key: "publicKey", label: "Public Key" },
-    { key: "privateKey", label: "Private Key", type: "password" },
-    { key: "baseUrl", label: "Base URL" },
-    { key: "callbackUrl", label: "Callback URL" },
-  ],
-  ROCKET: [
-    { key: "merchantId", label: "Merchant ID" },
-    { key: "merchantNumber", label: "Merchant Number" },
-    { key: "secretKey", label: "Secret Key", type: "password" },
-    { key: "baseUrl", label: "Base URL" },
-    { key: "callbackUrl", label: "Callback URL" },
-  ],
-  UPAY: [
-    { key: "merchantId", label: "Merchant ID" },
-    { key: "merchantNumber", label: "Merchant Number" },
-    { key: "appKey", label: "App Key" },
-    { key: "appSecret", label: "App Secret", type: "password" },
-    { key: "baseUrl", label: "Base URL" },
-    { key: "callbackUrl", label: "Callback URL" },
-  ],
-  SSLCOMMERZ: [
-    { key: "storeId", label: "Store ID" },
-    { key: "storePassword", label: "Store Password", type: "password" },
-    { key: "baseUrl", label: "Base URL" },
-    { key: "successUrl", label: "Success URL" },
-    { key: "failUrl", label: "Fail URL" },
-    { key: "cancelUrl", label: "Cancel URL" },
-    { key: "ipnUrl", label: "IPN URL" },
-  ],
-  AAMARPAY: [
-    { key: "storeId", label: "Store ID" },
-    { key: "signatureKey", label: "Signature Key", type: "password" },
-    { key: "baseUrl", label: "Base URL" },
-    { key: "successUrl", label: "Success URL" },
-    { key: "failUrl", label: "Fail URL" },
-    { key: "cancelUrl", label: "Cancel URL" },
-  ],
-  COD: [],
-}
-
-const PROVIDERS = ["BKASH", "NAGAD", "ROCKET", "UPAY", "SSLCOMMERZ", "AAMARPAY", "COD"]
-
-export default function AdminPaymentMethodsPage() {
-  const [methods, setMethods] = useState<PaymentMethod[]>([])
+export default function AdminCourierMethodsPage() {
+  const [methods, setMethods] = useState<CourierMethod[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  function getDefaultMethod(provider: string): PaymentMethod {
+  function getDefaultMethod(provider: string): CourierMethod {
     return {
       id: "",
       provider,
-      displayName: PROVIDER_LABELS[provider] || provider,
-      enabled: provider === "COD",
+      displayName: COURIER_LABELS[provider as CourierProvider] || provider,
+      enabled: false,
       mode: "SANDBOX",
-      supportsFullPayment: provider === "COD",
-      supportsPartialPayment: provider !== "COD",
-      supportsCodDeliveryCharge: false,
-      instructions: provider === "COD" ? "Pay when you receive your order." : "",
+      isDefault: provider === "PATHAO",
+      instructions: "",
+      pickupName: "",
+      pickupPhone: "",
+      pickupAddress: "",
+      pickupCity: "",
+      pickupZone: "",
       credentials: {},
     }
+  }
+
+  const PROVIDER_ICONS: Record<string, React.ReactNode> = {
+    PATHAO: <Package className="size-5" />,
+    STEADFAST: <Package className="size-5" />,
+    REDX: <Package className="size-5" />,
   }
 
   async function load() {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/payment-methods")
+      const res = await fetch("/api/admin/courier-methods")
       const d = await res.json()
       if (d.success) {
-        const serverMethods = d.data as PaymentMethod[]
-        const merged = PROVIDERS.map((provider) => {
-          const server = serverMethods.find((m: PaymentMethod) => m.provider === provider)
+        const serverMethods = d.data as CourierMethod[]
+        const merged = COURIER_PROVIDERS.map((provider) => {
+          const server = serverMethods.find((m: CourierMethod) => m.provider === provider)
           return server ?? getDefaultMethod(provider)
         })
         setMethods(merged)
       } else {
-        toast.error("Failed to load payment methods")
+        toast.error("Failed to load courier methods")
       }
     } catch {
-      toast.error("Failed to load payment methods")
+      toast.error("Failed to load courier methods")
     } finally {
       setLoading(false)
     }
@@ -180,7 +113,7 @@ export default function AdminPaymentMethodsPage() {
 
     setSaving(provider)
     try {
-      const res = await fetch("/api/admin/payment-methods", {
+      const res = await fetch("/api/admin/courier-methods", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -188,16 +121,19 @@ export default function AdminPaymentMethodsPage() {
           displayName: method.displayName,
           enabled: method.enabled,
           mode: method.mode,
-          supportsFullPayment: method.supportsFullPayment,
-          supportsPartialPayment: method.supportsPartialPayment,
-          supportsCodDeliveryCharge: method.supportsCodDeliveryCharge,
+          isDefault: method.isDefault,
           instructions: method.instructions,
+          pickupName: method.pickupName,
+          pickupPhone: method.pickupPhone,
+          pickupAddress: method.pickupAddress,
+          pickupCity: method.pickupCity,
+          pickupZone: method.pickupZone,
           credentials: method.credentials,
         }),
       })
       const d = await res.json()
       if (d.success) {
-        toast.success(`${PROVIDER_LABELS[provider]} settings saved`)
+        toast.success(`${COURIER_LABELS[provider as CourierProvider]} settings saved`)
         load()
       } else {
         toast.error(d.error ?? "Failed to save")
@@ -216,7 +152,7 @@ export default function AdminPaymentMethodsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <AdminPageHeader eyebrow="Settings" title="Payment Methods" description="Loading setup-ready payment providers..." />
+        <AdminPageHeader eyebrow="Settings" title="Courier Methods" description="Loading setup-ready courier providers..." />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
@@ -224,12 +160,12 @@ export default function AdminPaymentMethodsPage() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader eyebrow="Settings" title="Payment Methods" description="Configure setup-ready payment gateways. Credentials are encrypted. Existing values appear masked for security." />
+      <AdminPageHeader eyebrow="Settings" title="Courier Methods" description="Configure Pathao, Steadfast, and RedX. Credentials are encrypted. Live courier API integration is setup-ready." />
 
       <div className="grid gap-4">
         {methods.map((method) => {
           const isExpanded = expanded === method.provider
-          const fields = PROVIDER_CREDENTIAL_FIELDS[method.provider] || []
+          const fields = COURIER_CREDENTIAL_FIELDS[method.provider as CourierProvider] || []
 
           return (
             <Card key={method.provider} className="overflow-hidden rounded-[1.5rem] border-black/5 bg-white shadow-sm">
@@ -247,6 +183,11 @@ export default function AdminPaymentMethodsPage() {
                         {method.displayName}
                         <AdminStatusBadge status={method.enabled ? "Active" : "Disabled"} />
                         <AdminStatusBadge status={method.mode} />
+                        {method.isDefault && (
+                          <span className="text-[10px] font-black uppercase tracking-[0.12em] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                            Default
+                          </span>
+                        )}
                       </CardTitle>
                     </div>
                   </div>
@@ -302,51 +243,67 @@ export default function AdminPaymentMethodsPage() {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={method.isDefault}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setMethods((prev) =>
+                            prev.map((m) => ({
+                              ...m,
+                              isDefault: m.provider === method.provider,
+                            }))
+                          )
+                        }
+                      }}
+                    />
+                    <Label className="text-sm font-medium cursor-pointer">Set as default courier</Label>
+                  </div>
+
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium">Supported Flows</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <Label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer has-checked:border-primary has-checked:bg-primary/5">
-                        <Switch
-                          checked={method.supportsFullPayment}
-                          onCheckedChange={(checked) =>
-                            updateMethod(method.provider, "supportsFullPayment", checked)
-                          }
+                    <Label className="text-sm font-medium">Pickup Information</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Pickup Name</Label>
+                        <Input
+                          value={method.pickupName}
+                          onChange={(e) => updateMethod(method.provider, "pickupName", e.target.value)}
                         />
-                        <div className="text-sm">
-                          <span className="font-medium">Full Payment</span>
-                          <p className="text-xs text-muted-foreground">Pay 100% online</p>
-                        </div>
-                      </Label>
-                      <Label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer has-checked:border-primary has-checked:bg-primary/5">
-                        <Switch
-                          checked={method.supportsPartialPayment}
-                          onCheckedChange={(checked) =>
-                            updateMethod(method.provider, "supportsPartialPayment", checked)
-                          }
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Pickup Phone</Label>
+                        <Input
+                          value={method.pickupPhone}
+                          onChange={(e) => updateMethod(method.provider, "pickupPhone", e.target.value)}
                         />
-                        <div className="text-sm">
-                          <span className="font-medium">Partial Payment</span>
-                          <p className="text-xs text-muted-foreground">Pay deposit online</p>
-                        </div>
-                      </Label>
-                      <Label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer has-checked:border-primary has-checked:bg-primary/5">
-                        <Switch
-                          checked={method.supportsCodDeliveryCharge}
-                          onCheckedChange={(checked) =>
-                            updateMethod(method.provider, "supportsCodDeliveryCharge", checked)
-                          }
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Pickup Address</Label>
+                        <Input
+                          value={method.pickupAddress}
+                          onChange={(e) => updateMethod(method.provider, "pickupAddress", e.target.value)}
                         />
-                        <div className="text-sm">
-                          <span className="font-medium">COD Delivery Charge</span>
-                          <p className="text-xs text-muted-foreground">Prepay delivery fee</p>
-                        </div>
-                      </Label>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Pickup City</Label>
+                        <Input
+                          value={method.pickupCity}
+                          onChange={(e) => updateMethod(method.provider, "pickupCity", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Pickup Zone</Label>
+                        <Input
+                          value={method.pickupZone}
+                          onChange={(e) => updateMethod(method.provider, "pickupZone", e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {fields.length > 0 && (
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">Credentials</Label>
+                      <Label className="text-sm font-medium">API Credentials</Label>
                       <p className="text-xs text-muted-foreground">Credentials are encrypted at rest. Saved values appear masked — enter new text to replace them.</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {fields.map((field) => (
@@ -381,7 +338,7 @@ export default function AdminPaymentMethodsPage() {
                       disabled={saving === method.provider}
                     >
                       <Save className="size-4 mr-1.5" />
-                      {saving === method.provider ? "Saving..." : `Save ${PROVIDER_LABELS[method.provider]}`}
+                      {saving === method.provider ? "Saving..." : `Save ${COURIER_LABELS[method.provider as CourierProvider]}`}
                     </Button>
                   </div>
                 </CardContent>

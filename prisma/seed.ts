@@ -467,6 +467,21 @@ async function main() {
   })
   console.log("Homepage config created")
 
+  const courierMethods = [
+    { provider: "PATHAO", displayName: "Pathao", enabled: false, mode: "SANDBOX", isDefault: true, instructions: "Nationwide delivery via Pathao." },
+    { provider: "STEADFAST", displayName: "Steadfast", enabled: false, mode: "SANDBOX", isDefault: false, instructions: "Reliable courier service across Bangladesh." },
+    { provider: "REDX", displayName: "RedX", enabled: false, mode: "SANDBOX", isDefault: false, instructions: "E-commerce courier delivery service." },
+  ]
+
+  for (const cm of courierMethods) {
+    await prisma.courierProviderSetting.upsert({
+      where: { provider: cm.provider },
+      update: {},
+      create: cm,
+    })
+  }
+  console.log("Courier methods seeded:", courierMethods.length)
+
   const paymentMethods = [
     { provider: "COD", displayName: "Cash on Delivery", enabled: true, mode: "SANDBOX", supportsFullPayment: true, supportsPartialPayment: false, supportsCodDeliveryCharge: false, instructions: "Pay when you receive your order." },
     { provider: "BKASH", displayName: "bKash", enabled: false, mode: "SANDBOX", supportsFullPayment: true, supportsPartialPayment: true, supportsCodDeliveryCharge: false, instructions: "Pay securely with bKash." },

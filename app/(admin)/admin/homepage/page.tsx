@@ -79,46 +79,47 @@ export default function AdminHomepagePage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <AdminPageHeader eyebrow="Settings" title="Homepage Settings" description="Controls the storefront homepage hero content and curated featured product selection." />
+      <AdminPageHeader eyebrow="Settings" title="Homepage Settings" description="Control the storefront hero banner and curated featured product selection." />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <AdminSectionCard title="Hero Banner" description="Set campaign copy and optional image used by the homepage experience.">
+        <AdminSectionCard title="Hero Banner" description="Set the campaign copy and background image that greet customers on the homepage.">
             <div className="space-y-2">
-              <Label htmlFor="heroTitle">Title</Label>
+              <Label htmlFor="heroTitle">Hero title</Label>
               <Input
                 id="heroTitle"
                 value={heroTitle}
                 onChange={(e) => setHeroTitle(e.target.value)}
-                placeholder="e.g. Summer Collection 2024"
+                placeholder="Summer Collection 2024"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="heroSubtitle">Subtitle</Label>
+              <Label htmlFor="heroSubtitle">Hero subtitle</Label>
               <Textarea
                 id="heroSubtitle"
                 value={heroSubtitle}
                 onChange={(e) => setHeroSubtitle(e.target.value)}
-                placeholder="e.g. Premium quality at the best price"
+                rows={2}
+                placeholder="Premium quality at the best price"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="heroImage">Hero Image URL (Cloudinary)</Label>
+              <Label htmlFor="heroImage">Hero image URL</Label>
               <Input
                 id="heroImage"
                 value={heroImage}
                 onChange={(e) => setHeroImage(e.target.value)}
-                placeholder="https://res.cloudinary.com/..."
+                placeholder="Paste Cloudinary image URL"
               />
             </div>
         </AdminSectionCard>
 
-        <AdminSectionCard title="Featured Products" description="Choose products to prioritize in Doshok Picks and curated homepage sections.">
+        <AdminSectionCard title="Featured Products" description="Curate the products shown in Doshok Picks and featured homepage sections.">
             <div className="flex items-end gap-2">
               <div className="space-y-1 flex-1">
-                <Label htmlFor="featuredProduct">Add Product</Label>
+                <Label htmlFor="featuredProduct">Add product</Label>
                 <Select value={selectedProductId} onValueChange={(v) => v && setSelectedProductId(v)}>
                   <SelectTrigger id="featuredProduct">
-                    <SelectValue placeholder="Select a product..." />
+                    <SelectValue placeholder="Choose a featured product" />
                   </SelectTrigger>
                   <SelectContent>
                     {products.map((p) => (

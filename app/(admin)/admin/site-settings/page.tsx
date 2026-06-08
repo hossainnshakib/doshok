@@ -77,45 +77,45 @@ export default function SiteSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <AdminPageHeader eyebrow="Settings" title="Site Settings" description="Manage public contact information used across footer, support, and content pages." />
+      <AdminPageHeader eyebrow="Settings" title="Site Settings" description="Set the brand details customers see across the storefront." />
 
-      <AdminSectionCard title="Brand Info" description="Public brand label and short footer copy.">
+      <AdminSectionCard title="Brand Info" description="Storefront brand label and short footer description.">
           <div className="space-y-2">
-            <Label htmlFor="brandName">Brand Name</Label>
-            <Input id="brandName" value={settings.brandName} onChange={(e) => update("brandName", e.target.value)} placeholder="Doshok" />
+            <Label htmlFor="brandName">Brand name</Label>
+            <Input id="brandName" value={settings.brandName} onChange={(e) => update("brandName", e.target.value)} placeholder="DOSHOK" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="footerText">Footer Short Description</Label>
-            <Textarea id="footerText" value={settings.footerText} onChange={(e) => update("footerText", e.target.value)} rows={2} />
+            <Label htmlFor="footerText">Footer short description</Label>
+            <Textarea id="footerText" value={settings.footerText} onChange={(e) => update("footerText", e.target.value)} rows={3} placeholder="A short tagline shown site-wide in the footer." />
           </div>
       </AdminSectionCard>
 
-      <AdminSectionCard title="Contact Information" description="Used by public support pages and footer contact blocks.">
+      <AdminSectionCard title="Contact Information" description="Add the support channels customers can use for order and delivery help.">
           <div className="space-y-2">
-            <Label htmlFor="supportEmail">Support Email</Label>
-            <Input id="supportEmail" type="email" value={settings.supportEmail} onChange={(e) => update("supportEmail", e.target.value)} placeholder="support@doshok.com" />
+            <Label htmlFor="supportEmail">Support email</Label>
+            <Input id="supportEmail" type="email" value={settings.supportEmail} onChange={(e) => update("supportEmail", e.target.value)} placeholder="hello@doshok.com" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" value={settings.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+8801XXXXXXXXX" />
+            <Label htmlFor="phone">Phone number</Label>
+            <Input id="phone" value={settings.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+880 17XXXXXXXX" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="whatsapp">WhatsApp Number (optional)</Label>
-            <Input id="whatsapp" value={settings.whatsapp} onChange={(e) => update("whatsapp", e.target.value)} placeholder="+8801XXXXXXXXX" />
+            <Label htmlFor="whatsapp">WhatsApp number <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input id="whatsapp" value={settings.whatsapp} onChange={(e) => update("whatsapp", e.target.value)} placeholder="+880 17XXXXXXXX" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="address">Service Area / Address</Label>
-            <Textarea id="address" value={settings.address} onChange={(e) => update("address", e.target.value)} rows={2} placeholder="e.g. Dhaka, Bangladesh" />
+            <Label htmlFor="address">Service area</Label>
+            <Textarea id="address" value={settings.address} onChange={(e) => update("address", e.target.value)} rows={2} placeholder="e.g. All districts across Bangladesh" />
           </div>
       </AdminSectionCard>
 
-      <AdminSectionCard title="Social Media Links" description="Optional public social links; blank values stay hidden.">
+      <AdminSectionCard title="Social Media Links" description="Optional public social links. Leave blank to hide from the storefront.">
           <div className="space-y-2">
-            <Label htmlFor="facebookUrl">Facebook URL (optional)</Label>
+            <Label htmlFor="facebookUrl">Facebook URL <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Input id="facebookUrl" value={settings.facebookUrl} onChange={(e) => update("facebookUrl", e.target.value)} placeholder="https://facebook.com/doshok" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="instagramUrl">Instagram URL (optional)</Label>
+            <Label htmlFor="instagramUrl">Instagram URL <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Input id="instagramUrl" value={settings.instagramUrl} onChange={(e) => update("instagramUrl", e.target.value)} placeholder="https://instagram.com/doshok" />
           </div>
       </AdminSectionCard>

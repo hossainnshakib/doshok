@@ -87,36 +87,36 @@ export default function EditCouponPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <AdminPageHeader eyebrow="Commerce" title="Edit Coupon" description="Adjust campaign limits, expiry, and activation state." />
+      <AdminPageHeader eyebrow="Commerce" title="Edit Coupon" description="Update campaign limits, expiry, and activation state." />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Card className="rounded-[1.5rem] border-black/5 shadow-sm">
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Coupon Code</Label>
+              <Label htmlFor="code">Coupon code</Label>
               <Input
                 id="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="SAVE20"
+                placeholder="e.g. SAVE20"
                 required
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="discount">Discount</Label>
+                <Label htmlFor="discount">Discount value</Label>
                 <Input
                   id="discount"
                   type="number"
                   value={discount}
                   onChange={(e) => setDiscount(e.target.value)}
-                  placeholder="20"
+                  placeholder="e.g. 20"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
+                <Label htmlFor="type">Discount type</Label>
                 <Select value={type} onValueChange={(v) => v && setType(v)}>
                   <SelectTrigger id="type">
                     <SelectValue />
@@ -131,7 +131,7 @@ export default function EditCouponPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="minOrder">Min Order (৳)</Label>
+                <Label htmlFor="minOrder">Minimum order (৳)</Label>
                 <Input
                   id="minOrder"
                   type="number"
@@ -141,7 +141,7 @@ export default function EditCouponPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxUses">Max Uses</Label>
+                <Label htmlFor="maxUses">Maximum uses <span className="text-muted-foreground">(optional)</span></Label>
                 <Input
                   id="maxUses"
                   type="number"
@@ -153,7 +153,7 @@ export default function EditCouponPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="expiresAt">Expiry Date</Label>
+              <Label htmlFor="expiresAt">Expiry date <span className="text-muted-foreground">(optional)</span></Label>
               <Input
                 id="expiresAt"
                 type="date"

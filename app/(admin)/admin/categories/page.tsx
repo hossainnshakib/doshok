@@ -91,18 +91,18 @@ export default function AdminCategoriesPage() {
     <div className="space-y-6">
       <AdminPageHeader eyebrow="Commerce" title="Categories" description="Organize the single-brand catalog into browsable storefront collections." />
 
-      <AdminSectionCard title="Create Category" description="Use clean, URL-friendly slugs for filtering products on the storefront.">
+      <AdminSectionCard title="Create Category" description="Use clean, lowercase, URL-friendly slugs for filtering products on the storefront.">
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <div className="space-y-1">
-            <Label htmlFor="catName">Name</Label>
-            <Input id="catName" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Label htmlFor="catName">Category name</Label>
+            <Input id="catName" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Panjabi" required />
           </div>
           <div className="space-y-1">
             <Label htmlFor="catSlug">Slug</Label>
-            <Input id="catSlug" value={slug} onChange={(e) => setSlug(e.target.value)} required />
+            <Input id="catSlug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. panjabi" required />
           </div>
           <Button type="submit" disabled={loading} className="h-10 rounded-full px-5">
-            Add Category
+            Add category
           </Button>
         </form>
       </AdminSectionCard>

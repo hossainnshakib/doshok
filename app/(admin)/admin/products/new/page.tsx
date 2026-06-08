@@ -97,7 +97,7 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <AdminPageHeader eyebrow="Commerce" title="New Product" description="Create a Doshok catalog item with pricing, inventory variants, images, and optional landing-page campaign copy." />
+      <AdminPageHeader eyebrow="Commerce" title="New Product" description="Add a catalog item with pricing, variants, images, and optional landing-page campaign copy." />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs defaultValue="general">
@@ -112,34 +112,34 @@ export default function NewProductPage() {
               <CardContent className="pt-6 space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input id="name" name="name" placeholder="e.g. Classic T-Shirt" required />
+                    <Label htmlFor="name">Name <span className="text-muted-foreground">*</span></Label>
+                    <Input id="name" name="name" placeholder="e.g. Premium Cotton Panjabi" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="slug">Slug *</Label>
-                    <Input id="slug" name="slug" placeholder="e.g. classic-t-shirt" required />
+                    <Label htmlFor="slug">Slug <span className="text-muted-foreground">*</span></Label>
+                    <Input id="slug" name="slug" placeholder="e.g. premium-cotton-panjabi" required />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" name="description" rows={4} placeholder="Describe your product in detail..." />
+                  <Textarea id="description" name="description" rows={4} placeholder="Write the product description customers will see on the storefront." />
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price (BDT) *</Label>
-                    <Input id="price" name="price" type="number" placeholder="e.g. 1500" required />
+                    <Label htmlFor="price">Price (BDT) <span className="text-muted-foreground">*</span></Label>
+                    <Input id="price" name="price" type="number" placeholder="e.g. 2490" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="oldPrice">Compare Price (BDT)</Label>
-                    <Input id="oldPrice" name="oldPrice" type="number" placeholder="e.g. 2000" />
+                    <Label htmlFor="oldPrice">Compare price (BDT) <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input id="oldPrice" name="oldPrice" type="number" placeholder="e.g. 2990" />
                   </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="categoryId">Category *</Label>
+                    <Label htmlFor="categoryId">Category <span className="text-muted-foreground">*</span></Label>
                     <Select name="categoryId" required>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue placeholder="Choose a category" />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((c) => (
@@ -149,7 +149,7 @@ export default function NewProductPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pageType">Page Type</Label>
+                    <Label htmlFor="pageType">Page type</Label>
                     <Select value={pageType} onValueChange={(v) => v && setPageType(v)} name="pageType">
                       <SelectTrigger>
                         <SelectValue />
@@ -162,11 +162,11 @@ export default function NewProductPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="images">Image URLs (one per line)</Label>
-                  <Textarea id="images" name="images" rows={3} placeholder="https://res.cloudinary.com/..." />
+                  <Label htmlFor="images">Image URLs <span className="text-muted-foreground">(one per line)</span></Label>
+                  <Textarea id="images" name="images" rows={3} placeholder="Paste Cloudinary image URL" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="defaultCouponCode">Default Coupon Code</Label>
+                  <Label htmlFor="defaultCouponCode">Default coupon code <span className="text-muted-foreground">(optional)</span></Label>
                   <Input id="defaultCouponCode" name="defaultCouponCode" placeholder="WELCOME10" className="uppercase" />
                 </div>
                 <div className="flex items-center gap-6">
@@ -189,14 +189,14 @@ export default function NewProductPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-black">Size / Color / Stock</h2>
-                    <p className="text-sm text-muted-foreground">Each variant controls what customers can buy at checkout.</p>
+                    <p className="text-sm text-muted-foreground">Each variant controls what customers can buy at checkout. Add all size and color combinations.</p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={addVariant}>
-                    Add Variant
+                    Add variant
                   </Button>
                 </div>
                 {variants.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No variants yet. Add one to manage stock.</p>
+                  <p className="text-sm text-muted-foreground">No variants yet. Add one to manage inventory.</p>
                 )}
                 {variants.map((v, i) => (
                   <div key={i} className="grid gap-3 rounded-2xl border p-3 md:grid-cols-[90px_1fr_100px_100px_auto] md:items-end">
@@ -219,12 +219,12 @@ export default function NewProductPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Hex</Label>
+                      <Label className="text-xs">Hex <span className="text-muted-foreground">(opt.)</span></Label>
                       <Input
                         value={v.colorHex}
                         onChange={(e) => updateVariant(i, "colorHex", e.target.value)}
                         className="w-20 h-8"
-                        placeholder="#000"
+                        placeholder="#000000"
                       />
                     </div>
                     <div className="space-y-1">
@@ -256,20 +256,20 @@ export default function NewProductPage() {
               <Card className="rounded-[1.5rem] border-black/5 shadow-sm">
                 <CardContent className="pt-6 space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="landingHeadline">Landing Headline</Label>
+                    <Label htmlFor="landingHeadline">Landing headline</Label>
                     <Input id="landingHeadline" name="landingHeadline" placeholder="Limited Edition Drop" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="landingSubheadline">Landing Subheadline</Label>
-                    <Input id="landingSubheadline" name="landingSubheadline" placeholder="Premium quality at the best price" />
+                    <Label htmlFor="landingSubheadline">Landing subheadline</Label>
+                    <Input id="landingSubheadline" name="landingSubheadline" placeholder="Crafted for the season" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="landingCopy">Landing Copy</Label>
-                    <Textarea id="landingCopy" name="landingCopy" rows={4} placeholder="Detailed landing page copy..." />
+                    <Label htmlFor="landingCopy">Landing copy</Label>
+                    <Textarea id="landingCopy" name="landingCopy" rows={4} placeholder="Write the campaign copy customers will see on the landing page." />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="landingHeroImage">Landing Hero Image URL</Label>
-                    <Input id="landingHeroImage" name="landingHeroImage" placeholder="https://res.cloudinary.com/..." />
+                    <Label htmlFor="landingHeroImage">Landing hero image URL</Label>
+                    <Input id="landingHeroImage" name="landingHeroImage" placeholder="Paste Cloudinary image URL" />
                   </div>
                 </CardContent>
               </Card>
