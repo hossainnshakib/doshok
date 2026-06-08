@@ -2,16 +2,26 @@ import crypto from "crypto"
 
 const ALGORITHM = "aes-256-gcm"
 const IV_LENGTH = 16
-const TAG_LENGTH = 16
 
-function getKey(): Buffer {
-  const secret = process.env.NEXTAUTH_SECRET
-  if (!secret) throw new Error("NEXTAUTH_SECRET is required for payment credential encryption")
+type SecretPurpose = "payment" | "courier" | "default"
+
+function getKey(purpose: SecretPurpose = "default"): Buffer {
+  let secret: string | undefined
+
+  if (purpose === "payment") {
+    secret = process.env.PAYMENT_CREDENTIALS_SECRET || process.env.NEXTAUTH_SECRET
+  } else if (purpose === "courier") {
+    secret = process.env.COURIER_CREDENTIALS_SECRET || process.env.NEXTAUTH_SECRET
+  } else {
+    secret = process.env.NEXTAUTH_SECRET
+  }
+
+  if (!secret) throw new Error("NEXTAUTH_SECRET is required for credential encryption")
   return crypto.createHash("sha256").update(secret).digest()
 }
 
-export function encrypt(plaintext: string): string {
-  const key = getKey()
+export function encrypt(plaintext: string, purpose: SecretPurpose = "default"): string {
+  const key = getKey(purpose)
   const iv = crypto.randomBytes(IV_LENGTH)
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
   let encrypted = cipher.update(plaintext, "utf8", "hex")
@@ -20,8 +30,8 @@ export function encrypt(plaintext: string): string {
   return `${iv.toString("hex")}:${tag.toString("hex")}:${encrypted}`
 }
 
-export function decrypt(encryptedString: string): string {
-  const key = getKey()
+export function decrypt(encryptedString: string, purpose: SecretPurpose = "default"): string {
+  const key = getKey(purpose)
   const parts = encryptedString.split(":")
   if (parts.length !== 3) throw new Error("Invalid encrypted string format")
   const [ivHex, tagHex, encrypted] = parts

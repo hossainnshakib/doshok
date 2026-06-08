@@ -12,8 +12,8 @@ export const aboutPage: InfoPageData = {
     "Doshok is a single-house fashion label crafting clean essentials, polished occasion pieces, and everyday comfort for modern Bangladeshi life.",
   actions: supportActions,
   stats: [
-    { value: "23+", label: "Launch styles" },
-    { value: "5", label: "Core categories" },
+    { value: "New", label: "Launch styles" },
+    { value: "7", label: "Categories" },
     { value: "100%", label: "Quality checked" },
   ],
   sections: [

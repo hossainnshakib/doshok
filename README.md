@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Doshok — Style That Speaks
 
-## Getting Started
+Premium Bangladeshi fashion e-commerce platform built with Next.js 16.
 
-First, run the development server:
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Auth:** NextAuth v5 (Credentials, JWT)
+- **Database:** PostgreSQL + Prisma ORM
+- **UI:** Tailwind CSS v4, Base UI, Framer Motion, shadcn/ui
+- **Email:** Resend
+- **Image Upload:** Cloudinary
+- **Payments:** bKash, Nagad, Rocket, Upay, SSLCommerz, aamarPay (setup-ready)
+- **Couriers:** Pathao, Steadfast, RedX (setup-ready)
+
+## Local Setup
 
 ```bash
+# 1. Clone and install
+npm install
+
+# 2. Copy environment file
+cp .env.example .env.local
+
+# 3. Edit .env.local with your values (database, auth secret, API keys)
+
+# 4. Start PostgreSQL and create the database
+createdb doshok
+
+# 5. Run migrations and seed
+npm run db:migrate
+npm run db:seed
+
+# 6. Start dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Required Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+See `.env.example` for the full list. Critical vars:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXTAUTH_SECRET` | **Min 32 chars in production.** Generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | App URL (e.g. `http://localhost:3000`) |
+| `RESEND_API_KEY` | Resend API key for transactional emails |
 
-## Learn More
+## Database Commands
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run db:generate   # Generate Prisma client
+npm run db:migrate    # Run pending migrations
+npm run db:seed       # Seed demo data
+npm run cleanup:demo  # Remove demo data
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build
+npm start
+```
 
-## Deploy on Vercel
+## Demo Data Cleanup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run cleanup:demo
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Credential Encryption
+
+Payment and courier provider credentials are encrypted at rest using AES-256-GCM.
+
+- **Payment credentials** use `PAYMENT_CREDENTIALS_SECRET` (falls back to `NEXTAUTH_SECRET` in local dev).
+- **Courier credentials** use `COURIER_CREDENTIALS_SECRET` (falls back to `NEXTAUTH_SECRET` in local dev).
+- Set dedicated secrets in production to isolate encryption keys from the auth secret.
+
+## Payment & Courier Integrations
+
+Payment gateways (bKash, Nagad, SSLCommerz, aamarPay, etc.) and courier APIs (Pathao, Steadfast, RedX) are **setup-ready but not live**. Configure providers in the admin panel after deployment. Sandbox mode is the default.

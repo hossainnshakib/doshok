@@ -151,7 +151,7 @@ async function main() {
       id: "default",
       brandName: "DOSHOK",
       supportEmail: "hello@doshok.com",
-      phone: "+880 1XXXXXXXXX",
+      phone: "",
       address: "We deliver across all districts of Bangladesh. Our operation hub is in Chattogram.",
       footerText: "Premium Bangladeshi fashion for the modern wardrobe.",
     },

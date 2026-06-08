@@ -189,12 +189,12 @@ export default async function HomePage() {
     <>
       <section className={styles.hero}>
         <div className={styles.heroLeft}>
-          <div className={styles.heroTag}><span className={styles.hash}>#</span>Big Fashion Sale</div>
-          <h1 className={styles.heroTitle}>Limited Time Offer!<br />Up to <em>50%</em> OFF!</h1>
-          <div className={styles.sub}>Redefine Your Everyday Style</div>
+          <div className={styles.heroTag}><span className={styles.hash}>#</span>Style That Speaks</div>
+          <h1 className={styles.heroTitle}>Premium Bangladeshi<br />Fashion, <em>Curated.</em></h1>
+          <div className={styles.sub}>Thoughtful silhouettes, clean essentials, and occasion-ready pieces — made for your wardrobe.</div>
           <div className={styles.ctaRow}>
-            <Link href="/products" className={styles.btnPrimary}>Shop The Sale</Link>
-            <Link href="/stories" className={styles.btnGhost}>View Lookbook</Link>
+            <Link href="/products" className={styles.btnPrimary}>Shop Collection</Link>
+            <Link href="/about" className={styles.btnGhost}>About Doshok</Link>
           </div>
         </div>
         <div className={styles.heroRight}>
@@ -211,7 +211,9 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            <div className={styles.emptyHero}>Add product images to show this hero area</div>
+            <div className={styles.emptyHero}>
+              <span>Products coming soon</span>
+            </div>
           )}
         </div>
         <div className={styles.heroDots}><span /><span /><span /></div>
@@ -227,87 +229,93 @@ export default async function HomePage() {
         </Link>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionWrap}>
-          <div className={styles.sectionHead}>
-            <div className={styles.sectionTitle}>
-              <span className={styles.bolt}><Zap size={16} fill="currentColor" /></span>
-              Flash Sale
-              <div className={styles.timer} aria-label="Sale products">
-                <span className={styles.seg}>{flashProducts.length}</span>
-                <span className={styles.colon}>items</span>
+      {flashProducts.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionWrap}>
+            <div className={styles.sectionHead}>
+              <div className={styles.sectionTitle}>
+                <span className={styles.bolt}><Zap size={16} fill="currentColor" /></span>
+                Flash Sale
+                <div className={styles.timer} aria-label="Sale products">
+                  <span className={styles.seg}>{flashProducts.length}</span>
+                  <span className={styles.colon}>items</span>
+                </div>
+              </div>
+              <div className={styles.navArrows}>
+                <Link href="/products" className={styles.arrow}>‹</Link>
+                <Link href="/products" className={`${styles.arrow} ${styles.arrowDark}`}>›</Link>
               </div>
             </div>
-            <div className={styles.navArrows}>
-              <Link href="/products" className={styles.arrow}>‹</Link>
-              <Link href="/products" className={`${styles.arrow} ${styles.arrowDark}`}>›</Link>
-            </div>
-          </div>
-          <div className={styles.row}>
-            {flashProducts.map((product) => (
-              <FlashCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={`${styles.sectionWrap} ${styles.sectionWhite}`}>
-          <div className={styles.sectionHead}>
-            <div className={styles.sectionTitle}>Todays For You!</div>
-            <div className={styles.tabs}>
-              <Link href="/products" className={`${styles.tab} ${styles.tabActive}`}>Best Seller</Link>
-              <Link href="/new-arrivals" className={styles.tab}>New Arrivals</Link>
-              <Link href="/products?discount=true" className={styles.tab}>Special Discount</Link>
-              <Link href="/products?featured=true" className={styles.tab}>Doshok Picks</Link>
-            </div>
-          </div>
-          <div className={styles.row} style={{ marginBottom: 16 }}>
-            {todayProducts.slice(0, 4).map((product) => (
-              <TodayCard key={product.id} product={product} />
-            ))}
-          </div>
-          <div className={styles.row}>
-            {todayProducts.slice(4, 8).map((product) => (
-              <TodayCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={`${styles.sectionWrap} ${styles.sectionWhite}`}>
-          <div className={styles.bssHead}>Doshok Picks</div>
-          <div className={styles.bss}>
-            <div className={styles.bssPromo}>
-              <div />
-              <div className={styles.promoImage}>
-                {promoProduct?.images[0] ? (
-                  <Link href={`/products/${promoProduct.slug}`}>
-                    <img src={promoProduct.images[0]} alt={promoProduct.name} />
-                  </Link>
-                ) : (
-                  <div className={styles.imageEmpty}>Image coming soon</div>
-                )}
-              </div>
-              <div>
-                <div className={styles.pbTitle}>Doshok <em>Picks</em></div>
-                <div className={styles.pbSub}>Curated sets for daily elegance<br />from real product data.</div>
-              </div>
-            </div>
-            <div className={styles.bssGrid}>
-              {[
-                ["Featured Edit", "Selected from featured products", "F"],
-                ["Latest Edit", "Newest Doshok arrivals", "N"],
-                ["Sale Edit", "Products with active discounts", "S"],
-                ["Essentials Edit", "Everyday wardrobe pieces", "E"],
-              ].map(([title, tag, letter], index) => (
-                <StoreCard key={title} title={title} tag={tag} letter={letter} products={storeProducts.slice(index * 3, index * 3 + 3)} />
+            <div className={styles.row}>
+              {flashProducts.map((product) => (
+                <FlashCard key={product.id} product={product} />
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {todayProducts.length > 0 && (
+        <section className={styles.section}>
+          <div className={`${styles.sectionWrap} ${styles.sectionWhite}`}>
+            <div className={styles.sectionHead}>
+              <div className={styles.sectionTitle}>Todays For You!</div>
+              <div className={styles.tabs}>
+                <Link href="/products" className={`${styles.tab} ${styles.tabActive}`}>Best Seller</Link>
+                <Link href="/new-arrivals" className={styles.tab}>New Arrivals</Link>
+                <Link href="/products?discount=true" className={styles.tab}>Special Discount</Link>
+                <Link href="/products?featured=true" className={styles.tab}>Doshok Picks</Link>
+              </div>
+            </div>
+            <div className={styles.row} style={{ marginBottom: 16 }}>
+              {todayProducts.slice(0, 4).map((product) => (
+                <TodayCard key={product.id} product={product} />
+              ))}
+            </div>
+            <div className={styles.row}>
+              {todayProducts.slice(4, 8).map((product) => (
+                <TodayCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {storeProducts.length > 0 && (
+        <section className={styles.section}>
+          <div className={`${styles.sectionWrap} ${styles.sectionWhite}`}>
+            <div className={styles.bssHead}>Doshok Picks</div>
+            <div className={styles.bss}>
+              <div className={styles.bssPromo}>
+                <div />
+                <div className={styles.promoImage}>
+                  {promoProduct?.images[0] ? (
+                    <Link href={`/products/${promoProduct.slug}`}>
+                      <img src={promoProduct.images[0]} alt={promoProduct.name} />
+                    </Link>
+                  ) : (
+                    <div className={styles.imageEmpty}>Image coming soon</div>
+                  )}
+                </div>
+                <div>
+                  <div className={styles.pbTitle}>Doshok <em>Picks</em></div>
+                  <div className={styles.pbSub}>Curated sets for daily elegance<br />from real product data.</div>
+                </div>
+              </div>
+              <div className={styles.bssGrid}>
+                {[
+                  ["Featured Edit", "Selected from featured products", "F"],
+                  ["Latest Edit", "Newest Doshok arrivals", "N"],
+                  ["Sale Edit", "Products with active discounts", "S"],
+                  ["Essentials Edit", "Everyday wardrobe pieces", "E"],
+                ].map(([title, tag, letter], index) => (
+                  <StoreCard key={title} title={title} tag={tag} letter={letter} products={storeProducts.slice(index * 3, index * 3 + 3)} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className={styles.quote}>
         <div className={styles.hangers} />

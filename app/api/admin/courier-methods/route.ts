@@ -28,7 +28,7 @@ export async function GET() {
       let credentials: Record<string, string> = {}
       if (m.credentialsJson) {
         try {
-          const decrypted = decrypt(m.credentialsJson)
+          const decrypted = decrypt(m.credentialsJson, "courier")
           credentials = JSON.parse(decrypted)
         } catch {
           credentials = {}
@@ -91,16 +91,16 @@ export async function PUT(request: NextRequest) {
 
     const hasNewValues = Object.values(parsedCreds).some((v) => v && !v.startsWith("••••••"))
     if (hasNewValues) {
-      credentialsJson = encrypt(JSON.stringify(parsedCreds))
+      credentialsJson = encrypt(JSON.stringify(parsedCreds), "courier")
     } else if (existing && existing.credentialsJson) {
-      const existingCreds = JSON.parse(decrypt(existing.credentialsJson))
+      const existingCreds = JSON.parse(decrypt(existing.credentialsJson, "courier"))
       const merged = { ...existingCreds }
       for (const [key, val] of Object.entries(parsedCreds)) {
         if (val && !val.startsWith("••••••")) {
           merged[key] = val
         }
       }
-      credentialsJson = encrypt(JSON.stringify(merged))
+      credentialsJson = encrypt(JSON.stringify(merged), "courier")
     }
 
     if (data.isDefault) {

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { AdminPageHeader } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminSectionCard } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
 
 type VariantInput = {
@@ -100,6 +100,35 @@ export default function NewProductPage() {
   return (
     <div className="max-w-5xl space-y-6">
       <AdminPageHeader eyebrow="Commerce" title="New Product" description="Add a catalog item with pricing, variants, images, and optional landing-page campaign copy." />
+
+      <AdminSectionCard title="Content Standards" description="Follow these guidelines to maintain a consistent storefront.">
+        <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl border border-black/5 bg-neutral-50 p-3">
+            <p className="font-bold text-xs uppercase tracking-wide mb-1">Name</p>
+            <p className="text-muted-foreground text-xs">Clear, descriptive, customer-facing. Max 80 chars. <span className="text-neutral-400">e.g. Premium Cotton Panjabi</span></p>
+          </div>
+          <div className="rounded-xl border border-black/5 bg-neutral-50 p-3">
+            <p className="font-bold text-xs uppercase tracking-wide mb-1">Slug</p>
+            <p className="text-muted-foreground text-xs">Lowercase, hyphen-separated, URL-safe. Auto-generated if left blank. <span className="text-neutral-400">e.g. premium-cotton-panjabi</span></p>
+          </div>
+          <div className="rounded-xl border border-black/5 bg-neutral-50 p-3">
+            <p className="font-bold text-xs uppercase tracking-wide mb-1">Description</p>
+            <p className="text-muted-foreground text-xs">2–4 sentences. Fabric, fit, occasion, care. No marketing fluff. Include size notes if relevant.</p>
+          </div>
+          <div className="rounded-xl border border-black/5 bg-neutral-50 p-3">
+            <p className="font-bold text-xs uppercase tracking-wide mb-1">Price</p>
+            <p className="text-muted-foreground text-xs">Current selling price in BDT. Compare price shows strikethrough original value. Set only when running a discount.</p>
+          </div>
+          <div className="rounded-xl border border-black/5 bg-neutral-50 p-3">
+            <p className="font-bold text-xs uppercase tracking-wide mb-1">Images</p>
+            <p className="text-muted-foreground text-xs">First image = primary. Min 1000px wide recommended. Clean background, well-lit, accurate color.</p>
+          </div>
+          <div className="rounded-xl border border-black/5 bg-neutral-50 p-3">
+            <p className="font-bold text-xs uppercase tracking-wide mb-1">Variants</p>
+            <p className="text-muted-foreground text-xs">Standard sizes: XS, S, M, L, XL, XXL, Free Size. Standard colors: Black, White, Maroon, Olive, Navy, Beige, Pink.</p>
+          </div>
+        </div>
+      </AdminSectionCard>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs defaultValue="general">
@@ -262,17 +291,23 @@ export default function NewProductPage() {
             <TabsContent value="landing" className="space-y-4 mt-4">
               <Card className="rounded-[1.5rem] border-black/5 shadow-sm">
                 <CardContent className="pt-6 space-y-4">
+                  <div className="rounded-2xl border border-black/5 bg-neutral-50 p-4 text-sm text-muted-foreground">
+                    <p className="font-bold text-neutral-950 mb-1">Recommended landing copy structure</p>
+                    <p><strong>Headline</strong> — Single bold offer line. e.g. <span className="text-neutral-400">Limited Edition Drop</span></p>
+                    <p><strong>Subheadline</strong> — One-line value prop. e.g. <span className="text-neutral-400">Premium cotton, crafted for the season</span></p>
+                    <p><strong>Copy</strong> — 3–5 lines: what it is, why it matters, key benefits, and a clear CTA prompt.</p>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="landingHeadline">Landing headline</Label>
                     <Input id="landingHeadline" name="landingHeadline" placeholder="Limited Edition Drop" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="landingSubheadline">Landing subheadline</Label>
-                    <Input id="landingSubheadline" name="landingSubheadline" placeholder="Crafted for the season" />
+                    <Input id="landingSubheadline" name="landingSubheadline" placeholder="Premium cotton, crafted for the season" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="landingCopy">Landing copy</Label>
-                    <Textarea id="landingCopy" name="landingCopy" rows={4} placeholder="Write the campaign copy customers will see on the landing page." />
+                    <Textarea id="landingCopy" name="landingCopy" rows={4} placeholder="What it is, why it matters, key benefits, and CTA." />
                   </div>
                   <div className="space-y-2">
                     <ImageUploader

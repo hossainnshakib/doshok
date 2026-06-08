@@ -1,5 +1,11 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, HelpCircle, Ruler, Shirt, Truck, MessageSquare } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Help Hub — Doshok",
+  description: "Find answers, size guides, care instructions, order tracking, and support contact — all in one place.",
+}
 
 const helpTopics = [
   { title: "FAQ", href: "/faq", description: "Quick answers about orders, delivery, returns, payment, and account support.", icon: HelpCircle },

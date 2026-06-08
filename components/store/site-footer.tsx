@@ -91,7 +91,7 @@ export async function SiteFooter() {
           </div>
         ))}
       </div>
-      <div className={styles.copyright}>© 2001 — 2025, Doshok.com</div>
+      <div className={styles.copyright}>© 2025, Doshok.com</div>
     </footer>
   )
 }

@@ -65,7 +65,7 @@ export default function ContactPage() {
     }
   }
 
-  const phone = settings?.phone ?? "+880 1XXXXXXXXX"
+  const phone = settings?.phone || ""
   const email = settings?.supportEmail ?? "hello@doshok.com"
   const address = settings?.address ?? "We deliver across all districts of Bangladesh."
 
@@ -108,7 +108,7 @@ export default function ContactPage() {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(255,255,255,0.22),transparent_32%)]" />
               <div className="relative space-y-4">
                 {[
-                  { icon: Phone, title: "Call", value: phone, detail: settings?.whatsapp ? `WhatsApp: ${settings.whatsapp}` : "Sat–Thu, 10 AM – 8 PM" },
+                  ...(phone ? [{ icon: Phone, title: "Call", value: phone, detail: settings?.whatsapp ? `WhatsApp: ${settings.whatsapp}` : "Sat–Thu, 10 AM – 8 PM" }] : []),
                   { icon: Mail, title: "Email", value: email, detail: "We respond within 24 hours" },
                   { icon: MapPin, title: "Service Area", value: address, detail: "Nationwide delivery support" },
                 ].map((item) => (

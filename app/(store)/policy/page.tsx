@@ -1,5 +1,11 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, FileText, RefreshCcw, Scale, Truck, Cookie, Accessibility } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Policy Hub — Doshok",
+  description: "Browse our privacy, return, terms, delivery, cookie, and accessibility policies so you always know where you stand.",
+}
 
 const policies = [
   { title: "Privacy Policy", href: "/privacy-policy", description: "How we collect, use, and protect your personal data.", icon: FileText },

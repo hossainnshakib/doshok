@@ -186,7 +186,7 @@ model SiteSettings {
   id            String @id @default("default")
   brandName     String @default("DOSHOK")
   supportEmail  String @default("hello@doshok.com")
-  phone         String @default("+880 1XXXXXXXXX")
+  phone         String @default("")
   whatsapp      String?
   facebookUrl   String?
   instagramUrl  String?
