@@ -1,0 +1,190 @@
+import { z } from "zod"
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+})
+
+export const productSchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  description: z.string().optional(),
+  price: z.number().positive(),
+  oldPrice: z.number().positive().optional(),
+  images: z.array(z.string()).default([]),
+  categoryId: z.string().min(1),
+  featured: z.boolean().default(false),
+  published: z.boolean().default(true),
+  pageType: z.enum(["NORMAL", "LANDING"]).default("NORMAL"),
+  defaultCouponCode: z.string().optional(),
+  landingHeadline: z.string().optional(),
+  landingSubheadline: z.string().optional(),
+  landingCopy: z.string().optional(),
+  landingHeroImage: z.string().optional(),
+  variants: z.array(z.object({
+    size: z.string().min(1),
+    color: z.string().min(1),
+    colorHex: z.string().optional(),
+    stock: z.number().int().nonnegative().default(0),
+    sku: z.string().optional(),
+  })).optional(),
+})
+
+export const variantSchema = z.object({
+  size: z.string().min(1),
+  color: z.string().min(1),
+  colorHex: z.string().optional(),
+  stock: z.number().int().nonnegative().default(0),
+  sku: z.string().optional(),
+})
+
+export const categorySchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  image: z.string().optional(),
+})
+
+export const checkoutSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().min(11),
+  division: z.string().min(1),
+  district: z.string().min(1),
+  thana: z.string().min(1),
+  fullAddress: z.string().min(1),
+  deliveryZone: z.enum(["chatto", "dhaka", "outside"]),
+  paymentMethod: z.string().min(1),
+  couponCode: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.string(),
+    variantId: z.string().optional(),
+    quantity: z.number().int().positive(),
+    price: z.number().positive(),
+  })).min(1),
+})
+
+export const couponValidateSchema = z.object({
+  code: z.string().min(1),
+  subtotal: z.number().positive(),
+})
+
+export const otpSendSchema = z.object({
+  email: z.string().email(),
+})
+
+export const otpVerifySchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+})
+
+export const contactSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().optional(),
+  subject: z.string().optional(),
+  message: z.string().min(1, "Message is required"),
+})
+
+export const siteSettingsSchema = z.object({
+  brandName: z.string().min(1),
+  supportEmail: z.string().email(),
+  phone: z.string().min(1),
+  whatsapp: z.string().optional().or(z.literal("")),
+  facebookUrl: z.string().optional().or(z.literal("")),
+  instagramUrl: z.string().optional().or(z.literal("")),
+  address: z.string().min(1),
+  footerText: z.string().min(1),
+})
+
+export const otpSchema = z.object({
+  phone: z.string().min(11),
+  code: z.string().length(6),
+})
+
+export const paymentProvider = z.enum([
+  "BKASH", "NAGAD", "ROCKET", "UPAY", "SSLCOMMERZ", "AAMARPAY", "COD",
+])
+
+export const paymentMode = z.enum(["SANDBOX", "LIVE"])
+
+export const bkashCredentialsSchema = z.object({
+  merchantNumber: z.string().optional().default(""),
+  appKey: z.string().optional().default(""),
+  appSecret: z.string().optional().default(""),
+  username: z.string().optional().default(""),
+  password: z.string().optional().default(""),
+  baseUrl: z.string().optional().default(""),
+  callbackUrl: z.string().optional().default(""),
+})
+
+export const nagadCredentialsSchema = z.object({
+  merchantId: z.string().optional().default(""),
+  merchantNumber: z.string().optional().default(""),
+  publicKey: z.string().optional().default(""),
+  privateKey: z.string().optional().default(""),
+  baseUrl: z.string().optional().default(""),
+  callbackUrl: z.string().optional().default(""),
+})
+
+export const rocketCredentialsSchema = z.object({
+  merchantId: z.string().optional().default(""),
+  merchantNumber: z.string().optional().default(""),
+  secretKey: z.string().optional().default(""),
+  baseUrl: z.string().optional().default(""),
+  callbackUrl: z.string().optional().default(""),
+})
+
+export const upayCredentialsSchema = z.object({
+  merchantId: z.string().optional().default(""),
+  merchantNumber: z.string().optional().default(""),
+  appKey: z.string().optional().default(""),
+  appSecret: z.string().optional().default(""),
+  baseUrl: z.string().optional().default(""),
+  callbackUrl: z.string().optional().default(""),
+})
+
+export const sslcommerzCredentialsSchema = z.object({
+  storeId: z.string().optional().default(""),
+  storePassword: z.string().optional().default(""),
+  baseUrl: z.string().optional().default(""),
+  successUrl: z.string().optional().default(""),
+  failUrl: z.string().optional().default(""),
+  cancelUrl: z.string().optional().default(""),
+  ipnUrl: z.string().optional().default(""),
+})
+
+export const aamarpayCredentialsSchema = z.object({
+  storeId: z.string().optional().default(""),
+  signatureKey: z.string().optional().default(""),
+  baseUrl: z.string().optional().default(""),
+  successUrl: z.string().optional().default(""),
+  failUrl: z.string().optional().default(""),
+  cancelUrl: z.string().optional().default(""),
+})
+
+export const codSettingsSchema = z.object({
+  deliveryChargePrepayRequired: z.boolean().optional().default(false),
+})
+
+export const providerCredentialsMap: Record<string, z.ZodTypeAny> = {
+  BKASH: bkashCredentialsSchema,
+  NAGAD: nagadCredentialsSchema,
+  ROCKET: rocketCredentialsSchema,
+  UPAY: upayCredentialsSchema,
+  SSLCOMMERZ: sslcommerzCredentialsSchema,
+  AAMARPAY: aamarpayCredentialsSchema,
+  COD: codSettingsSchema,
+}
+
+export const paymentMethodUpdateSchema = z.object({
+  id: z.string().optional(),
+  provider: paymentProvider,
+  displayName: z.string().min(1),
+  enabled: z.boolean(),
+  mode: paymentMode,
+  supportsFullPayment: z.boolean(),
+  supportsPartialPayment: z.boolean(),
+  supportsCodDeliveryCharge: z.boolean(),
+  instructions: z.string().optional().default(""),
+  credentials: z.record(z.string(), z.any()).optional().default({}),
+})
