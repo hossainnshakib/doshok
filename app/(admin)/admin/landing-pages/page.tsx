@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { ExternalLink } from "lucide-react"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 
@@ -41,12 +40,12 @@ export default async function AdminLandingPagesPage() {
                 </TableCell>
                 <TableCell>{product.category.name}</TableCell>
                 <TableCell>
-                  <AdminStatusBadge status={product.published ? "Live" : "Inactive"} />
+                  <AdminStatusBadge status={product.status} />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Link
-                      href={`/l/${product.slug}`}
+                      href={`/l/${product.slug}?preview=1`}
                       target="_blank"
                       className="inline-flex items-center gap-1 rounded-md text-sm font-medium h-7 px-2.5 hover:bg-muted hover:text-foreground"
                     >

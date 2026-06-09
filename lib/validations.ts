@@ -14,7 +14,7 @@ export const productSchema = z.object({
   images: z.array(z.string()).default([]),
   categoryId: z.string().min(1),
   featured: z.boolean().default(false),
-  published: z.boolean().default(true),
+  status: z.enum(["Draft", "Active", "Hidden", "Archived"]).default("Draft"),
   pageType: z.enum(["NORMAL", "LANDING"]).default("NORMAL"),
   defaultCouponCode: z.string().optional(),
   landingHeadline: z.string().optional(),

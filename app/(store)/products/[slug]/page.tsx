@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/lib/auth"
 import { ProductDetailClient } from "@/components/store/product-detail-client"
 
 export async function generateMetadata({
@@ -10,7 +11,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const product = await prisma.product.findUnique({
-    where: { slug, published: true },
+    where: { slug, status: "Active" },
     select: { name: true, description: true, price: true },
   })
 
@@ -24,13 +25,19 @@ export async function generateMetadata({
 
 export default async function ProductDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ preview?: string }>
 }) {
   const { slug } = await params
+  const { preview } = await searchParams
 
-  const product = await prisma.product.findUnique({
-    where: { slug, published: true },
+  const isPreview = preview === "1"
+  const session = isPreview ? await auth() : null
+
+  const product = await prisma.product.findFirst({
+    where: isPreview && session?.user ? { slug } : { slug, status: "Active" },
     include: { variants: true, category: true },
   })
 
@@ -38,7 +45,7 @@ export default async function ProductDetailPage({
 
   const relatedProducts = await prisma.product.findMany({
     where: {
-      published: true,
+      status: "Active",
       id: { not: product.id },
     },
     include: { variants: true, category: true },

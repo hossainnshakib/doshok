@@ -4,7 +4,7 @@ import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Loader2, Upload, X, Link as LinkIcon } from "lucide-react"
+import { GripVertical, Loader2, Upload, X, Link as LinkIcon } from "lucide-react"
 import { toast } from "sonner"
 
 interface ImageUploaderProps {
@@ -28,6 +28,7 @@ export function ImageUploader({
   const [uploading, setUploading] = useState(false)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlValue, setUrlValue] = useState("")
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
 
   async function handleFile(file: File) {
     const allowed = ["image/jpeg", "image/png", "image/webp"]
@@ -105,6 +106,24 @@ export function ImageUploader({
     setShowUrlInput(false)
   }
 
+  function handleDragStart(i: number) {
+    setDragIndex(i)
+  }
+
+  function handleDragOverItem(e: React.DragEvent, i: number) {
+    e.preventDefault()
+    if (dragIndex === null || dragIndex === i) return
+    const next = [...images]
+    const [moved] = next.splice(dragIndex, 1)
+    next.splice(i, 0, moved)
+    onChange(next)
+    setDragIndex(i)
+  }
+
+  function handleDragEnd() {
+    setDragIndex(null)
+  }
+
   return (
     <div className="space-y-3">
       {label && <Label>{label}</Label>}
@@ -113,29 +132,45 @@ export function ImageUploader({
       )}
 
       {images.length > 0 && (
-        <div className={`grid gap-3 ${single ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"}`}>
-          {images.map((url, i) => (
-            <div key={i} className="group relative aspect-square overflow-hidden rounded-xl border bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt={`Image ${i + 1}`}
-                className="h-full w-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(i)}
-                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100"
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">{images.length} image{images.length > 1 ? "s" : ""} {!single && "— drag to reorder"}</p>
+          <div className={`grid gap-3 ${single ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"}`}>
+            {images.map((url, i) => (
+              <div
+                key={i}
+                draggable={!single}
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={(e) => handleDragOverItem(e, i)}
+                onDragEnd={handleDragEnd}
+                className={`group relative aspect-square overflow-hidden rounded-xl border bg-muted ${!single ? "cursor-grab active:cursor-grabbing" : ""} ${dragIndex === i ? "opacity-50 ring-2 ring-primary" : ""}`}
               >
-                <X className="h-3 w-3" />
-              </button>
-              {i === 0 && !single && images.length > 1 && (
-                <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
-                  Main
-                </span>
-              )}
-            </div>
-          ))}
+                <div className="absolute left-1 top-1 z-10 flex gap-1">
+                  {i === 0 && !single && (
+                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white shadow-sm">
+                      Main
+                    </span>
+                  )}
+                  {!single && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition group-hover:opacity-100">
+                      <GripVertical className="h-3 w-3" />
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition hover:bg-red-500 group-hover:opacity-100"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <img
+                  src={url}
+                  alt={`Image ${i + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

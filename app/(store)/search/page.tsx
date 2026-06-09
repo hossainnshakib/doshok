@@ -13,7 +13,7 @@ export default async function SearchPage({
   const products = q
     ? await prisma.product.findMany({
         where: {
-          published: true,
+          status: "Active",
           OR: [
             { name: { contains: q, mode: "insensitive" } },
             { slug: { contains: q, mode: "insensitive" } },

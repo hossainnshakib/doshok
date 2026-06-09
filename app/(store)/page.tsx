@@ -28,19 +28,19 @@ async function getHomepageData() {
       take: 8,
     }),
     prisma.product.findMany({
-      where: { published: true },
+      where: { status: "Active" },
       include: { variants: true, category: true },
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
     prisma.product.findMany({
-      where: { published: true, oldPrice: { not: null } },
+      where: { status: "Active", oldPrice: { not: null } },
       include: { variants: true, category: true },
       orderBy: { updatedAt: "desc" },
       take: 8,
     }),
     prisma.product.findMany({
-      where: { published: true, featured: true },
+      where: { status: "Active", featured: true },
       include: { variants: true, category: true },
       orderBy: { updatedAt: "desc" },
       take: 12,

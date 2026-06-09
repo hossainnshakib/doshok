@@ -6,14 +6,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
-import { Pencil, Trash2, Check, X } from "lucide-react"
-import { AdminEmptyState, AdminPageHeader, AdminSectionCard, AdminTableShell } from "@/components/admin/admin-ui"
+import { ImageIcon, Pencil, Trash2, Check, X } from "lucide-react"
+import { AdminEmptyState, AdminPageHeader, AdminSectionCard, AdminTableShell, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
 
 type CategoryWithCount = {
   id: string
   name: string
   slug: string
+  image?: string | null
   _count: { products: number }
 }
 
@@ -57,7 +58,7 @@ export default function AdminCategoriesPage() {
     setLoading(false)
   }
 
-  function startEdit(cat: CategoryWithCount & { image?: string | null }) {
+  function startEdit(cat: CategoryWithCount) {
     setEditingId(cat.id)
     setEditName(cat.name)
     setEditSlug(cat.slug)
@@ -129,6 +130,7 @@ export default function AdminCategoriesPage() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[50px]">Image</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Slug</TableHead>
             <TableHead className="text-center">Products</TableHead>
@@ -141,12 +143,21 @@ export default function AdminCategoriesPage() {
               {editingId === cat.id ? (
                 <>
                   <TableCell>
+                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-muted">
+                      {editImage[0] ? (
+                        <img src={editImage[0]} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
                   </TableCell>
                   <TableCell>
                     <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} className="h-8 font-mono text-sm" />
                   </TableCell>
-                  <TableCell className="text-center">{cat._count.products}</TableCell>
+                  <TableCell className="text-center font-medium tabular-nums">{cat._count.products}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => saveEdit(cat.id)}>
@@ -160,9 +171,18 @@ export default function AdminCategoriesPage() {
                 </>
               ) : (
                 <>
-                  <TableCell>{cat.name}</TableCell>
-                  <TableCell className="font-mono text-sm">{cat.slug}</TableCell>
-                  <TableCell className="text-center">{cat._count.products}</TableCell>
+                  <TableCell>
+                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-muted">
+                      {cat.image ? (
+                        <img src={cat.image} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{cat.name}</TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground">{cat.slug}</TableCell>
+                  <TableCell className="text-center font-medium tabular-nums">{cat._count.products}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(cat)}>
@@ -179,7 +199,7 @@ export default function AdminCategoriesPage() {
           ))}
           {editingId && categories.find((c) => c.id === editingId) && (
             <TableRow>
-              <TableCell colSpan={4} className="bg-muted/30 py-3">
+              <TableCell colSpan={5} className="bg-muted/30 py-3">
                 <ImageUploader
                   images={editImage}
                   onChange={setEditImage}

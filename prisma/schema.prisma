@@ -76,7 +76,7 @@ model Product {
   variants           ProductVariant[]
   orderItems         OrderItem[]
   featured           Boolean          @default(false)
-  published          Boolean          @default(true)
+  status             String           @default("Draft")
   pageType           String           @default("NORMAL")
   defaultCouponCode  String?
   landingHeadline    String?

@@ -18,7 +18,7 @@ export default async function ProductsPage({
 
   const products = await prisma.product.findMany({
     where: {
-      published: true,
+      status: "Active",
       ...(category ? { categoryId: selectedCategory?.id ?? "__missing_category__" } : {}),
       ...(showDiscounts ? { oldPrice: { not: null } } : {}),
       ...(showFeatured ? { featured: true } : {}),

@@ -6,8 +6,11 @@ import { NextRequest } from "next/server"
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const pageType = searchParams.get("pageType")
+  const status = searchParams.get("status")
 
-  const where = pageType ? { pageType } : {}
+  const where: Record<string, unknown> = {}
+  if (pageType) where.pageType = pageType
+  if (status) where.status = status
 
   const products = await prisma.product.findMany({
     where,

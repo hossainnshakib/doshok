@@ -6,7 +6,7 @@ import { ArrowRight, Package } from "lucide-react"
 export default async function NewArrivalsPage() {
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
-      where: { published: true },
+      where: { status: "Active" },
       include: { variants: true, category: true },
       orderBy: { createdAt: "desc" },
       take: 12,
@@ -82,7 +82,7 @@ export default async function NewArrivalsPage() {
             <Package className="mx-auto mb-4 h-10 w-10 text-neutral-400" />
             <h3 className="text-lg font-black">No new arrivals yet</h3>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-neutral-500">
-              New Doshok products will appear here as soon as they are published.
+              New Doshok products will appear here as soon as they are active.
             </p>
           </div>
         ) : (

@@ -109,6 +109,13 @@ export function AdminSectionCard({
   )
 }
 
+const STATUS_STYLES: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
+  active: { variant: "default", className: "bg-emerald-600 hover:bg-emerald-600 text-white" },
+  draft: { variant: "secondary", className: "bg-amber-100 text-amber-800 hover:bg-amber-100" },
+  hidden: { variant: "outline", className: "text-muted-foreground border-dashed" },
+  archived: { variant: "destructive", className: "bg-neutral-200 text-neutral-600 hover:bg-neutral-200" },
+}
+
 export function AdminStatusBadge({
   status,
   type = "default",
@@ -118,17 +125,20 @@ export function AdminStatusBadge({
 }) {
   const value = typeof status === "boolean" ? (status ? "Active" : "Inactive") : status
   const normalized = value.toLowerCase()
-  const variant = normalized.includes("cancel") || normalized.includes("expired") || normalized.includes("inactive") || normalized.includes("unpaid")
-    ? "destructive"
-    : normalized.includes("pending") || normalized.includes("sandbox")
-      ? "secondary"
-      : normalized.includes("outline")
-        ? "outline"
+  const style = STATUS_STYLES[normalized]
+
+  const variant = style?.variant ?? (
+    normalized.includes("cancel") || normalized.includes("expired") || normalized.includes("unpaid")
+      ? "destructive"
+      : normalized.includes("pending") || normalized.includes("sandbox")
+        ? "secondary"
         : "default"
+  )
 
   return (
     <Badge variant={variant} className={cn(
       "rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.12em]",
+      style?.className,
       type === "payment" && normalized.includes("paid") && "bg-emerald-600 hover:bg-emerald-600",
       type === "stock" && normalized.includes("low") && "bg-amber-500 hover:bg-amber-500"
     )}>
