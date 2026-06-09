@@ -24,6 +24,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   orders        Order[]
+  addresses     UserAddress[]
   emailTokens   EmailVerificationToken[]
   resetTokens   PasswordResetToken[]
   recoveryTokensCreated RecoveryCheckoutToken[] @relation("CreatedRecoveryTokens")
@@ -153,6 +154,25 @@ model Address {
   phone       String
   orderId     String @unique
   order       Order  @relation(fields: [orderId], references: [id])
+}
+
+model UserAddress {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label         String   @default("Home")
+  recipientName String
+  phone         String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  zone          String
+  postalCode    String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Order {

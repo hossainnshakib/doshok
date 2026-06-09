@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { getCart, clearCart } from "@/lib/cart"
-import type { CartItem, DeliveryZone } from "@/types"
-import { DELIVERY_ZONE_NAMES } from "@/types"
+import type { CartItem, DeliveryZone, UserAddress, AddressLabel } from "@/types"
+import { DELIVERY_ZONE_NAMES, ADDRESS_LABELS } from "@/types"
 import {
   CheckCircle, Shield, Tag, Truck, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Smartphone,
 } from "lucide-react"
@@ -22,7 +23,7 @@ import { useCheckoutDraft } from "@/hooks/use-checkout-draft"
 import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
 import type { ConfirmationResult } from "@/lib/firebase-client"
 import { useSession } from "next-auth/react"
-import { User, LogIn } from "lucide-react"
+import { User, LogIn, MapPin, Home, Briefcase, Users } from "lucide-react"
 
 type PaymentMethodSetting = {
   provider: string
@@ -86,6 +87,11 @@ export function CheckoutForm() {
   const [phoneVerifiedToken, setPhoneVerifiedToken] = useState("")
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const recaptchaContainerRef = useRef<HTMLDivElement>(null)
+
+  const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [saveToAccount, setSaveToAccount] = useState(false)
+  const [addressesLoading, setAddressesLoading] = useState(false)
 
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const formRef = useRef<HTMLDivElement>(null)
@@ -234,6 +240,38 @@ export function CheckoutForm() {
       .catch(() => {})
       .finally(() => setPaymentMethodsLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    setAddressesLoading(true)
+    fetch("/api/account/addresses")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) {
+          const addrs = d.data as UserAddress[]
+          setSavedAddresses(addrs)
+          const defaultAddr = addrs.find((a: UserAddress) => a.isDefault)
+          if (defaultAddr && !draft.fullAddress) {
+            setSelectedAddressId(defaultAddr.id)
+            applyAddressToDraft(defaultAddr)
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAddressesLoading(false))
+  }, [isLoggedIn])
+
+  function applyAddressToDraft(addr: UserAddress) {
+    updateFields({
+      name: addr.recipientName,
+      phone: addr.phone,
+      division: addr.city,
+      district: addr.city,
+      thana: addr.city,
+      fullAddress: addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ""),
+      selectedDeliveryZone: addr.zone,
+    })
+  }
 
   const scrollToTop = useCallback(() => {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -448,6 +486,23 @@ export function CheckoutForm() {
       })
       const data = await res.json()
       if (data.success) {
+        if (isLoggedIn && saveToAccount && !selectedAddressId) {
+          fetch("/api/account/addresses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              label: "Home",
+              recipientName: draft.name,
+              phone: draft.phone,
+              addressLine1: draft.fullAddress,
+              addressLine2: "",
+              city: draft.division,
+              zone: deliveryZone,
+              postalCode: "",
+              isDefault: savedAddresses.length === 0,
+            }),
+          }).catch(() => {})
+        }
         if (!isBuyNow) clearCart()
         resetDraft()
         window.dispatchEvent(new Event("cart-update"))
@@ -686,91 +741,155 @@ export function CheckoutForm() {
 
           {/* Step 1: Delivery */}
           {step === 1 && (
-            <Card className="overflow-hidden border-border/50 rounded-2xl shadow-sm">
-              <CardContent className="p-6 md:p-8 space-y-6">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary text-primary-foreground text-sm font-bold">2</span>
-                  <div>
-                    <h2 className="text-lg font-semibold">Delivery Address</h2>
-                    <p className="text-xs text-muted-foreground">Where should we send your order?</p>
+            <>
+              {isLoggedIn && savedAddresses.length > 0 && (
+                <Card className="overflow-hidden border-border/50 rounded-2xl shadow-sm">
+                  <CardContent className="p-6 md:p-8 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10">
+                        <MapPin className="h-4 w-4 text-primary" />
+                      </div>
+                      <h2 className="text-sm font-semibold">Saved Addresses</h2>
+                    </div>
+                    <div className="space-y-2">
+                      {savedAddresses.map((addr) => {
+                        const AddrIcon = addr.label === "Home" ? Home : addr.label === "Office" ? Briefcase : Users
+                        return (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedAddressId(addr.id)
+                              applyAddressToDraft(addr)
+                            }}
+                            className={`w-full flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
+                              selectedAddressId === addr.id
+                                ? "border-primary bg-primary/5"
+                                : "border-border/50 hover:border-muted-foreground/30"
+                            }`}
+                          >
+                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                              <AddrIcon className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium">{addr.label}</p>
+                                {addr.isDefault && (
+                                  <span className="text-[10px] text-primary font-medium">Default</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">{addr.addressLine1}</p>
+                              <p className="text-xs text-muted-foreground">{addr.city}</p>
+                              <p className="text-xs text-muted-foreground">{addr.recipientName} — {addr.phone}</p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="overflow-hidden border-border/50 rounded-2xl shadow-sm">
+                <CardContent className="p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary text-primary-foreground text-sm font-bold">2</span>
+                    <div>
+                      <h2 className="text-lg font-semibold">Delivery Address</h2>
+                      <p className="text-xs text-muted-foreground">Where should we send your order?</p>
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="division">Division</Label>
+                      <Input
+                        id="division"
+                        value={draft.division}
+                        onChange={(e) => { updateField("division", e.target.value); setSelectedAddressId(null) }}
+                        placeholder="Chattogram"
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="district">District</Label>
+                      <Input
+                        id="district"
+                        value={draft.district}
+                        onChange={(e) => { updateField("district", e.target.value); setSelectedAddressId(null) }}
+                        placeholder="Chattogram"
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="thana">Thana / Upazila</Label>
+                      <Input
+                        id="thana"
+                        value={draft.thana}
+                        onChange={(e) => { updateField("thana", e.target.value); setSelectedAddressId(null) }}
+                        placeholder="Kotwali"
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryZone">Delivery Zone</Label>
+                      <Select
+                        value={deliveryZone}
+                        onValueChange={(v) => {
+                          if (!v) return
+                          setDeliveryZone(v as DeliveryZone)
+                          updateField("selectedDeliveryZone", v)
+                          setSelectedAddressId(null)
+                        }}
+                      >
+                        <SelectTrigger className="h-11 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(DELIVERY_ZONE_NAMES).map(([key, name]) => (
+                            <SelectItem key={key} value={key}>
+                              {name} (৳{DELIVERY_FEES[key]})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="division">Division</Label>
+                    <Label htmlFor="fullAddress">Full Address</Label>
                     <Input
-                      id="division"
-                      value={draft.division}
-                      onChange={(e) => updateField("division", e.target.value)}
-                      placeholder="Chattogram"
+                      id="fullAddress"
+                      value={draft.fullAddress}
+                      onChange={(e) => { updateField("fullAddress", e.target.value); setSelectedAddressId(null) }}
+                      placeholder="House #, Road #, Area"
                       className="h-11 rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="district">District</Label>
+                    <Label htmlFor="note">Order Note (optional)</Label>
                     <Input
-                      id="district"
-                      value={draft.district}
-                      onChange={(e) => updateField("district", e.target.value)}
-                      placeholder="Chattogram"
+                      id="note"
+                      value={draft.note}
+                      onChange={(e) => updateField("note", e.target.value)}
+                      placeholder="Any special instructions?"
                       className="h-11 rounded-xl"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="thana">Thana / Upazila</Label>
-                    <Input
-                      id="thana"
-                      value={draft.thana}
-                      onChange={(e) => updateField("thana", e.target.value)}
-                      placeholder="Kotwali"
-                      className="h-11 rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="deliveryZone">Delivery Zone</Label>
-                    <Select
-                      value={deliveryZone}
-                      onValueChange={(v) => {
-                        if (!v) return
-                        setDeliveryZone(v as DeliveryZone)
-                        updateField("selectedDeliveryZone", v)
-                      }}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(DELIVERY_ZONE_NAMES).map(([key, name]) => (
-                          <SelectItem key={key} value={key}>
-                            {name} (৳{DELIVERY_FEES[key]})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fullAddress">Full Address</Label>
-                  <Input
-                    id="fullAddress"
-                    value={draft.fullAddress}
-                    onChange={(e) => updateField("fullAddress", e.target.value)}
-                    placeholder="House #, Road #, Area"
-                    className="h-11 rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="note">Order Note (optional)</Label>
-                  <Input
-                    id="note"
-                    value={draft.note}
-                    onChange={(e) => updateField("note", e.target.value)}
-                    placeholder="Any special instructions?"
-                    className="h-11 rounded-xl"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+
+                  {isLoggedIn && (
+                    <div className="flex items-start gap-3 pt-2 border-t border-border/50">
+                      <Checkbox
+                        id="saveAddress"
+                        checked={saveToAccount}
+                        onCheckedChange={(v) => setSaveToAccount(v === true)}
+                      />
+                      <Label htmlFor="saveAddress" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                        Save this address to my account
+                      </Label>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {/* Step 2: Offer & Payment */}

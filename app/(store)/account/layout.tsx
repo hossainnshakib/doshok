@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { SessionProvider, useSession, signOut } from "next-auth/react"
-import { User, Package, Settings, LogOut, AlertTriangle, X } from "lucide-react"
+import { User, Package, Settings, LogOut, AlertTriangle, X, MapPin } from "lucide-react"
 import { useState } from "react"
 
 function AccountLayoutContent({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,8 @@ function AccountLayoutContent({ children }: { children: React.ReactNode }) {
 
   const navLinks = [
     { href: "/account", label: "Dashboard", icon: User },
-    { href: "/account/orders", label: "My Orders", icon: Package },
+    { href: "/account/orders", label: "Orders", icon: Package },
+    { href: "/account/addresses", label: "Addresses", icon: MapPin },
     { href: "/account/profile", label: "Profile", icon: Settings },
   ]
 

@@ -68,6 +68,18 @@ export const categorySchema = z.object({
   image: z.string().optional(),
 })
 
+export const addressSchema = z.object({
+  label: z.enum(["Home", "Office", "Family", "Other"]).default("Home"),
+  recipientName: z.string().min(1, "Recipient name is required").max(100),
+  phone: z.string().min(11, "Valid phone number is required").max(20),
+  addressLine1: z.string().min(1, "Address is required").max(500),
+  addressLine2: z.string().max(500).optional().or(z.literal("")),
+  city: z.string().min(1, "City is required").max(100),
+  zone: z.enum(["chatto", "dhaka", "outside"]),
+  postalCode: z.string().max(20).optional().or(z.literal("")),
+  isDefault: z.boolean().default(false),
+})
+
 export const checkoutSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),

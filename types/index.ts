@@ -92,6 +92,25 @@ export const SHIPMENT_STATUS_FLOW: ShipmentStatus[] = [
   "CANCELLED",
 ]
 
+export const ADDRESS_LABELS = ["Home", "Office", "Family", "Other"] as const
+export type AddressLabel = typeof ADDRESS_LABELS[number]
+
+export type UserAddress = {
+  id: string
+  userId: string
+  label: AddressLabel
+  recipientName: string
+  phone: string
+  addressLine1: string
+  addressLine2: string | null
+  city: string
+  zone: string
+  postalCode: string | null
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export const DELIVERY_ZONE_NAMES: Record<DeliveryZone, string> = {
   chatto: "Inside Chattogram",
   dhaka: "Dhaka",
