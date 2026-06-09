@@ -16,7 +16,7 @@ import {
 
 const STEP_LABELS = ["Contact", "Delivery", "Payment & Offer", "Verification", "Confirm"]
 
-export function useCheckoutDraft() {
+export function useCheckoutDraft(userId?: string | null) {
   const [step, setStepState] = useState(0)
   const [draft, setDraft] = useState<CheckoutDraft>(createEmptyDraft())
   const [restored, setRestored] = useState(false)
@@ -58,8 +58,9 @@ export function useCheckoutDraft() {
       couponCode: d.couponCode || undefined,
       step: `step_${st}`,
       source: "checkout",
+      data: JSON.stringify({ userId: userId || undefined }),
     })
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     if (!restored) return

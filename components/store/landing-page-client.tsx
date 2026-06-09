@@ -10,10 +10,12 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import type { DeliveryZone } from "@/types"
 import { DELIVERY_ZONE_NAMES } from "@/types"
-import { CheckCircle, Truck, Shield, Tag, CreditCard, Minus, Plus, ChevronLeft, ChevronRight, Smartphone } from "lucide-react"
+import { CheckCircle, Truck, Shield, Tag, CreditCard, Minus, Plus, ChevronLeft, ChevronRight, Smartphone, User, LogIn, UserPlus } from "lucide-react"
+import Link from "next/link"
 import { saveLandingDraft, loadLandingDraft, clearLandingDraft, clearBuyNowContext, clearAllLandingData, saveAbandonedCheckout, getDraftToken, maskEmail, maskPhone, formatRelativeTime } from "@/lib/checkout-draft"
 import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
 import type { ConfirmationResult } from "@/lib/firebase-client"
+import { useSession } from "next-auth/react"
 
 type PaymentMethodSetting = {
   provider: string
@@ -103,6 +105,9 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const [fullAddress, setFullAddress] = useState("")
   const [note, setNote] = useState("")
 
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
+
   const [showRestoreNotice, setShowRestoreNotice] = useState(false)
   const restored = useRef(false)
   const restoredDraft = useRef<Record<string, unknown> | null>(null)
@@ -190,10 +195,11 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
         step: `step_${step}`,
         landingSlug: slug,
         source: "landing",
+        data: JSON.stringify({ phoneVerified: phoneOtpVerified, userId: session?.user?.id || undefined }),
       })
     }, 2000)
     return () => { if (abandonedTimerRef.current) clearTimeout(abandonedTimerRef.current) }
-  }, [name, email, phone, step, selectedSize, selectedColor, quantity, fullAddress, deliveryZone, couponApplied, couponCode, slug, selectedVariant])
+  }, [name, email, phone, step, selectedSize, selectedColor, quantity, fullAddress, deliveryZone, couponApplied, couponCode, slug, selectedVariant, phoneOtpVerified, session])
 
   // Auto-apply coupon from URL or product default
   useEffect(() => {
@@ -457,6 +463,23 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
           <p className="text-muted-foreground mb-8 leading-relaxed">
             Your order has been placed successfully. We will contact you shortly to confirm.
           </p>
+          {!isLoggedIn && (
+            <div className="bg-primary/[0.03] border border-primary/10 rounded-2xl p-5 mb-6">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <UserPlus className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-base font-semibold mb-1">Track future orders faster</h2>
+              <p className="text-xs text-muted-foreground mb-4">
+                Create an account to save your details and track all orders in one place.
+              </p>
+              <Link
+                href="/auth/register"
+                className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all"
+              >
+                Create an Account
+              </Link>
+            </div>
+          )}
           <div className="flex flex-col gap-3">
             <Button onClick={() => window.location.reload()} className="rounded-full h-12 px-10">
               Order Again
@@ -588,6 +611,44 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
             </div>
           </div>
         )}
+
+        {/* Identity section */}
+        <div>
+          {isLoggedIn ? (
+            <div className="rounded-2xl border border-primary/10 bg-primary/[0.03] p-4 md:p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">
+                    Checking out as <strong>{session?.user?.firstName || session?.user?.name || session?.user?.email || "Account"}</strong>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Your order will be saved to your account after phone verification.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-muted bg-muted/20 p-4 md:p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted-foreground/10">
+                  <LogIn className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Continue as guest</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Guest checkout is available. We only verify your phone before confirming the order.
+                  </p>
+                  <Link href="/auth/login" className="text-xs text-primary hover:underline mt-1 inline-block">
+                    Already have an account? Login
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Progress indicator */}
         <div className="flex items-center justify-between max-w-lg mx-auto">

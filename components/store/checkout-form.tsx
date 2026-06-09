@@ -17,10 +17,12 @@ import {
   CheckCircle, Shield, Tag, Truck, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Smartphone,
 } from "lucide-react"
 import Link from "next/link"
-import { maskEmail, maskPhone, formatRelativeTime } from "@/lib/checkout-draft"
+import { maskEmail, maskPhone, formatRelativeTime, saveAbandonedCheckout } from "@/lib/checkout-draft"
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft"
 import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
 import type { ConfirmationResult } from "@/lib/firebase-client"
+import { useSession } from "next-auth/react"
+import { User, LogIn } from "lucide-react"
 
 type PaymentMethodSetting = {
   provider: string
@@ -53,11 +55,14 @@ export function CheckoutForm() {
   const searchParams = useSearchParams()
   const isBuyNow = searchParams.has("productId")
 
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
+
   const {
     step, draft, restored, showRestoreNotice,
     goNext, goBack, updateField, updateFields, resetDraft, clearSavedDetails,
     dismissRestoreNotice, isFirstStep, isLastStep,
-  } = useCheckoutDraft()
+  } = useCheckoutDraft(session?.user?.id)
 
   const [items, setItems] = useState<(CartItem & { productName?: string })[]>([])
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZone>("dhaka")
@@ -105,6 +110,20 @@ export function CheckoutForm() {
       validateCoupon(couponCode)
     }
   }, [restored, couponCode])
+
+  const savedVerificationRef = useRef(false)
+  useEffect(() => {
+    if (!phoneOtpVerified || savedVerificationRef.current) return
+    savedVerificationRef.current = true
+    saveAbandonedCheckout({
+      name: draft.name || undefined,
+      email: draft.email || undefined,
+      phone: draft.phone || undefined,
+      step: `step_${step}`,
+      source: "checkout",
+      data: JSON.stringify({ phoneVerified: true, userId: session?.user?.id || undefined }),
+    })
+  }, [phoneOtpVerified])
 
   useEffect(() => {
     if (isBuyNow) {
@@ -469,6 +488,44 @@ export function CheckoutForm() {
           </div>
         </div>
       )}
+
+      {/* Identity section */}
+      <div className="mb-6">
+        {isLoggedIn ? (
+          <div className="rounded-2xl border border-primary/10 bg-primary/[0.03] p-4 md:p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">
+                  Checking out as <strong>{session?.user?.firstName || session?.user?.name || session?.user?.email || "Account"}</strong>
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Your order will be saved to your account after phone verification.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-muted bg-muted/20 p-4 md:p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted-foreground/10">
+                <LogIn className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Continue as guest</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Guest checkout is available. We only verify your phone before confirming the order.
+                </p>
+                <Link href="/auth/login" className="text-xs text-primary hover:underline mt-1 inline-block">
+                  Already have an account? Login
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Progress indicator */}
       <div className="mb-8">

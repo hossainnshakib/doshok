@@ -3,8 +3,9 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle, Package, MapPin, CreditCard, Truck } from "lucide-react"
+import { CheckCircle, Package, MapPin, CreditCard, Truck, UserPlus } from "lucide-react"
 
 const COURIER_NAMES: Record<string, string> = {
   PATHAO: "Pathao",
@@ -191,6 +192,26 @@ export default async function OrderConfirmationPage({
           </div>
         </CardContent>
       </Card>
+
+      {!order.userId && (
+        <Card className="mb-8 border-border/50 rounded-2xl shadow-sm bg-primary/[0.02]">
+          <CardContent className="p-6 md:p-8 text-center">
+            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <UserPlus className="h-7 w-7 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold mb-2">Track future orders faster</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+              Create an account to save your details, track all orders in one place, and enjoy a faster checkout next time.
+            </p>
+            <Link
+              href="/auth/register"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Create an Account
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="text-center">
         <Link
