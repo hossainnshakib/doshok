@@ -2,6 +2,8 @@ const DRAFT_KEY = "doshok_checkout_draft"
 const STEP_KEY = "doshok_checkout_step"
 const BUY_NOW_KEY = "doshok_buy_now"
 const LANDING_PREFIX = "doshok_landing_checkout_draft_"
+const ABANDONED_DRAFT_ID_KEY = "doshok_abandoned_draft_id"
+const ABANDONED_DRAFT_TOKEN_KEY = "doshok_abandoned_token"
 const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000
 
 export type CheckoutDraft = {
@@ -91,6 +93,7 @@ export function loadDraft(): CheckoutDraft | null {
 export function clearDraft(): void {
   safeRemove(localStorage, DRAFT_KEY)
   safeRemove(localStorage, STEP_KEY)
+  clearAbandonedDraft()
 }
 
 export function saveStep(step: number): void {
@@ -129,6 +132,7 @@ export function loadLandingDraft(slug: string): (Partial<CheckoutDraft> & { sele
 
 export function clearLandingDraft(slug: string): void {
   safeRemove(localStorage, LANDING_PREFIX + slug)
+  clearAbandonedDraft()
 }
 
 export function saveBuyNowContext(context: BuyNowContext): void {
@@ -150,25 +154,38 @@ export function clearBuyNowContext(): void {
   safeRemove(localStorage, BUY_NOW_KEY)
 }
 
+export function getDraftToken(): string {
+  let token = safeGet(localStorage, ABANDONED_DRAFT_TOKEN_KEY)
+  if (!token) {
+    const bytes = new Uint8Array(24)
+    crypto.getRandomValues(bytes)
+    token = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
+    safeSet(localStorage, ABANDONED_DRAFT_TOKEN_KEY, token)
+  }
+  return token
+}
+
 export async function saveAbandonedCheckout(data: Record<string, unknown>): Promise<void> {
   try {
-    const abandonedDraftId = safeGet(localStorage, "doshok_abandoned_draft_id")
+    const abandonedDraftId = safeGet(localStorage, ABANDONED_DRAFT_ID_KEY)
+    const draftToken = getDraftToken()
+    const payload = { ...data, draftToken, lastSeenAt: new Date().toISOString() }
 
     if (abandonedDraftId) {
       await fetch(`/api/abandoned/${abandonedDraftId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
     } else {
       const res = await fetch("/api/abandoned", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
       const result = await res.json()
       if (result.success && result.data?.id) {
-        safeSet(localStorage, "doshok_abandoned_draft_id", result.data.id)
+        safeSet(localStorage, ABANDONED_DRAFT_ID_KEY, result.data.id)
       }
     }
   } catch {
@@ -177,7 +194,12 @@ export async function saveAbandonedCheckout(data: Record<string, unknown>): Prom
 }
 
 export function clearAbandonedDraftId(): void {
-  safeRemove(localStorage, "doshok_abandoned_draft_id")
+  safeRemove(localStorage, ABANDONED_DRAFT_ID_KEY)
+}
+
+export function clearAbandonedDraft(): void {
+  safeRemove(localStorage, ABANDONED_DRAFT_ID_KEY)
+  safeRemove(localStorage, ABANDONED_DRAFT_TOKEN_KEY)
 }
 
 export function hasRecentDraft(): boolean {

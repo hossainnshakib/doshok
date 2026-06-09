@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
+import { abandonedPublicUpdateSchema, abandonedAdminUpdateSchema } from "@/lib/validations"
 
 export async function GET(
   _request: NextRequest,
@@ -29,18 +30,53 @@ export async function PATCH(
 
   try {
     const body = await request.json()
-    const allowed = ["contacted", "notes", "landingSlug", "productId", "variantId", "quantity", "size", "color", "deliveryZone", "address", "name", "email", "phone", "step", "couponCode", "subtotal", "discount", "total", "data"]
 
-    const filtered: Record<string, unknown> = {}
-    for (const key of allowed) {
-      if (key in body) filtered[key] = body[key]
+    if (body.draftToken) {
+      const parsed = abandonedPublicUpdateSchema.safeParse(body)
+      if (!parsed.success) {
+return error("Invalid payload: " + parsed.error.issues.map(e => e.message).join(", "))
+      }
+
+      const existing = await prisma.abandonedCheckout.findUnique({ where: { id } })
+      if (!existing) return error("Not found", 404)
+      if (existing.draftToken !== parsed.data.draftToken) {
+        return error("Forbidden", 403)
+      }
+
+      const { draftToken: _, cartData, selectedVariant, lastSeenAt, ...rest } = parsed.data
+
+      const updateData: Record<string, unknown> = {
+        ...rest,
+        lastSeenAt: lastSeenAt ? new Date(lastSeenAt) : new Date(),
+      }
+
+      if (parsed.data.data !== undefined) {
+        updateData.data = typeof parsed.data.data === "string"
+          ? parsed.data.data
+          : JSON.stringify(parsed.data.data)
+      }
+
+      const item = await prisma.abandonedCheckout.update({
+        where: { id },
+        data: updateData,
+      })
+
+      return success({ id: item.id, step: item.step })
+    }
+
+    const session = await auth()
+    if (!session?.user) return error("Unauthorized", 401)
+
+    const parsed = abandonedAdminUpdateSchema.safeParse(body)
+    if (!parsed.success) {
+      return error("Invalid payload: " + parsed.error.issues.map(e => e.message).join(", "))
     }
 
     const item = await prisma.abandonedCheckout.update({
       where: { id },
-      data: filtered,
+      data: parsed.data,
     })
-    return success(item)
+    return success({ id: item.id, contacted: item.contacted })
   } catch {
     return error("Failed to update abandoned checkout")
   }

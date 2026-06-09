@@ -15,6 +15,7 @@ import { AdminPageHeader, AdminSectionCard } from "@/components/admin/admin-ui"
 
 type AbandonedCheckout = {
   id: string
+  draftToken: string
   landingSlug: string | null
   name: string | null
   email: string | null
@@ -27,9 +28,15 @@ type AbandonedCheckout = {
   color: string | null
   deliveryZone: string | null
   step: string
+  couponCode: string | null
+  subtotal: number
+  discount: number
+  total: number
   contacted: boolean
   notes: string | null
   data: string
+  source: string | null
+  lastSeenAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -104,6 +111,13 @@ export default function AdminAbandonedDetailPage() {
             <div><span className="font-medium">Variant:</span> {[item.size, item.color].filter(Boolean).join(" / ") || "-"}</div>
             <div><span className="font-medium">Quantity:</span> {item.quantity ?? "-"}</div>
             <div><span className="font-medium">Delivery zone:</span> {item.deliveryZone || "-"}</div>
+            {item.couponCode && <div><span className="font-medium">Coupon:</span> {item.couponCode}</div>}
+            {item.subtotal > 0 && <div><span className="font-medium">Subtotal:</span> ৳{item.subtotal.toLocaleString()}</div>}
+            {item.total > 0 && <div><span className="font-medium">Total:</span> ৳{item.total.toLocaleString()}</div>}
+            <div><span className="font-medium">Source:</span> {item.source || "unknown"}</div>
+            {item.lastSeenAt && (
+              <div><span className="font-medium">Last seen:</span> {new Date(item.lastSeenAt).toLocaleString()}</div>
+            )}
             <Separator />
             <div>
               <span className="font-medium">Created:</span>{" "}

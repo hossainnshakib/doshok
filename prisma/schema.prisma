@@ -254,6 +254,7 @@ model OrderShipment {
 
 model AbandonedCheckout {
   id           String   @id @default(cuid())
+  draftToken   String   @unique
   landingSlug  String?
   name         String?
   email        String?
@@ -273,6 +274,11 @@ model AbandonedCheckout {
   contacted    Boolean  @default(false)
   notes        String?
   data         String   @default("{}")
+  source       String?
+  lastSeenAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([draftToken])
 }

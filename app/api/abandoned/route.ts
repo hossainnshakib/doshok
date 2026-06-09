@@ -2,45 +2,54 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
+import { abandonedCreateSchema } from "@/lib/validations"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const sanitized: Record<string, unknown> = {}
-    const fields = ["landingSlug", "productId", "variantId", "quantity", "size", "color", "deliveryZone", "address", "name", "email", "phone", "step", "couponCode", "subtotal", "discount", "total", "notes", "data"]
-    for (const key of fields) {
-      if (body[key] !== undefined) sanitized[key] = body[key]
+    const parsed = abandonedCreateSchema.safeParse(body)
+    if (!parsed.success) {
+      return error("Invalid payload: " + parsed.error.issues.map(e => e.message).join(", "))
     }
 
-    sanitized.data = body.data || JSON.stringify(body.data || {})
+    const { draftToken, data, lastSeenAt, ...rest } = parsed.data
 
-    if (body.email) {
-      sanitized.email = body.email
-    }
-    if (body.phone) {
-      sanitized.phone = body.phone
+    if (!rest.email && !rest.phone) {
+      return error("At least email or phone is required")
     }
 
-    let abandoned
+    const upsertData: Record<string, unknown> = {
+      ...rest,
+      data: data ? (typeof data === "string" ? data : JSON.stringify(data)) : "{}",
+      lastSeenAt: lastSeenAt ? new Date(lastSeenAt) : new Date(),
+    }
 
-    if (body.email) {
-      const existing = await prisma.abandonedCheckout.findFirst({
-        where: { email: body.email },
-        orderBy: { createdAt: "desc" },
+    let abandoned = await prisma.abandonedCheckout.findUnique({
+      where: { draftToken },
+    })
+
+    if (abandoned) {
+      abandoned = await prisma.abandonedCheckout.update({
+        where: { id: abandoned.id },
+        data: upsertData,
       })
-      if (existing) {
-        abandoned = await prisma.abandonedCheckout.update({
-          where: { id: existing.id },
-          data: sanitized,
-        })
-        return success(abandoned)
-      }
+    } else {
+      abandoned = await prisma.abandonedCheckout.create({
+        data: {
+          draftToken,
+          ...upsertData,
+        },
+      })
     }
 
-    abandoned = await prisma.abandonedCheckout.create({ data: sanitized })
-    return success(abandoned, 201)
-  } catch {
+    return success({
+      id: abandoned.id,
+      draftToken: abandoned.draftToken,
+      step: abandoned.step,
+    })
+  } catch (err) {
+    console.error("POST /api/abandoned error:", err)
     return error("Failed to save abandoned checkout")
   }
 }

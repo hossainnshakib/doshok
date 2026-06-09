@@ -101,6 +101,56 @@ export const otpSchema = z.object({
   code: z.string().length(6),
 })
 
+export const abandonedPublicUpdateSchema = z.object({
+  draftToken: z.string().min(1, "draftToken is required"),
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  cartData: z.any().optional(),
+  productId: z.string().optional(),
+  step: z.string().optional(),
+  couponCode: z.string().optional(),
+  subtotal: z.number().optional(),
+  discount: z.number().optional(),
+  total: z.number().optional(),
+  selectedVariant: z.any().optional(),
+  size: z.string().optional(),
+  color: z.string().optional(),
+  quantity: z.number().int().optional(),
+  deliveryZone: z.string().optional(),
+  address: z.string().optional(),
+  data: z.any().optional(),
+  lastSeenAt: z.string().optional(),
+})
+
+export const abandonedCreateSchema = z.object({
+  draftToken: z.string().min(1, "draftToken is required"),
+  source: z.enum(["checkout", "landing"]).optional(),
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  landingSlug: z.string().optional(),
+  productId: z.string().optional(),
+  variantId: z.string().optional(),
+  quantity: z.number().int().optional(),
+  size: z.string().optional(),
+  color: z.string().optional(),
+  deliveryZone: z.string().optional(),
+  address: z.string().optional(),
+  step: z.string().optional(),
+  couponCode: z.string().optional(),
+  subtotal: z.number().optional(),
+  discount: z.number().optional(),
+  total: z.number().optional(),
+  data: z.any().optional(),
+  lastSeenAt: z.string().optional(),
+})
+
+export const abandonedAdminUpdateSchema = z.object({
+  contacted: z.boolean().optional(),
+  notes: z.string().optional(),
+})
+
 export const paymentProvider = z.enum([
   "BKASH", "NAGAD", "ROCKET", "UPAY", "SSLCOMMERZ", "AAMARPAY", "COD",
 ])

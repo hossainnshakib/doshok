@@ -10,6 +10,7 @@ import {
   saveStep,
   loadStep,
   hasRecentDraft,
+  saveAbandonedCheckout,
 } from "@/lib/checkout-draft"
 
 const STEP_LABELS = ["Contact", "Delivery", "Payment & Offer", "Verification", "Confirm"]
@@ -20,7 +21,9 @@ export function useCheckoutDraft() {
   const [restored, setRestored] = useState(false)
   const [showRestoreNotice, setShowRestoreNotice] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const abandonedRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const initialized = useRef(false)
+  const lastAbandonedSave = useRef(0)
 
   useEffect(() => {
     if (initialized.current) return
@@ -38,6 +41,33 @@ export function useCheckoutDraft() {
     }
     setRestored(true)
   }, [])
+
+  const persistAbandoned = useCallback((d: CheckoutDraft, st: number) => {
+    const now = Date.now()
+    if (now - lastAbandonedSave.current < 5000) return
+    lastAbandonedSave.current = now
+    const hasData = d.name || d.email || d.phone
+    if (!hasData) return
+    saveAbandonedCheckout({
+      name: d.name || undefined,
+      email: d.email || undefined,
+      phone: d.phone || undefined,
+      address: d.fullAddress || undefined,
+      deliveryZone: d.selectedDeliveryZone || undefined,
+      couponCode: d.couponCode || undefined,
+      step: `step_${st}`,
+      source: "checkout",
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!restored) return
+    if (!draft.name && !draft.email && !draft.phone) return
+    if (abandonedRef.current) clearTimeout(abandonedRef.current)
+    abandonedRef.current = setTimeout(() => {
+      persistAbandoned(draft, step)
+    }, 2000)
+  }, [draft, step, restored, persistAbandoned])
 
   const persistDraft = useCallback((updated: CheckoutDraft) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)

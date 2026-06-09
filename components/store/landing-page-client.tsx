@@ -11,7 +11,7 @@ import { toast } from "sonner"
 import type { DeliveryZone } from "@/types"
 import { DELIVERY_ZONE_NAMES } from "@/types"
 import { CheckCircle, Truck, Shield, Tag, CreditCard, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react"
-import { createEmptyDraft, saveLandingDraft, loadLandingDraft, clearLandingDraft, clearBuyNowContext } from "@/lib/checkout-draft"
+import { createEmptyDraft, saveLandingDraft, loadLandingDraft, clearLandingDraft, clearBuyNowContext, saveAbandonedCheckout, getDraftToken } from "@/lib/checkout-draft"
 
 type PaymentMethodSetting = {
   provider: string
@@ -154,6 +154,38 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const subtotal = product.price * quantity
   const discount = couponDiscount
   const total = subtotal + deliveryFee - discount
+
+  const lastAbandonedSave = useRef(0)
+  const abandonedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => {
+    const now = Date.now()
+    if (now - lastAbandonedSave.current < 5000) return
+    if (!name && !email && !phone) return
+    lastAbandonedSave.current = now
+    if (abandonedTimerRef.current) clearTimeout(abandonedTimerRef.current)
+    abandonedTimerRef.current = setTimeout(() => {
+      saveAbandonedCheckout({
+        name: name || undefined,
+        email: email || undefined,
+        phone: phone || undefined,
+        productId: product.id,
+        variantId: selectedVariant?.id,
+        quantity,
+        size: selectedSize || undefined,
+        color: selectedColor || undefined,
+        address: fullAddress || undefined,
+        deliveryZone,
+        couponCode: couponApplied ? couponCode : undefined,
+        subtotal,
+        discount,
+        total,
+        step: `step_${step}`,
+        landingSlug: slug,
+        source: "landing",
+      })
+    }, 2000)
+    return () => { if (abandonedTimerRef.current) clearTimeout(abandonedTimerRef.current) }
+  }, [name, email, phone, step, selectedSize, selectedColor, quantity, fullAddress, deliveryZone, couponApplied, couponCode, slug, selectedVariant])
 
   // Auto-apply coupon from URL or product default
   useEffect(() => {
