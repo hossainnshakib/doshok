@@ -16,7 +16,14 @@ export default async function AdminOrderDetailPage({
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: true, address: true, shipment: true },
+    include: {
+      items: true,
+      address: true,
+      shipment: true,
+      transactions: {
+        orderBy: { verifiedAt: "desc" },
+      },
+    },
   })
 
   if (!order) notFound()
@@ -65,13 +72,46 @@ export default async function AdminOrderDetailPage({
           <div className="flex flex-wrap gap-2 mb-4">
             <AdminStatusBadge status={order.paymentStatus} type="payment" />
             <AdminStatusBadge status={order.orderStatus} type="order" />
+            <AdminStatusBadge status={order.paymentMethod.toUpperCase()} type="default" />
           </div>
-          {order.bkashTrxId && (
-            <div className="mb-3 text-sm">
-              <span className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-400">bKash TrxID:</span>{" "}
-              <span className="font-mono text-xs">{order.bkashTrxId}</span>
-            </div>
-          )}
+          <div className="space-y-2 text-sm">
+            {order.bkashTrxId && (
+              <div className="flex items-center gap-3">
+                <span className="w-20 shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-neutral-400">bKash TrxID</span>
+                <span className="font-mono text-xs">{order.bkashTrxId}</span>
+              </div>
+            )}
+            {order.transactions.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="w-20 shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-neutral-400">Provider</span>
+                <span className="font-mono text-xs">{order.transactions[0].provider}</span>
+              </div>
+            )}
+            {order.paymentVerifiedAt && (
+              <div className="flex items-center gap-3">
+                <span className="w-20 shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-neutral-400">Verified At</span>
+                <span className="text-xs">{order.paymentVerifiedAt.toLocaleString()}</span>
+              </div>
+            )}
+            {order.paymentExpiresAt && order.paymentStatus === "pending" && (
+              <div className="flex items-center gap-3">
+                <span className="w-20 shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-neutral-400">Expires At</span>
+                <span className="text-xs">{order.paymentExpiresAt.toLocaleString()}</span>
+              </div>
+            )}
+            {order.transactions.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-black/5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-400 mb-1">Transactions</p>
+                {order.transactions.map((tx) => (
+                  <div key={tx.id} className="flex items-center gap-3 text-xs">
+                    <span className="font-mono">{tx.trxId}</span>
+                    <AdminStatusBadge status={tx.status} />
+                    {tx.verifiedAt && <span className="text-neutral-400">{tx.verifiedAt.toLocaleString()}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <UpdateOrderStatus orderId={order.id} currentOrderStatus={order.orderStatus} currentPaymentStatus={order.paymentStatus} />
         </AdminSectionCard>
       </div>

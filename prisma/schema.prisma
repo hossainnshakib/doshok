@@ -197,10 +197,18 @@ model Order {
   orderStatus    String          @default("pending")
   notes          String?
   couponCode     String?
+  paymentExpiresAt   DateTime?
+  paymentVerifiedAt  DateTime?
+  refundedAt     DateTime?
+  refundAmount   Int              @default(0)
+  refundReason   String?
+  refundTrxId    String?
+  transactions   PaymentTransaction[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   @@index([userId])
+  @@index([bkashTrxId])
 }
 
 model OrderItem {
@@ -218,6 +226,24 @@ model OrderItem {
   price     Int
 }
 
+model PaymentTransaction {
+  id               String    @id @default(cuid())
+  orderId          String
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider         String    @default("BKASH")
+  trxId            String    @unique
+  amount           Int
+  status           String    @default("initiated")
+  providerResponse String?
+  initiatedAt      DateTime  @default(now())
+  verifiedAt       DateTime?
+  completedAt      DateTime?
+
+  @@index([orderId])
+  @@index([trxId])
+  @@index([status])
+}
+
 model Coupon {
   id         String   @id @default(cuid())
   code       String   @unique
@@ -225,11 +251,26 @@ model Coupon {
   type       String   @default("flat")
   minOrder   Int      @default(0)
   maxUses    Int?
+  maxUsesPerCustomer Int?
   usedCount  Int      @default(0)
   expiresAt  DateTime?
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  usages     CouponUsage[]
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String?
+  email     String
+  orderId   String
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@index([couponId, email])
 }
 
 model OtpVerification {

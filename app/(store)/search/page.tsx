@@ -19,11 +19,48 @@ export default async function SearchPage({
           OR: [
             { name: { contains: q, mode: "insensitive" } },
             { slug: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
             { category: { name: { contains: q, mode: "insensitive" } } },
+            { variants: { some: { sku: { contains: q, mode: "insensitive" } } } },
           ],
         },
         include: { variants: true, category: true },
         orderBy: { createdAt: "desc" },
+      })
+    : []
+
+  const rankedProducts = q && products.length > 0
+    ? products.sort((a, b) => {
+        const qLower = q.toLowerCase()
+        const aName = a.name.toLowerCase()
+        const bName = b.name.toLowerCase()
+        const aHasName = aName.includes(qLower)
+        const bHasName = bName.includes(qLower)
+        if (aHasName && !bHasName) return -1
+        if (bHasName && !aHasName) return 1
+        if (aHasName && bHasName) {
+          const aExact = aName === qLower
+          const bExact = bName === qLower
+          if (aExact && !bExact) return -1
+          if (bExact && !aExact) return 1
+          const aStarts = aName.startsWith(qLower)
+          const bStarts = bName.startsWith(qLower)
+          if (aStarts && !bStarts) return -1
+          if (bStarts && !aStarts) return 1
+        }
+        const aHasSku = a.variants.some((v) => v.sku?.toLowerCase().includes(qLower))
+        const bHasSku = b.variants.some((v) => v.sku?.toLowerCase().includes(qLower))
+        if (aHasSku && !bHasSku) return -1
+        if (bHasSku && !aHasSku) return 1
+        const aHasCat = a.category.name.toLowerCase().includes(qLower)
+        const bHasCat = b.category.name.toLowerCase().includes(qLower)
+        if (aHasCat && !bHasCat) return -1
+        if (bHasCat && !aHasCat) return 1
+        const aHasDesc = (a.description ?? "").toLowerCase().includes(qLower)
+        const bHasDesc = (b.description ?? "").toLowerCase().includes(qLower)
+        if (aHasDesc && !bHasDesc) return 1
+        if (bHasDesc && !aHasDesc) return -1
+        return 0
       })
     : []
 
@@ -124,7 +161,7 @@ export default async function SearchPage({
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
-          {products.map((product) => (
+          {rankedProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

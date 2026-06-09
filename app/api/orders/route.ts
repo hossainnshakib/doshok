@@ -8,35 +8,61 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const phone = searchParams.get("phone")
   const userId = searchParams.get("userId")
+  const status = searchParams.get("status")
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+  const limit = 25
+  const skip = (page - 1) * limit
 
   if (userId) {
     if (!session?.user) return error("Unauthorized", 401)
     if (session.user.id !== userId && session.user.role !== "admin") {
       return error("Forbidden", 403)
     }
-    const orders = await prisma.order.findMany({
-      where: { userId },
-      include: { items: true, address: true },
-      orderBy: { createdAt: "desc" },
-    })
-    return success(orders)
+    const where = { userId }
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: { items: true, address: true },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip,
+      }),
+      prisma.order.count({ where }),
+    ])
+    return success({ orders, total, page, pages: Math.ceil(total / limit) })
   }
 
   if (phone) {
-    const orders = await prisma.order.findMany({
-      where: { customerPhone: phone },
-      include: { items: true, address: true },
-      orderBy: { createdAt: "desc" },
-    })
-    return success(orders)
+    const where = { customerPhone: phone }
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: { items: true, address: true },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip,
+      }),
+      prisma.order.count({ where }),
+    ])
+    return success({ orders, total, page, pages: Math.ceil(total / limit) })
   }
 
   if (!session?.user) return error("Unauthorized", 401)
   if (session.user.role !== "admin") return error("Forbidden", 403)
 
-  const orders = await prisma.order.findMany({
-    include: { items: true, address: true },
-    orderBy: { createdAt: "desc" },
-  })
-  return success(orders)
+  const where: Record<string, unknown> = {}
+  if (status && status !== "all") where.orderStatus = status
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      include: { items: true, address: true },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip,
+    }),
+    prisma.order.count({ where }),
+  ])
+
+  return success({ orders, total, page, pages: Math.ceil(total / limit) })
 }

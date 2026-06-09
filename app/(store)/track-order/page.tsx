@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { CreditCard, MapPin, Package, Search, Truck } from "lucide-react"
+import { CreditCard, MapPin, Package, Search, Truck, RefreshCw, Clock, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import Link from "next/link"
 
 type ShipmentInfo = {
   courierProvider: string
@@ -17,6 +18,7 @@ type ShipmentInfo = {
 }
 
 type Order = {
+  id: string
   orderNumber: string
   customerName: string
   customerPhone: string
@@ -27,6 +29,9 @@ type Order = {
   paymentMethod: string
   paymentStatus: string
   orderStatus: string
+  paymentExpiresAt: string | null
+  bkashTrxId: string | null
+  paymentVerifiedAt: string | null
   createdAt: string
   shipment: ShipmentInfo | null
   items: {
@@ -43,6 +48,13 @@ type Order = {
     thana: string
     fullAddress: string
   } | null
+  transactions?: {
+    id: string
+    trxId: string
+    status: string
+    amount: number
+    verifiedAt: string | null
+  }[]
 }
 
 const COURIER_NAMES: Record<string, string> = {
@@ -79,6 +91,7 @@ export default function TrackOrderPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [retrying, setRetrying] = useState(false)
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -103,6 +116,28 @@ export default function TrackOrderPage() {
       toast.error("Something went wrong")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleRetryPayment() {
+    if (!order) return
+    setRetrying(true)
+    try {
+      const res = await fetch("/api/payment/bkash/retry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      })
+      const d = await res.json()
+      if (d.success && d.data?.paymentUrl) {
+        window.location.href = d.data.paymentUrl
+      } else {
+        toast.error(d.error ?? "Failed to initialize payment")
+      }
+    } catch {
+      toast.error("Something went wrong")
+    } finally {
+      setRetrying(false)
     }
   }
 
@@ -264,7 +299,7 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
                   {[
                     ["Placed", new Date(order.createdAt).toLocaleDateString()],
                     ["Payment", order.paymentStatus === "paid" ? "Paid" : "Pending"],
-                    ["Method", order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod],
+                    ["Method", order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod.toUpperCase()],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-2xl bg-neutral-50 p-4">
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">{label}</p>
@@ -272,6 +307,40 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
                     </div>
                   ))}
                 </div>
+
+                {order.transactions && order.transactions.length > 0 && order.paymentStatus === "paid" && (
+                  <div className="mt-3 rounded-2xl bg-neutral-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400 mb-2">Transaction ID</p>
+                    <p className="font-mono text-sm font-bold">{order.transactions[0].trxId}</p>
+                  </div>
+                )}
+
+                {order.paymentMethod.toLowerCase() === "bkash" && order.paymentStatus === "pending" && order.orderStatus === "pending" && (
+                  <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    {order.paymentExpiresAt && new Date(order.paymentExpiresAt) > new Date() ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-amber-700">
+                          <Clock className="h-4 w-4" />
+                          <span>Payment expires {new Date(order.paymentExpiresAt).toLocaleString()}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full rounded-full"
+                          onClick={handleRetryPayment}
+                          disabled={retrying}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1.5" />
+                          {retrying ? "Loading..." : "Retry Payment"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-red-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>Payment window expired</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {order.shipment && order.shipment.status !== "NOT_CREATED" && (

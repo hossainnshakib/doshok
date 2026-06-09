@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Package, MapPin, CreditCard, ShoppingCart, RotateCcw, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Package, MapPin, CreditCard, ShoppingCart, RotateCcw, AlertTriangle, RefreshCw, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { addToCart } from "@/lib/cart"
 import { OrderTimeline } from "@/components/store/order-timeline"
@@ -24,6 +24,9 @@ type Order = {
   paymentMethod: string
   paymentStatus: string
   orderStatus: string
+  paymentExpiresAt: string | null
+  bkashTrxId: string | null
+  paymentVerifiedAt: string | null
   createdAt: string
   items: {
     id: string
@@ -39,6 +42,13 @@ type Order = {
     thana: string
     fullAddress: string
   } | null
+  transactions?: {
+    id: string
+    trxId: string
+    status: string
+    amount: number
+    verifiedAt: string | null
+  }[]
 }
 
 type ReorderResult = {
@@ -85,6 +95,7 @@ export default function AccountOrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [reordering, setReordering] = useState(false)
+  const [retrying, setRetrying] = useState(false)
   const [reorderResult, setReorderResult] = useState<ReorderResult | null>(null)
 
   useEffect(() => {
@@ -97,6 +108,28 @@ export default function AccountOrderDetailPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [orderNumber, phone])
+
+  async function handleRetryPayment() {
+    if (!order) return
+    setRetrying(true)
+    try {
+      const res = await fetch("/api/payment/bkash/retry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      })
+      const d = await res.json()
+      if (d.success && d.data?.paymentUrl) {
+        window.location.href = d.data.paymentUrl
+      } else {
+        toast.error(d.error ?? "Failed to initialize payment")
+      }
+    } catch {
+      toast.error("Something went wrong")
+    } finally {
+      setRetrying(false)
+    }
+  }
 
   async function handleReorder(mode: "cart" | "checkout") {
     setReordering(true)
@@ -247,7 +280,68 @@ export default function AccountOrderDetailPage() {
             <Badge variant={order.paymentStatus === "paid" ? "default" : "secondary"} className="rounded-full">
               {order.paymentStatus === "paid" ? "Paid" : "Payment Pending"}
             </Badge>
+            {order.paymentMethod.toLowerCase() !== "cod" && (
+              <Badge variant="outline" className="rounded-full">
+                {order.paymentMethod.toUpperCase()}
+              </Badge>
+            )}
           </div>
+
+          {order.transactions && order.transactions.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction</p>
+              {order.transactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between text-sm">
+                  <span className="font-mono text-xs">{tx.trxId}</span>
+                  <Badge
+                    variant={tx.status === "success" ? "default" : tx.status === "failed" ? "destructive" : "secondary"}
+                    className="rounded-full text-[10px]"
+                  >
+                    {tx.status}
+                  </Badge>
+                </div>
+              ))}
+              {order.bkashTrxId && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-xs text-muted-foreground">bKash TrxID:</span>
+                  <span className="font-mono text-xs">{order.bkashTrxId}</span>
+                </div>
+              )}
+              {order.paymentVerifiedAt && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-xs text-muted-foreground">Verified:</span>
+                  <span className="text-xs">{new Date(order.paymentVerifiedAt).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {order.paymentMethod.toLowerCase() === "bkash" && order.paymentStatus === "pending" && order.orderStatus === "pending" && (
+            <div className="mt-4">
+              {order.paymentExpiresAt && new Date(order.paymentExpiresAt) > new Date() ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-amber-600">
+                    <Clock className="h-4 w-4" />
+                    <span>Payment expires {new Date(order.paymentExpiresAt).toLocaleString()}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    onClick={handleRetryPayment}
+                    disabled={retrying}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1.5" />
+                    {retrying ? "Loading..." : "Retry Payment"}
+                  </Button>
+                </div>
+              ) : order.paymentExpiresAt ? (
+                <div className="flex items-center gap-2 text-sm text-red-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>Payment window expired</span>
+                </div>
+              ) : null}
+            </div>
+          )}
         </CardContent>
       </Card>
 

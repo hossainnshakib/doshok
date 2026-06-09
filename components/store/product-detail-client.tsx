@@ -412,7 +412,18 @@ export function ProductDetailClient({
             <button className="flex items-center justify-center gap-2 rounded-lg border border-border py-3 transition-colors hover:bg-muted hover:text-foreground">
               <Heart className="h-4 w-4" /> Wishlist
             </button>
-            <button className="flex items-center justify-center gap-2 rounded-lg border border-border py-3 transition-colors hover:bg-muted hover:text-foreground">
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/products/${product.slug}`
+                const shareData = { title: product.name, url }
+                if (navigator.share && navigator.canShare?.(shareData)) {
+                  navigator.share(shareData).catch(() => {})
+                } else {
+                  navigator.clipboard.writeText(url).then(() => toast.success("Link copied!")).catch(() => toast.error("Failed to copy"))
+                }
+              }}
+              className="flex items-center justify-center gap-2 rounded-lg border border-border py-3 transition-colors hover:bg-muted hover:text-foreground"
+            >
               <Share2 className="h-4 w-4" /> Share
             </button>
           </div>

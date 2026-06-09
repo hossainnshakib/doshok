@@ -27,6 +27,16 @@ export async function GET(
           customerNote: true,
         },
       },
+      transactions: {
+        select: {
+          id: true,
+          trxId: true,
+          status: true,
+          amount: true,
+          verifiedAt: true,
+        },
+        orderBy: { verifiedAt: "desc" },
+      },
     },
   })
 

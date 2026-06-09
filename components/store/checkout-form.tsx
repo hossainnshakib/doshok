@@ -515,7 +515,17 @@ export function CheckoutForm() {
         if (!isBuyNow) clearCart()
         resetDraft()
         window.dispatchEvent(new Event("cart-update"))
-        const orderNumber = data.data?.order?.orderNumber
+
+        const paymentInitData = data.data?.paymentInitData
+        const order = data.data?.order
+        const orderId = order?.id
+
+        if (paymentInitData?.paymentUrl && orderId) {
+          window.location.href = paymentInitData.paymentUrl
+          return
+        }
+
+        const orderNumber = order?.orderNumber
         if (orderNumber) {
           router.push(`/order/${orderNumber}`)
         } else {
@@ -978,35 +988,34 @@ export function CheckoutForm() {
                       {paymentMethods.map((pm) => {
                         const isOnline = ONLINE_PROVIDERS.includes(pm.provider)
                         const isCod = pm.provider === "COD"
+                        const isBkash = pm.provider === "BKASH"
                         return (
                           <div
                             key={pm.provider}
                             className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${
-                              isOnline
-                                ? "opacity-60 border-dashed bg-muted/20"
-                                : paymentMethod === pm.provider.toLowerCase()
-                                  ? "border-primary bg-primary/5"
-                                  : "hover:border-muted-foreground/30"
+                              paymentMethod === pm.provider.toLowerCase()
+                                ? "border-primary bg-primary/5"
+                                : "hover:border-muted-foreground/30"
                             }`}
                           >
                             <RadioGroupItem
                               value={pm.provider.toLowerCase()}
                               id={pm.provider}
-                              disabled={isOnline}
                             />
                             <div className="flex-1 min-w-0">
                               <Label
                                 htmlFor={pm.provider}
-                                className={`font-medium text-sm ${
-                                  isOnline
-                                    ? "text-muted-foreground cursor-not-allowed"
-                                    : "cursor-pointer"
-                                }`}
+                                className="font-medium text-sm cursor-pointer"
                               >
                                 {pm.displayName}
-                                {isOnline && (
+                                {isOnline && !isBkash && (
                                   <span className="ml-2 text-xs text-muted-foreground italic">
-                                    — Setup ready
+                                    — Coming soon
+                                  </span>
+                                )}
+                                {isBkash && pm.enabled && (
+                                  <span className="ml-2 text-xs text-green-600 font-medium">
+                                    — Pay now
                                   </span>
                                 )}
                               </Label>

@@ -10,6 +10,7 @@ const couponSchema = z.object({
   type: z.enum(["flat", "percent"]).default("flat"),
   minOrder: z.number().nonnegative().default(0),
   maxUses: z.number().int().positive().optional(),
+  maxUsesPerCustomer: z.number().int().positive().optional(),
   expiresAt: z.string().optional(),
   active: z.boolean().default(true),
 })

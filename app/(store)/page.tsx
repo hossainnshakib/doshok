@@ -23,7 +23,7 @@ type HomeCategory = {
 }
 
 async function getHomepageData() {
-  const [categories, latestProducts, saleProducts, featuredProducts] = await Promise.all([
+  const [categories, latestProducts, saleProducts, featuredConfig] = await Promise.all([
     prisma.category.findMany({
       orderBy: { name: "asc" },
       take: 8,
@@ -40,13 +40,27 @@ async function getHomepageData() {
       orderBy: { updatedAt: "desc" },
       take: 8,
     }),
-    prisma.product.findMany({
-      where: { status: "Active", featured: true },
-      include: { variants: true, category: true },
-      orderBy: { updatedAt: "desc" },
-      take: 12,
+    prisma.homepageConfig.findUnique({
+      where: { id: "homepage" },
+      select: { featuredIds: true },
     }),
   ])
+
+  let featuredIds: string[] = []
+  try {
+    const parsed = JSON.parse(featuredConfig?.featuredIds ?? "[]")
+    if (Array.isArray(parsed)) featuredIds = parsed
+  } catch {}
+
+  let featuredProducts: HomeProduct[] = []
+  if (featuredIds.length > 0) {
+    const products = await prisma.product.findMany({
+      where: { id: { in: featuredIds }, status: "Active" },
+      include: { variants: true, category: true },
+    })
+    const orderMap = new Map(featuredIds.map((id, index) => [id, index]))
+    featuredProducts = products.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999))
+  }
 
   return { categories, latestProducts, saleProducts, featuredProducts }
 }

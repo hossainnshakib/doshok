@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle, Package, MapPin, CreditCard, Truck, UserPlus } from "lucide-react"
+import { CheckCircle, Package, MapPin, CreditCard, Truck, UserPlus, AlertTriangle, Clock } from "lucide-react"
+import type { Metadata } from "next"
 
 const COURIER_NAMES: Record<string, string> = {
   PATHAO: "Pathao",
@@ -27,12 +28,15 @@ const SHIPMENT_STATUS_NAMES: Record<string, string> = {
 
 export default async function OrderConfirmationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderNumber: string }>
+  searchParams: Promise<{ payment?: string; orderId?: string }>
 }) {
   const { orderNumber } = await params
+  const sp = await searchParams
 
-  const order = await prisma.order.findUnique({
+  let order = await prisma.order.findUnique({
     where: { orderNumber },
     include: {
       items: true,
@@ -48,19 +52,98 @@ export default async function OrderConfirmationPage({
     },
   })
 
+  if (!order && sp.orderId) {
+    order = await prisma.order.findUnique({
+      where: { id: sp.orderId },
+      include: {
+        items: true,
+        address: true,
+        shipment: {
+          select: {
+            courierProvider: true,
+            status: true,
+            trackingCode: true,
+            customerNote: true,
+          },
+        },
+      },
+    })
+  }
+
   if (!order) notFound()
 
   const dueAmount = order.total - order.paidAmount
+  const isBkashPayment = order.paymentMethod.toLowerCase() === "bkash"
+  const isPaymentSuccess = sp.payment === "success"
+  const canRetryPayment = isBkashPayment
+    && order.paymentStatus === "pending"
+    && order.orderStatus === "pending"
+    && order.paymentExpiresAt
+    && new Date(order.paymentExpiresAt) > new Date()
+
+  const expiryInfo = order.paymentExpiresAt ? (() => {
+    const diff = new Date(order.paymentExpiresAt!).getTime() - Date.now()
+    if (diff <= 0) return null
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    return hours > 0 ? `${hours}h ${minutes}m remaining` : `${minutes}m remaining`
+  })() : null
+
+  const paymentInfo = await (async () => {
+    if (order.paymentStatus !== "paid") return null
+    const tx = await prisma.paymentTransaction.findFirst({
+      where: { orderId: order.id },
+      orderBy: { verifiedAt: "desc" },
+    })
+    return tx
+  })()
+
+  const showSuccessBanner = isPaymentSuccess && order.paymentStatus === "paid"
+  const showPendingBanner = isBkashPayment && order.paymentStatus === "pending" && !isPaymentSuccess
 
   return (
     <div className="container mx-auto container-px py-8 md:py-12 max-w-3xl">
+      {showSuccessBanner ? (
+        <div className="mb-8 rounded-2xl border border-green-200 bg-green-50 p-5 text-center">
+          <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <CheckCircle className="h-7 w-7 text-green-600" />
+          </div>
+          <h2 className="text-lg font-semibold text-green-800">Payment Successful!</h2>
+          <p className="text-sm text-green-700 mt-1">Your bKash payment has been verified. Your order is confirmed.</p>
+        </div>
+      ) : null}
+
+      {showPendingBanner && (
+        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center">
+          <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Clock className="h-7 w-7 text-amber-600" />
+          </div>
+          <h2 className="text-lg font-semibold text-amber-800">Awaiting Payment</h2>
+          <p className="text-sm text-amber-700 mt-1">
+            Your order is created but payment is pending.{expiryInfo ? ` Payment expires in ${expiryInfo}.` : ""}
+          </p>
+          {canRetryPayment && (
+            <a
+              href={`/order/payment-retry?orderId=${order.id}`}
+              className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-amber-800 hover:text-amber-900 underline"
+            >
+              Retry Payment
+            </a>
+          )}
+        </div>
+      )}
+
       <div className="text-center mb-12">
         <div className="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="h-10 w-10 text-green-600" />
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Order Placed!</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
+          {order.paymentStatus === "paid" ? "Order Confirmed!" : "Order Placed!"}
+        </h1>
         <p className="text-muted-foreground">
-          Thank you for your order. We&apos;ll confirm it shortly.
+          {order.paymentStatus === "paid"
+            ? "Your payment is confirmed. We'll prepare your order shortly."
+            : "Thank you for your order. We'll confirm it shortly."}
         </p>
       </div>
 
@@ -77,9 +160,23 @@ export default async function OrderConfirmationPage({
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Payment</span>
             <Badge variant={order.paymentStatus === "paid" ? "default" : "secondary"} className="rounded-full">
-              {order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod}
+              {order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod.toUpperCase()}
             </Badge>
           </div>
+          {paymentInfo && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Transaction ID</span>
+                <span className="font-mono text-sm">{paymentInfo.trxId}</span>
+              </div>
+              {paymentInfo.verifiedAt && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Verified</span>
+                  <span className="text-sm">{new Date(paymentInfo.verifiedAt).toLocaleString()}</span>
+                </div>
+              )}
+            </>
+          )}
           <Separator />
           <div className="flex items-center justify-between font-bold text-xl">
             <span>Total</span>

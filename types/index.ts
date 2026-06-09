@@ -27,6 +27,29 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   returned: "Returned",
 }
 
+export type PaymentStatus =
+  | "pending"
+  | "paid"
+  | "failed"
+  | "refunded"
+  | "unpaid"
+
+export const PAYMENT_STATUSES: PaymentStatus[] = [
+  "pending",
+  "paid",
+  "failed",
+  "refunded",
+  "unpaid",
+]
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pending: "Pending",
+  paid: "Paid",
+  failed: "Failed",
+  refunded: "Refunded",
+  unpaid: "Unpaid",
+}
+
 export const LOW_STOCK_THRESHOLD = 5
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [

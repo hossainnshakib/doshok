@@ -7,6 +7,10 @@ import { getDeliveryFee } from "@/lib/delivery"
 import { checkoutSchemaWithRecovery } from "@/lib/validations"
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/mailer"
 import { verifyPhoneVerifiedToken } from "@/lib/phone-verify-token"
+import { isBkashEnabled, createBkashPayment } from "@/lib/payment/bkash"
+
+const ONLINE_PROVIDERS = ["bkash", "nagad", "rocket", "upay", "sslcommerz", "aamarpay"]
+const PAYMENT_EXPIRY_HOURS = 2
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,10 +46,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (paymentMethod !== "cod") {
-      return error("Online payment is setup-ready but not yet active. Please select Cash on Delivery.")
-    }
-
     const deliveryFee = await getDeliveryFee(deliveryZone)
     const orderNumber = await generateOrderNumber()
 
@@ -78,9 +78,26 @@ export async function POST(request: NextRequest) {
       const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
       if (!coupon) return error("Coupon not found")
       if (!coupon.active) return error("Coupon is inactive")
-      if (coupon.usedCount >= (coupon.maxUses ?? Infinity)) return error("Coupon usage limit reached")
       if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return error("Coupon has expired")
       if (subtotal < coupon.minOrder) return error(`Minimum order amount is ৳${coupon.minOrder.toLocaleString()}`)
+
+      const identityKey = userId ?? customer.email
+      if (!identityKey) return error("Please provide an email to use a coupon")
+
+      if (coupon.maxUsesPerCustomer) {
+        const customerUsageCount = await prisma.couponUsage.count({
+          where: {
+            couponId: coupon.id,
+            OR: [
+              ...(userId ? [{ userId }] : []),
+              { email: customer.email },
+            ],
+          },
+        })
+        if (customerUsageCount >= coupon.maxUsesPerCustomer) {
+          return error(`You have already used this coupon ${coupon.maxUsesPerCustomer} time(s)`)
+        }
+      }
 
       if (coupon.type === "percent") {
         discount = Math.round(subtotal * coupon.discount / 100)
@@ -128,7 +145,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      return tx.order.create({
+      const createdOrder = await tx.order.create({
         data: {
           orderNumber,
           userId,
@@ -170,7 +187,56 @@ export async function POST(request: NextRequest) {
         },
         include: { items: true, address: true },
       })
+
+      if (couponCode && discount > 0) {
+        const coupon = await tx.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
+        if (coupon) {
+          await tx.couponUsage.create({
+            data: {
+              couponId: coupon.id,
+              userId,
+              email: customer.email || "",
+              orderId: createdOrder.id,
+            },
+          })
+        }
+      }
+
+      return createdOrder
     })
+
+    let paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
+
+    const isOnlinePayment = ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())
+    if (isOnlinePayment && paymentMethod.toLowerCase() === "bkash") {
+      const bkashEnabled = await isBkashEnabled()
+      if (bkashEnabled) {
+        const callbackBase = process.env.NEXTAUTH_URL || "http://localhost:3000"
+        const bkashResult = await createBkashPayment(order.id, order.orderNumber, order.total, callbackBase)
+
+        if (!("error" in bkashResult)) {
+          const mode = await prisma.paymentMethodSetting.findUnique({ where: { provider: "BKASH" } })
+          const baseUrl = mode?.mode === "LIVE"
+            ? "https://checkout.pay.bka.sh/v1.2.0-beta"
+            : "https://tokenized.sandbox.bka.sh/v1.2.0-beta"
+
+          const expiresAt = new Date(Date.now() + PAYMENT_EXPIRY_HOURS * 60 * 60 * 1000)
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { paymentExpiresAt: expiresAt },
+          })
+
+          if (bkashResult.paymentExecuteStatus === "success" && bkashResult.trxId) {
+            paymentInitData = { paymentId: bkashResult.trxId }
+          } else if (bkashResult.paymentId) {
+            paymentInitData = {
+              paymentId: bkashResult.paymentId,
+              paymentUrl: `${baseUrl}/tokenized/checkout/pay/${bkashResult.paymentId}`,
+            }
+          }
+        }
+      }
+    }
 
     sendOrderConfirmationEmail({
       orderNumber: order.orderNumber,
@@ -210,7 +276,7 @@ export async function POST(request: NextRequest) {
       })),
     }).catch(() => {})
 
-    return success({ order }, 201)
+    return success({ order, paymentInitData }, 201)
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create order"
     return error(message)
