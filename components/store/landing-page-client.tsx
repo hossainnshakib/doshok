@@ -11,7 +11,7 @@ import { toast } from "sonner"
 import type { DeliveryZone } from "@/types"
 import { DELIVERY_ZONE_NAMES } from "@/types"
 import { CheckCircle, Truck, Shield, Tag, CreditCard, Minus, Plus, ChevronLeft, ChevronRight } from "lucide-react"
-import { createEmptyDraft, saveLandingDraft, loadLandingDraft, clearLandingDraft, clearBuyNowContext, saveAbandonedCheckout, getDraftToken } from "@/lib/checkout-draft"
+import { saveLandingDraft, loadLandingDraft, clearLandingDraft, clearBuyNowContext, clearAllLandingData, saveAbandonedCheckout, getDraftToken, maskEmail, maskPhone, formatRelativeTime } from "@/lib/checkout-draft"
 
 type PaymentMethodSetting = {
   provider: string
@@ -99,7 +99,9 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const [fullAddress, setFullAddress] = useState("")
   const [note, setNote] = useState("")
 
+  const [showRestoreNotice, setShowRestoreNotice] = useState(false)
   const restored = useRef(false)
+  const restoredDraft = useRef<Record<string, unknown> | null>(null)
 
   // Restore draft on mount
   useEffect(() => {
@@ -108,6 +110,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
 
     const saved = loadLandingDraft(slug)
     if (saved) {
+      restoredDraft.current = saved as unknown as Record<string, unknown>
       if (saved.selectedSize) setSelectedSize(saved.selectedSize)
       if (saved.selectedColor) setSelectedColor(saved.selectedColor)
       if (saved.quantity) setQuantity(saved.quantity)
@@ -123,6 +126,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
       if (saved.selectedPaymentMethod) setPaymentMethod(saved.selectedPaymentMethod)
       if (saved.couponCode) setCouponCode(saved.couponCode)
       if (saved.currentStep !== undefined) setStep(saved.currentStep)
+      setShowRestoreNotice(true)
     }
   }, [slug])
 
@@ -479,6 +483,99 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
       </section>
 
       <div className="max-w-2xl mx-auto container-px py-8 md:py-12 space-y-8">
+        {/* Restore notice */}
+        {showRestoreNotice && (
+          <div className="rounded-2xl border border-primary/10 bg-primary/[0.03] shadow-sm">
+            <div className="p-5 md:p-6">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Your previous checkout details are ready.</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Continue where you left off.</p>
+
+                  {restoredDraft.current && typeof restoredDraft.current === "object" && (
+                    <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                      {(restoredDraft.current as { updatedAt?: number }).updatedAt && (
+                        <span>Updated {formatRelativeTime((restoredDraft.current as { updatedAt: number }).updatedAt)}</span>
+                      )}
+                      <span>Step: {STEPS[step]?.label || `Step ${step + 1}`}</span>
+                      {(restoredDraft.current as { selectedSize?: string }).selectedSize && (
+                        <span>Size: {(restoredDraft.current as { selectedSize: string }).selectedSize}</span>
+                      )}
+                      {(restoredDraft.current as { selectedColor?: string }).selectedColor && (
+                        <span>Color: {(restoredDraft.current as { selectedColor: string }).selectedColor}</span>
+                      )}
+                      {(restoredDraft.current as { quantity?: number }).quantity && (
+                        <span>Qty: {(restoredDraft.current as { quantity: number }).quantity}</span>
+                      )}
+                      {(restoredDraft.current as { email?: string }).email && (
+                        <span className="truncate">Email: {maskEmail((restoredDraft.current as { email: string }).email)}</span>
+                      )}
+                      {(restoredDraft.current as { phone?: string }).phone && (
+                        <span className="truncate">Phone: {maskPhone((restoredDraft.current as { phone: string }).phone)}</span>
+                      )}
+                      {(restoredDraft.current as { selectedDeliveryZone?: string }).selectedDeliveryZone && (
+                        <span className="truncate">
+                          Delivery: {DELIVERY_ZONE_NAMES[(restoredDraft.current as { selectedDeliveryZone: string }).selectedDeliveryZone as DeliveryZone] || (restoredDraft.current as { selectedDeliveryZone: string }).selectedDeliveryZone}
+                        </span>
+                      )}
+                      {(restoredDraft.current as { selectedPaymentMethod?: string }).selectedPaymentMethod && (
+                        <span className="truncate">Payment: {(restoredDraft.current as { selectedPaymentMethod: string }).selectedPaymentMethod.toUpperCase()}</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowRestoreNotice(false)}
+                      className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                    >
+                      Continue checkout
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearAllLandingData(slug)
+                        setShowRestoreNotice(false)
+                        setName("")
+                        setEmail("")
+                        setPhone("")
+                        setDivision("")
+                        setDistrict("")
+                        setThana("")
+                        setFullAddress("")
+                        setNote("")
+                        setDeliveryZone("dhaka")
+                        setPaymentMethod("cod")
+                        setCouponCode("")
+                        setCouponDiscount(0)
+                        setCouponApplied(false)
+                        setCouponError("")
+                        setSelectedSize("")
+                        setSelectedColor("")
+                        setQuantity(1)
+                        setOtp("")
+                        setOtpEmail("")
+                        setOtpSent(false)
+                        setOtpVerified(false)
+                        setOtpError("")
+                        setStep(0)
+                        setValidationErrors([])
+                      }}
+                      className="inline-flex h-9 items-center justify-center rounded-xl border border-input bg-background px-5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      Clear saved details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Progress indicator */}
         <div className="flex items-center justify-between max-w-lg mx-auto">
           {STEPS.map((s, i) => (

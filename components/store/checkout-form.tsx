@@ -17,6 +17,7 @@ import {
   CheckCircle, Shield, Tag, Truck, CreditCard, ArrowLeft, ChevronLeft, ChevronRight,
 } from "lucide-react"
 import Link from "next/link"
+import { maskEmail, maskPhone, formatRelativeTime } from "@/lib/checkout-draft"
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft"
 
 type PaymentMethodSetting = {
@@ -52,7 +53,7 @@ export function CheckoutForm() {
 
   const {
     step, draft, restored, showRestoreNotice,
-    goNext, goBack, updateField, updateFields, resetDraft,
+    goNext, goBack, updateField, updateFields, resetDraft, clearSavedDetails,
     dismissRestoreNotice, isFirstStep, isLastStep,
   } = useCheckoutDraft()
 
@@ -382,18 +383,65 @@ export function CheckoutForm() {
   return (
     <div className="container mx-auto container-px py-8 md:py-12 max-w-6xl" ref={formRef}>
       {showRestoreNotice && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-amber-800">
-            <CheckCircle className="h-4 w-4 shrink-0" />
-            <span>We restored your previous checkout draft. Continue where you left off.</span>
+        <div className="mb-6 rounded-2xl border border-primary/10 bg-primary/[0.03] shadow-sm">
+          <div className="p-5 md:p-6">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <CheckCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">We restored your checkout details.</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Continue where you left off.</p>
+
+                {draft.updatedAt > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                    <span>Updated {formatRelativeTime(draft.updatedAt)}</span>
+                    <span>Step: {STEPS[step]?.label || `Step ${step + 1}`}</span>
+                    {draft.email && <span className="truncate">Email: {maskEmail(draft.email)}</span>}
+                    {draft.phone && <span className="truncate">Phone: {maskPhone(draft.phone)}</span>}
+                    {draft.selectedDeliveryZone && (
+                      <span className="truncate">
+                        Delivery: {DELIVERY_ZONE_NAMES[draft.selectedDeliveryZone as keyof typeof DELIVERY_ZONE_NAMES] || draft.selectedDeliveryZone}
+                      </span>
+                    )}
+                    {draft.selectedPaymentMethod && (
+                      <span className="truncate">Payment: {draft.selectedPaymentMethod.toUpperCase()}</span>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={dismissRestoreNotice}
+                    className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >
+                    Continue checkout
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearSavedDetails()
+                      setCouponCode("")
+                      setCouponDiscount(0)
+                      setCouponApplied(false)
+                      setCouponError("")
+                      setDeliveryZone("dhaka")
+                      setPaymentMethod("cod")
+                      setOtpCode("")
+                      setOtpSent(false)
+                      setOtpVerified(false)
+                      setOtpError("")
+                      setValidationErrors([])
+                    }}
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-input bg-background px-5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    Clear saved details
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={dismissRestoreNotice}
-            className="text-xs text-amber-600 hover:text-amber-800 font-medium shrink-0"
-          >
-            Dismiss
-          </button>
         </div>
       )}
 

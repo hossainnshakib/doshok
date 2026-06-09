@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
-import { Briefcase, Grid3X3, Heart, ImageIcon, Shirt, ShoppingBag, Watch, Zap } from "lucide-react"
+import { ProductCard } from "@/components/store/product-card"
+import { Briefcase, Grid3X3, Heart, ImageIcon, PackageCheck, Shirt, ShoppingBag, Watch, Zap } from "lucide-react"
 import styles from "./page.module.css"
 
 type HomeProduct = {
@@ -56,76 +57,6 @@ function formatPrice(price: number) {
 
 function productStock(product: HomeProduct) {
   return product.variants.reduce((total, variant) => total + variant.stock, 0)
-}
-
-function ProductImage({ product }: { product: HomeProduct }) {
-  const image = product.images[0]
-
-  return (
-    <div className={styles.cardImg}>
-      {image ? (
-        <img src={image} alt={product.name} loading="lazy" />
-      ) : (
-        <div className={styles.imageEmpty}>
-          <span>Image coming soon</span>
-        </div>
-      )}
-      <span className={styles.heart}>
-        <Heart size={15} />
-      </span>
-    </div>
-  )
-}
-
-function FlashCard({ product }: { product: HomeProduct }) {
-  const stock = productStock(product)
-  const discount = product.oldPrice && product.oldPrice > product.price
-    ? Math.round((1 - product.price / product.oldPrice) * 100)
-    : 0
-
-  return (
-    <Link href={`/products/${product.slug}`} className={styles.card}>
-      <ProductImage product={product} />
-      <div className={styles.cardBody}>
-        <div className={styles.cardTitle}>{product.name}</div>
-        <div className={styles.priceRow}>
-          <span className={styles.price}>{formatPrice(product.price)}</span>
-          {product.oldPrice && product.oldPrice > product.price && (
-            <span className={styles.priceOld}>{formatPrice(product.oldPrice)}</span>
-          )}
-        </div>
-        <div className={styles.progress}>
-          <i style={{ width: `${Math.max(12, Math.min(100, stock))}%` }} />
-        </div>
-        <div className={styles.saleMeta}>
-          {discount > 0 ? `${discount}% off` : `${stock} in stock`}
-        </div>
-      </div>
-    </Link>
-  )
-}
-
-function TodayCard({ product }: { product: HomeProduct }) {
-  const stock = productStock(product)
-
-  return (
-    <Link href={`/products/${product.slug}`} className={styles.card}>
-      <ProductImage product={product} />
-      <div className={styles.cardBody}>
-        <div className={styles.cardTitle}>{product.name}</div>
-        <div className={styles.metaRow}>
-          <span className={styles.star}>★</span>
-          {product.category?.name ?? "Doshok"} · {stock > 0 ? `${stock} in stock` : "Sold out"}
-        </div>
-        <div className={styles.priceRow}>
-          <span className={styles.price}>{formatPrice(product.price)}</span>
-          {product.oldPrice && product.oldPrice > product.price && (
-            <span className={styles.priceOld}>{formatPrice(product.oldPrice)}</span>
-          )}
-        </div>
-      </div>
-    </Link>
-  )
 }
 
 function CategoryCard({ category, index }: { category: HomeCategory; index: number }) {
@@ -184,16 +115,26 @@ export default async function HomePage() {
   )).slice(0, 4)
   const storeProducts = (featuredProducts.length > 0 ? featuredProducts : latestProducts).slice(0, 12)
   const promoProduct = storeProducts.find((product) => product.images[0]) ?? storeProducts[0]
+  const hasProducts = latestProducts.length > 0
 
   return (
     <>
       <section className={styles.hero}>
         <div className={styles.heroLeft}>
-          <div className={styles.heroTag}><span className={styles.hash}>#</span>Style That Speaks</div>
-          <h1 className={styles.heroTitle}>Premium Bangladeshi<br />Fashion, <em>Curated.</em></h1>
-          <div className={styles.sub}>Thoughtful silhouettes, clean essentials, and occasion-ready pieces — made for your wardrobe.</div>
+          <div className={styles.heroTag}>
+            <span className={styles.hash}>#</span>Style That Speaks
+          </div>
+          <h1 className={styles.heroTitle}>
+            Premium Bangladeshi<br />Fashion, <em>Curated.</em>
+          </h1>
+          <p className={styles.sub}>
+            Thoughtful silhouettes, clean essentials, and occasion-ready pieces — made for your wardrobe.
+          </p>
           <div className={styles.ctaRow}>
-            <Link href="/products" className={styles.btnPrimary}>Shop Collection</Link>
+            <Link href="/products" className={styles.btnPrimary}>
+              Shop Collection
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+            </Link>
             <Link href="/about" className={styles.btnGhost}>About Doshok</Link>
           </div>
         </div>
@@ -212,22 +153,51 @@ export default async function HomePage() {
             </div>
           ) : (
             <div className={styles.emptyHero}>
-              <span>Products coming soon</span>
+              <PackageCheck className="h-10 w-10 text-[#999] mb-3" />
+              <span className="text-sm font-semibold">Premium drops arriving soon</span>
+              <span className="text-xs text-[#999] mt-1">Be the first to know when we launch</span>
             </div>
           )}
         </div>
-        <div className={styles.heroDots}><span /><span /><span /></div>
+        {heroProducts.length > 0 && (
+          <div className={styles.heroDots}><span /><span /><span /></div>
+        )}
       </section>
 
-      <section className={styles.categories}>
-        {categories.map((category, index) => (
-          <CategoryCard key={category.id} category={category} index={index} />
-        ))}
-        <Link href="/products" className={styles.cat}>
-          <div className={styles.catIcon}><Grid3X3 size={22} /></div>
-          <div className={styles.catLabel}>All Category</div>
-        </Link>
-      </section>
+      {!hasProducts && (
+        <section className={styles.emptyState}>
+          <div className={styles.emptyStateInner}>
+            <h2>Welcome to Doshok</h2>
+            <p>We are curating a collection of premium Bangladeshi fashion. Our first drop is coming soon.</p>
+            <div className={styles.emptyStateFeatures}>
+              <div className={styles.emptyFeature}>
+                <Shirt size={24} />
+                <span>Curated fashion</span>
+              </div>
+              <div className={styles.emptyFeature}>
+                <ShoppingBag size={24} />
+                <span>Easy shopping</span>
+              </div>
+              <div className={styles.emptyFeature}>
+                <PackageCheck size={24} />
+                <span>Doorstep delivery</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {hasProducts && (
+        <section className={styles.categories}>
+          {categories.map((category, index) => (
+            <CategoryCard key={category.id} category={category} index={index} />
+          ))}
+          <Link href="/products" className={styles.cat}>
+            <div className={styles.catIcon}><Grid3X3 size={22} /></div>
+            <div className={styles.catLabel}>All Category</div>
+          </Link>
+        </section>
+      )}
 
       {flashProducts.length > 0 && (
         <section className={styles.section}>
@@ -241,14 +211,13 @@ export default async function HomePage() {
                   <span className={styles.colon}>items</span>
                 </div>
               </div>
-              <div className={styles.navArrows}>
-                <Link href="/products" className={styles.arrow}>‹</Link>
-                <Link href="/products" className={`${styles.arrow} ${styles.arrowDark}`}>›</Link>
-              </div>
+              <Link href="/products?discount=true" className={styles.viewAll}>
+                View All <span className="inline-block ml-1">→</span>
+              </Link>
             </div>
             <div className={styles.row}>
               {flashProducts.map((product) => (
-                <FlashCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           </div>
@@ -269,12 +238,12 @@ export default async function HomePage() {
             </div>
             <div className={styles.row} style={{ marginBottom: 16 }}>
               {todayProducts.slice(0, 4).map((product) => (
-                <TodayCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
             <div className={styles.row}>
               {todayProducts.slice(4, 8).map((product) => (
-                <TodayCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           </div>

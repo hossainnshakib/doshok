@@ -15,6 +15,7 @@ export default async function ProductsPage({
 
   const showDiscounts = discount === "true"
   const showFeatured = featured === "true"
+  const hasActiveFilter = !!(category || showDiscounts || showFeatured)
 
   const products = await prisma.product.findMany({
     where: {
@@ -45,13 +46,11 @@ export default async function ProductsPage({
         </div>
       </div>
 
-      <div className="flex gap-2 mb-10 flex-wrap">
+      <div className="flex items-center gap-2 mb-10 flex-wrap">
         <Link
           href="/products"
           className={`inline-flex h-9 items-center rounded-full px-5 text-xs font-medium tracking-wide transition-all ${
-            !category
-              && !showDiscounts
-              && !showFeatured
+            !hasActiveFilter
               ? "bg-primary text-primary-foreground shadow-sm"
               : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
           }`}
@@ -91,6 +90,14 @@ export default async function ProductsPage({
             {cat.name}
           </Link>
         ))}
+        {hasActiveFilter && (
+          <Link
+            href="/products"
+            className="inline-flex h-9 items-center rounded-full px-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors ml-1"
+          >
+            ✕ Clear
+          </Link>
+        )}
       </div>
 
       {products.length === 0 ? (

@@ -7,6 +7,7 @@ import {
   saveDraft,
   loadDraft,
   clearDraft,
+  clearBuyNowContext,
   saveStep,
   loadStep,
   hasRecentDraft,
@@ -111,10 +112,20 @@ export function useCheckoutDraft() {
     setDraft(empty)
     setStep(0)
     clearDraft()
+    clearBuyNowContext()
     setShowRestoreNotice(false)
   }, [])
 
   const dismissRestoreNotice = useCallback(() => {
+    setShowRestoreNotice(false)
+  }, [])
+
+  const clearSavedDetails = useCallback(() => {
+    const empty = createEmptyDraft()
+    setDraft(empty)
+    setStepState(0)
+    clearDraft()
+    clearBuyNowContext()
     setShowRestoreNotice(false)
   }, [])
 
@@ -130,6 +141,7 @@ export function useCheckoutDraft() {
     updateFields,
     resetDraft,
     dismissRestoreNotice,
+    clearSavedDetails,
     stepLabel: STEP_LABELS[step],
     totalSteps: STEP_LABELS.length,
     stepLabels: STEP_LABELS,

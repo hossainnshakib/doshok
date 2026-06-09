@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/store/product-card"
+import { trackRecentlyViewed, RecentlyViewed } from "@/components/store/recently-viewed"
 import { toast } from "sonner"
 import { addToCart } from "@/lib/cart"
 import { cn } from "@/lib/utils"
@@ -20,6 +21,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Truck,
+  Zap,
 } from "lucide-react"
 
 type ProductWithVariants = {
@@ -67,6 +69,19 @@ export function ProductDetailClient({
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
 
+  useEffect(() => {
+    trackRecentlyViewed({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      oldPrice: product.oldPrice,
+      images: product.images,
+      category: product.category,
+      variants: product.variants,
+    })
+  }, [product])
+
   const images = product.images.length > 0 ? product.images : []
   const sizes = [...new Set(product.variants.map((variant) => variant.size))]
   const colors = [...new Set(product.variants.map((variant) => variant.color))]
@@ -74,7 +89,6 @@ export function ProductDetailClient({
   const selectedVariant = product.variants.find(
     (variant) => variant.size === selectedSize && variant.color === selectedColor
   )
-
   const inStock = selectedVariant ? selectedVariant.stock > 0 : true
   const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0)
   const isSoldOut = totalStock === 0
@@ -139,17 +153,20 @@ export function ProductDetailClient({
 
   return (
     <div className="container mx-auto container-px py-5 md:py-8">
+      {/* Breadcrumb */}
       <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">Home</Link>
+        <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <Link href="/products" className="hover:text-foreground">Product</Link>
+        <Link href="/products" className="hover:text-foreground transition-colors">Product</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <Link href={`/products?category=${product.category.slug}`} className="hover:text-foreground">{product.category.name}</Link>
+        <Link href={`/products?category=${product.category.slug}`} className="hover:text-foreground transition-colors">{product.category.name}</Link>
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="line-clamp-1 text-foreground">{product.name}</span>
       </div>
 
+      {/* Main section */}
       <section className="grid gap-5 rounded-[1.5rem] border border-border/70 bg-background p-4 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-6">
+        {/* Image gallery */}
         <div>
           <div className="grid gap-3 md:grid-cols-[72px_1fr]">
             <div className="order-2 flex gap-2 overflow-x-auto md:order-1 md:flex-col md:overflow-visible">
@@ -158,8 +175,8 @@ export function ProductDetailClient({
                   key={`${image ?? "placeholder"}-${index}`}
                   onClick={() => setSelectedImage(index)}
                   className={cn(
-                    "h-16 w-16 shrink-0 overflow-hidden rounded-xl border bg-muted transition-all md:h-[72px] md:w-[72px]",
-                    selectedImage === index ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"
+                    "h-14 w-14 shrink-0 overflow-hidden rounded-xl border bg-muted transition-all md:h-[72px] md:w-[72px]",
+                    selectedImage === index ? "border-primary ring-2 ring-primary/20 shadow-sm" : "border-border hover:border-primary/40"
                   )}
                   aria-label={`View product image ${index + 1}`}
                 >
@@ -174,19 +191,28 @@ export function ProductDetailClient({
 
             <div className="order-1 relative aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-muted md:order-2">
               {isSoldOut && (
-                <Badge variant="destructive" className="absolute left-4 top-4 z-10 rounded-full">Sold Out</Badge>
+                <Badge variant="destructive" className="absolute left-4 top-4 z-10 rounded-full shadow-sm">Sold Out</Badge>
+              )}
+              {isLowStock && selectedVariant && !isSoldOut && (
+                <Badge variant="secondary" className="absolute left-4 top-4 z-10 rounded-full bg-amber-50 text-amber-700 border-amber-200 shadow-sm">
+                  Only {selectedStock} left
+                </Badge>
               )}
               {images[selectedImage] ? (
-                <img src={images[selectedImage]} alt={product.name} className="h-full w-full object-cover" />
+                <img src={images[selectedImage]} alt={product.name} className="h-full w-full object-cover transition-opacity duration-300" />
               ) : (
                 <ProductImagePlaceholder />
               )}
-              <button className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-foreground shadow-lg backdrop-blur" aria-label="Zoom product image">
+              <button
+                className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-foreground shadow-lg backdrop-blur transition-transform hover:scale-105 active:scale-95"
+                aria-label="Zoom product image"
+              >
                 <Search className="h-5 w-5" />
               </button>
             </div>
           </div>
 
+          {/* Quality promise */}
           <div className="mt-4 rounded-[1.25rem] border border-border/70 bg-background p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
@@ -218,11 +244,14 @@ export function ProductDetailClient({
           </div>
         </div>
 
+        {/* Product info sidebar */}
         <aside className="space-y-5 lg:pl-5">
           <div>
             <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-4xl">{product.name}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-bold text-foreground">{totalStock > 0 ? `${totalStock} in stock` : "Sold out"}</span>
+              <span className={cn("font-bold", isSoldOut ? "text-red-500" : "text-foreground")}>
+                {isSoldOut ? "Sold out" : `${totalStock} in stock`}
+              </span>
               <span>·</span>
               <Link href={`/products?category=${product.category.slug}`} className="font-bold text-foreground hover:underline">
                 {product.category.name}
@@ -230,6 +259,7 @@ export function ProductDetailClient({
             </div>
           </div>
 
+          {/* Price */}
           <div>
             <div className="flex flex-wrap items-end gap-3">
               <span className="text-4xl font-black tracking-[-0.04em]">৳{product.price.toLocaleString()}</span>
@@ -241,12 +271,13 @@ export function ProductDetailClient({
               )}
             </div>
             {product.defaultCouponCode && !isSoldOut && (
-              <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
-                Use coupon {product.defaultCouponCode} at checkout
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                <Zap className="h-3.5 w-3.5" /> Use coupon {product.defaultCouponCode} at checkout
               </p>
             )}
           </div>
 
+          {/* Colors */}
           {colors.length > 0 && (
             <div>
               <p className="mb-2 text-sm font-black">Select Color</p>
@@ -260,7 +291,7 @@ export function ProductDetailClient({
                       onClick={() => setSelectedColor(color)}
                       className={cn(
                         "flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border bg-muted text-[10px] font-bold transition-all",
-                        selectedColor === color ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"
+                        selectedColor === color ? "border-primary ring-2 ring-primary/20 shadow-sm" : "border-border hover:border-primary/40"
                       )}
                       title={color}
                     >
@@ -279,10 +310,11 @@ export function ProductDetailClient({
             </div>
           )}
 
+          {/* Sizes */}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <p className="text-sm font-black">Select Size</p>
-              <Link href="/size-guide" className="text-xs font-bold text-muted-foreground hover:text-foreground">Size Guide</Link>
+              <Link href="/size-guide" className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Size Guide</Link>
             </div>
             <div className="flex flex-wrap gap-2">
               {sizes.map((size) => {
@@ -312,6 +344,7 @@ export function ProductDetailClient({
             )}
           </div>
 
+          {/* Quantity */}
           <div>
             <p className="mb-2 text-sm font-black">Quantity</p>
             <div className="flex w-fit items-center overflow-hidden rounded-lg border border-border">
@@ -335,22 +368,12 @@ export function ProductDetailClient({
             </div>
           </div>
 
-          <div className="space-y-3 pt-1">
-            <Button
-              size="lg"
-              className="h-12 w-full rounded-xl text-sm font-black"
-              onClick={handleBuyNow}
-              disabled={isSoldOut}
-            >
+          {/* Actions — desktop */}
+          <div className="hidden space-y-3 pt-1 md:block">
+            <Button size="lg" className="h-12 w-full rounded-xl text-sm font-black" onClick={handleBuyNow} disabled={isSoldOut}>
               {isSoldOut ? "Sold Out" : "Buy this Item"}
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 w-full rounded-xl border-primary text-sm font-black"
-              onClick={handleAddToCart}
-              disabled={isSoldOut}
-            >
+            <Button size="lg" variant="outline" className="h-12 w-full rounded-xl border-primary text-sm font-black" onClick={handleAddToCart} disabled={isSoldOut}>
               {isSoldOut ? (
                 "Sold Out"
               ) : addedToCart ? (
@@ -361,6 +384,7 @@ export function ProductDetailClient({
             </Button>
           </div>
 
+          {/* Chat / Wishlist / Share */}
           <div className="grid grid-cols-3 gap-2 text-xs font-bold text-muted-foreground">
             <button className="flex items-center justify-center gap-2 rounded-lg border border-border py-3 transition-colors hover:bg-muted hover:text-foreground">
               <MessageCircle className="h-4 w-4" /> Chat
@@ -375,6 +399,27 @@ export function ProductDetailClient({
         </aside>
       </section>
 
+      {/* Trust elements */}
+      <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { icon: ShieldCheck, label: "Secure Checkout", desc: "OTP verified orders" },
+          { icon: Truck, label: "Fast Delivery", desc: "Inside Chattogram" },
+          { icon: PackageCheck, label: "Easy Return", desc: "Hassle-free exchanges" },
+          { icon: ShoppingBag, label: "COD Available", desc: "Pay on delivery" },
+        ].map(({ icon: Icon, label, desc }) => (
+          <div key={label} className="flex items-center gap-3 rounded-xl border border-border/50 bg-background p-3 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/5">
+              <Icon className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs font-bold">{label}</p>
+              <p className="text-[10px] text-muted-foreground">{desc}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Description */}
       <section id="description" className="mt-5 rounded-[1.5rem] border border-border/70 bg-background p-4 shadow-sm md:p-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2 overflow-x-auto">
@@ -388,8 +433,8 @@ export function ProductDetailClient({
                 key={tab}
                 href={href}
                 className={cn(
-                  "shrink-0 rounded-lg border px-5 py-2 text-xs font-black",
-                  index === 0 ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground"
+                  "shrink-0 rounded-lg border px-5 py-2 text-xs font-black transition-all",
+                  index === 0 ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:border-primary/40"
                 )}
               >
                 {tab}
@@ -412,16 +457,17 @@ export function ProductDetailClient({
         </div>
       </section>
 
+      {/* Styling Ideas */}
       <section id="styling-ideas" className="mt-5 grid overflow-hidden rounded-[1.5rem] border border-border/70 bg-background shadow-sm lg:grid-cols-[1fr_220px]">
         <div className="p-4 md:p-6">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-xl font-black">Styling Ideas</h2>
-            <Link href="/products" className="text-xs font-black text-muted-foreground hover:text-foreground">See more</Link>
+            <Link href="/products" className="text-xs font-black text-muted-foreground hover:text-foreground transition-colors">See more</Link>
           </div>
           <div className="flex items-center gap-3 overflow-x-auto pb-2">
             {bundleProducts.map((item, index) => (
               <div key={item.slug} className="flex items-center gap-3">
-                <Link href={`/products/${item.slug}`} className="w-36 shrink-0 overflow-hidden rounded-xl border border-border bg-background">
+                <Link href={`/products/${item.slug}`} className="w-36 shrink-0 overflow-hidden rounded-xl border border-border bg-background transition-shadow hover:shadow-md">
                   <div className="aspect-square bg-muted">
                     {item.images[0] ? (
                       <img src={item.images[0]} alt={item.name} className="h-full w-full object-cover" />
@@ -455,6 +501,7 @@ export function ProductDetailClient({
         </div>
       </section>
 
+      {/* Reviews */}
       <section id="reviews" className="mt-8">
         <h2 className="mb-4 text-xl font-black">Customer Reviews</h2>
         <div className="rounded-[1.5rem] border border-dashed border-border bg-background p-8 text-center shadow-sm">
@@ -465,13 +512,10 @@ export function ProductDetailClient({
         </div>
       </section>
 
-      <section id="related-products" className="mt-10 pb-10">
+      {/* Related Products */}
+      <section id="related-products" className="mt-10 pb-4">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-black">Best Seller</h2>
-          <div className="hidden gap-2 md:flex">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background">←</span>
-            <span className="flex h-9 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">→</span>
-          </div>
         </div>
         {relatedProducts.length === 0 ? (
           <div className="rounded-[1.5rem] border border-dashed border-border bg-background p-10 text-center text-muted-foreground">
@@ -485,6 +529,43 @@ export function ProductDetailClient({
           </div>
         )}
       </section>
+
+      {/* Recently Viewed */}
+      <RecentlyViewed />
+
+      {/* Sticky mobile purchase bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/70 bg-background/95 p-3 shadow-2xl backdrop-blur-md md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold">{product.name}</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-base font-black">৳{product.price.toLocaleString()}</span>
+              {product.oldPrice && (
+                <span className="text-xs text-red-400 line-through">৳{product.oldPrice.toLocaleString()}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-11 rounded-xl px-4 text-xs font-black"
+              onClick={handleAddToCart}
+              disabled={isSoldOut}
+            >
+              {addedToCart ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
+            </Button>
+            <Button
+              size="sm"
+              className="h-11 rounded-xl px-5 text-xs font-black"
+              onClick={handleBuyNow}
+              disabled={isSoldOut}
+            >
+              {isSoldOut ? "Sold Out" : "Buy Now"}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -28,7 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className={`group block overflow-hidden rounded-[1.35rem] border border-border/70 bg-card shadow-sm shadow-black/[0.02] transition-all duration-500 hover:-translate-y-1 hover:border-border hover:shadow-xl hover:shadow-black/8 ${isSoldOut ? "opacity-70" : ""}`}
+      className={`group block overflow-hidden rounded-[1.35rem] border border-border/70 bg-card shadow-sm shadow-black/[0.02] transition-all duration-500 hover:-translate-y-1.5 hover:border-border hover:shadow-lg hover:shadow-black/10 ${isSoldOut ? "opacity-70" : ""}`}
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-muted to-muted/40">
         {image ? (
@@ -44,45 +44,45 @@ export function ProductCard({ product }: ProductCardProps) {
             <span className="text-xs">Image coming soon</span>
           </div>
         )}
-        <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-muted-foreground shadow-sm backdrop-blur transition-colors group-hover:text-red-500">
+        <span className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-muted-foreground shadow-sm backdrop-blur transition-all duration-300 group-hover:scale-110 group-hover:text-red-500">
           <Heart className="h-4 w-4" />
         </span>
         {isSoldOut && (
-          <div className="absolute top-3 left-3">
-            <Badge variant="destructive" className="rounded-full text-[10px] px-2.5 py-0.5 font-medium tracking-wide uppercase">
+          <div className="absolute top-3 left-3 z-10">
+            <Badge variant="destructive" className="rounded-full text-[10px] px-2.5 py-0.5 font-medium tracking-wide uppercase shadow-sm">
               Sold Out
             </Badge>
           </div>
         )}
-        {isLowStock && (
-          <div className="absolute top-3 right-3">
-            <Badge variant="secondary" className="rounded-full bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-2.5 py-0.5 font-medium">
-              Low Stock
-            </Badge>
-          </div>
-        )}
         {!isSoldOut && hasDiscount && (
-          <div className="absolute top-3 left-3">
-            <Badge variant="secondary" className="rounded-full bg-red-50 text-red-600 border-red-200 text-[10px] px-2.5 py-0.5 font-medium">
+          <div className="absolute top-3 left-3 z-10">
+            <Badge variant="secondary" className="rounded-full bg-red-50 text-red-600 border-red-200 text-[10px] px-2.5 py-0.5 font-medium shadow-sm">
               -{discountPercent}%
             </Badge>
           </div>
         )}
+        {isLowStock && !isSoldOut && !hasDiscount && (
+          <div className="absolute top-3 left-3 z-10">
+            <Badge variant="secondary" className="rounded-full bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-2.5 py-0.5 font-medium shadow-sm">
+              Low Stock
+            </Badge>
+          </div>
+        )}
       </div>
-      <div className="p-3.5 md:p-4">
+      <div className="p-3 md:p-3.5">
         {product.category && (
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             {product.category.name}
           </p>
         )}
-        <h3 className="line-clamp-2 min-h-[2.35rem] text-sm font-semibold leading-snug tracking-tight md:text-[15px]">{product.name}</h3>
-        <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+        <h3 className="line-clamp-2 min-h-[2.3rem] text-sm font-semibold leading-snug tracking-tight md:text-[15px]">{product.name}</h3>
+        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
           <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
           <span>4.9</span>
           <span>·</span>
           <span>{totalStock > 0 ? `${totalStock} in stock` : "Sold out"}</span>
         </div>
-        <div className="mt-2 flex flex-wrap items-baseline gap-2">
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
           <span className="text-base font-black tracking-tight md:text-lg">৳{product.price.toLocaleString()}</span>
           {hasDiscount && product.oldPrice && (
             <span className="text-xs font-medium text-red-400 line-through">

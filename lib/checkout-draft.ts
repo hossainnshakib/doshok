@@ -205,3 +205,36 @@ export function clearAbandonedDraft(): void {
 export function hasRecentDraft(): boolean {
   return loadDraft() !== null
 }
+
+export function maskEmail(email: string): string {
+  if (!email || !email.includes("@")) return email
+  const [name, domain] = email.split("@")
+  if (!domain) return email
+  return name.charAt(0) + "***@" + domain
+}
+
+export function maskPhone(phone: string): string {
+  if (!phone || phone.length < 4) return phone
+  return phone.slice(0, 2) + "****" + phone.slice(-2)
+}
+
+export function formatRelativeTime(timestamp: number): string {
+  const diff = Date.now() - timestamp
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return "Just now"
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
+export function clearAllCheckoutData(): void {
+  clearDraft()
+  clearBuyNowContext()
+}
+
+export function clearAllLandingData(slug: string): void {
+  clearLandingDraft(slug)
+  clearBuyNowContext()
+}
