@@ -54,9 +54,41 @@ export type PathaoErrorResponse = {
 }
 
 export type ParcelCreateResult =
-  | { success: true; consignmentId: string; trackingCode: string; status: string; response: PathaoParcelResponse }
+  | { success: true; consignmentId: string; trackingCode: string; status: string; response: PathaoParcelResponse | SteadfastParcelResponse }
   | { success: false; reason: string; detail?: string }
 
 export type PathaoValidationResult =
   | { valid: true; mode: "SANDBOX" | "LIVE"; storeId: string }
   | { valid: false; reason: "not_configured" | "not_enabled" | "missing_credentials" | "missing_store_id" }
+
+export type SteadfastCredentials = {
+  apiKey: string
+  secretKey: string
+  baseUrl: string
+}
+
+export type SteadfastValidationResult =
+  | { valid: true; mode: "SANDBOX" | "LIVE" }
+  | { valid: false; reason: "not_configured" | "not_enabled" | "missing_credentials" }
+
+export type SteadfastParcelPayload = {
+  invoice_no: string
+  recipient_name: string
+  recipient_phone: string
+  recipient_address: string
+  cod_amount: number
+  note: string
+}
+
+export type SteadfastParcelResponse = {
+  status: number
+  message: string
+  consignment_id: number
+  tracking_code: string
+}
+
+export type SteadfastErrorResponse = {
+  status: number
+  message: string
+  error?: string
+}

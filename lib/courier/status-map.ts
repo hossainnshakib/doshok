@@ -10,6 +10,16 @@ export const PATHAO_SHIPMENT_STATUS_MAP: Record<string, ShipmentStatus> = {
   FAILED: "FAILED",
 }
 
+export const STEADFAST_SHIPMENT_STATUS_MAP: Record<string, ShipmentStatus> = {
+  pending: "PENDING",
+  picked: "DISPATCHED",
+  in_transit: "IN_TRANSIT",
+  delivered: "DELIVERED",
+  returned: "RETURNED",
+  cancelled: "CANCELLED",
+  failed: "FAILED",
+}
+
 export const SHIPMENT_TO_ORDER_STATUS_MAP: Record<ShipmentStatus, OrderStatus> = {
   NOT_CREATED: "pending",
   SETUP_READY: "confirmed",
@@ -39,4 +49,10 @@ export function mapPathaoStatus(rawStatus: string | undefined): ShipmentStatus {
 
 export function getOrderStatusFromShipment(shipmentStatus: ShipmentStatus): OrderStatus {
   return SHIPMENT_TO_ORDER_STATUS_MAP[shipmentStatus] ?? "processing"
+}
+
+export function mapSteadfastStatus(rawStatus: string | undefined): ShipmentStatus {
+  if (!rawStatus) return "PENDING"
+  const normalized = rawStatus.toLowerCase().trim()
+  return STEADFAST_SHIPMENT_STATUS_MAP[normalized] ?? "PENDING"
 }

@@ -4,6 +4,7 @@ import { success, error } from "@/lib/api-response"
 import { auth } from "@/lib/auth"
 import { shipmentCreateSchema, shipmentUpdateSchema } from "@/lib/validations"
 import { createPathaoParcel } from "@/lib/courier/pathao"
+import { createSteadfastParcel, type OrderForSteadfast } from "@/lib/courier/steadfast"
 
 export const dynamic = "force-dynamic"
 
@@ -90,6 +91,50 @@ export async function POST(
           data: {
             orderId: id,
             courierProvider: "PATHAO",
+            status: "PENDING",
+            trackingCode: parcelResult.trackingCode,
+            consignmentId: parcelResult.consignmentId,
+            courierResponseJson: JSON.stringify(parcelResult.response),
+            customerNote: parsed.data.customerNote || null,
+            adminNote: parsed.data.adminNote || null,
+          },
+        }),
+        prisma.order.update({
+          where: { id },
+          data: { orderStatus: "processing" },
+        }),
+      ])
+
+      return success(shipment)
+    }
+
+    const isSteadfast = parsed.data.courierProvider === "STEADFAST"
+
+    if (isSteadfast) {
+      const orderForSteadfast: OrderForSteadfast = {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        total: order.total,
+        paidAmount: order.paidAmount,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        items: order.items,
+        address: order.address,
+      }
+
+      const parcelResult = await createSteadfastParcel(orderForSteadfast)
+
+      if (!parcelResult.success) {
+        return error(parcelResult.reason, 400)
+      }
+
+      const [shipment] = await prisma.$transaction([
+        prisma.orderShipment.create({
+          data: {
+            orderId: id,
+            courierProvider: "STEADFAST",
             status: "PENDING",
             trackingCode: parcelResult.trackingCode,
             consignmentId: parcelResult.consignmentId,

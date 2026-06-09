@@ -91,12 +91,14 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
       })
       const d = await res.json()
       if (d.success) {
-        const isPathao = d.data?.courierProvider === "PATHAO"
-        toast.success(
-          isPathao
-            ? "Parcel created in Pathao successfully"
-            : "Shipment created (manual fulfillment)"
-        )
+        const provider = d.data?.courierProvider
+        if (provider === "PATHAO") {
+          toast.success("Parcel created in Pathao successfully")
+        } else if (provider === "STEADFAST") {
+          toast.success("Parcel created in Steadfast successfully")
+        } else {
+          toast.success("Shipment created (manual fulfillment)")
+        }
         setCityId("")
         setAreaId("")
         setCustomerNote("")
@@ -217,9 +219,13 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
             <p className="text-center text-xs text-green-600 font-medium">
               Creating a real Pathao parcel via the Pathao API.
             </p>
+          ) : selectedProvider === "STEADFAST" ? (
+            <p className="text-center text-xs text-green-600 font-medium">
+              Creating a real Steadfast parcel via the Steadfast API.
+            </p>
           ) : (
             <p className="text-center text-xs text-amber-600 font-medium">
-              Steadfast and RedX integration coming soon. Parcel will be created locally with SETUP_READY status.
+              RedX integration coming soon. Parcel will be created locally with SETUP_READY status.
             </p>
           )}
         </div>
@@ -291,6 +297,10 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
         {shipment.courierProvider === "PATHAO" ? (
             <p className="text-center text-xs text-muted-foreground">
               Pathao parcel. Use manual status updates or implement webhooks for auto-sync.
+            </p>
+          ) : shipment.courierProvider === "STEADFAST" ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Steadfast parcel. Use manual status updates or implement webhooks for auto-sync.
             </p>
           ) : (
             <p className="text-center text-xs text-amber-600 font-medium">
