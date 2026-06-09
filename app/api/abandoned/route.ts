@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   const session = await auth()
-  if (!session?.user) return error("Unauthorized", 401)
+  if (!session?.user || session.user.role !== "admin") return error("Forbidden", 403)
 
   const items = await prisma.abandonedCheckout.findMany({
     orderBy: { createdAt: "desc" },

@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma"
 import { forgotPasswordSchema } from "@/lib/validations"
 import { success, error } from "@/lib/api-response"
 import { isResetRateLimited, createAndSendResetToken } from "@/lib/password-reset"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    const { limited: ipLimited } = rateLimitByIp(request, 5, 10 * 60 * 1000)
+    if (ipLimited) return success({ message: "If an account exists, we sent a password reset link." })
+
     const body = await request.json()
     const parsed = forgotPasswordSchema.safeParse(body)
 
@@ -22,8 +26,8 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     })
 
-    const limited = await isResetRateLimited(normalizedEmail)
-    if (limited) {
+    const emailLimited = await isResetRateLimited(normalizedEmail)
+    if (emailLimited) {
       return success({ message: "If an account exists, we sent a password reset link." })
     }
 

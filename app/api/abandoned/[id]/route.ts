@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  if (!session?.user) return error("Unauthorized", 401)
+  if (!session?.user || session.user.role !== "admin") return error("Forbidden", 403)
 
   const { id } = await params
 
@@ -65,7 +65,7 @@ return error("Invalid payload: " + parsed.error.issues.map(e => e.message).join(
     }
 
     const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
+    if (!session?.user || session.user.role !== "admin") return error("Forbidden", 403)
 
     const parsed = abandonedAdminUpdateSchema.safeParse(body)
     if (!parsed.success) {

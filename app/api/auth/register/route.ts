@@ -4,9 +4,13 @@ import { prisma } from "@/lib/prisma"
 import { registerSchema } from "@/lib/validations"
 import { success, error } from "@/lib/api-response"
 import { createAndSendVerificationToken } from "@/lib/email-verification"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    const { limited } = rateLimitByIp(request, 5, 10 * 60 * 1000)
+    if (limited) return error("Too many registration attempts. Please try again later.", 429)
+
     const body = await request.json()
     const parsed = registerSchema.safeParse(body)
 

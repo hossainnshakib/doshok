@@ -127,6 +127,19 @@ export async function POST(request: NextRequest) {
         })
       }
 
+      if (recoveryToken) {
+        const existingToken = await tx.recoveryCheckoutToken.findUnique({
+          where: { token: recoveryToken },
+        })
+        if (!existingToken || existingToken.usedAt || existingToken.expiresAt < new Date()) {
+          throw new Error("Recovery link is invalid, expired, or already used")
+        }
+        await tx.recoveryCheckoutToken.update({
+          where: { token: recoveryToken },
+          data: { usedAt: new Date() },
+        })
+      }
+
       return tx.order.create({
         data: {
           orderNumber,
@@ -208,13 +221,6 @@ export async function POST(request: NextRequest) {
         color: item.color,
       })),
     }).catch(() => {})
-
-    if (recoveryToken) {
-      prisma.recoveryCheckoutToken.update({
-        where: { token: recoveryToken },
-        data: { usedAt: new Date() },
-      }).catch(() => {})
-    }
 
     return success({ order }, 201)
   } catch (err) {

@@ -18,9 +18,16 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    if (!token || token.role !== "admin") {
+      const url = new URL("/admin/login", request.url)
+      return NextResponse.redirect(url)
+    }
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/account/:path*"],
+  matcher: ["/account/:path*", "/admin/:path*"],
 }

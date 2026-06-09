@@ -18,6 +18,11 @@ export async function GET(
   })
 
   if (!order) return error("Not found", 404)
+
+  if (session.user.role !== "admin" && order.userId !== session.user.id) {
+    return error("Forbidden", 403)
+  }
+
   return success(order)
 }
 
@@ -27,6 +32,7 @@ export async function PATCH(
 ) {
   const session = await auth()
   if (!session?.user) return error("Unauthorized", 401)
+  if (session.user.role !== "admin") return error("Forbidden", 403)
 
   const { id } = await params
 
