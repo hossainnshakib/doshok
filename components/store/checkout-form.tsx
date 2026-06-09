@@ -17,7 +17,7 @@ import {
   CheckCircle, Shield, Tag, Truck, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Smartphone,
 } from "lucide-react"
 import Link from "next/link"
-import { maskEmail, maskPhone, formatRelativeTime, saveAbandonedCheckout } from "@/lib/checkout-draft"
+import { type CheckoutDraft, maskEmail, maskPhone, formatRelativeTime, saveAbandonedCheckout } from "@/lib/checkout-draft"
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft"
 import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
 import type { ConfirmationResult } from "@/lib/firebase-client"
@@ -54,6 +54,7 @@ export function CheckoutForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isBuyNow = searchParams.has("productId")
+  const recoveryToken = searchParams.get("recoveryToken")
 
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user
@@ -163,14 +164,59 @@ export function CheckoutForm() {
     }
   }, [isBuyNow, searchParams, router])
 
+  const recoveryPrefilled = useRef(false)
+
   useEffect(() => {
-    if (draft.phone) setCouponCode(draft.couponCode)
-    if (draft.selectedDeliveryZone) setDeliveryZone(draft.selectedDeliveryZone as DeliveryZone)
-    if (draft.selectedPaymentMethod) setPaymentMethod(draft.selectedPaymentMethod)
-    if (draft.couponCode && !couponApplied) {
-      setCouponCode(draft.couponCode)
-    }
-  }, [restored])
+    if (!recoveryToken || recoveryPrefilled.current) return
+    recoveryPrefilled.current = true
+
+    fetch(`/api/recover-checkout?token=${encodeURIComponent(recoveryToken)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.success || !d.data) return
+
+        const rec = d.data
+        const updates: Partial<CheckoutDraft> = {}
+
+        if (rec.name) updates.name = rec.name
+        if (rec.email) updates.email = rec.email
+        if (rec.phone) updates.phone = rec.phone
+        if (rec.address) updates.fullAddress = rec.address
+        if (rec.deliveryZone) updates.selectedDeliveryZone = rec.deliveryZone
+        if (rec.couponCode) updates.couponCode = rec.couponCode
+
+        if (Object.keys(updates).length > 0) {
+          updateFields(updates)
+        }
+
+        if (rec.couponCode) {
+          setCouponCode(rec.couponCode)
+        }
+
+        if (rec.productId) {
+          const item: CartItem & { productName?: string } = {
+            productId: rec.productId,
+            variantId: rec.variantId || undefined,
+            name: "Restored Item",
+            price: rec.subtotal > 0 ? Math.round(rec.subtotal / (rec.quantity || 1)) : 0,
+            quantity: rec.quantity || 1,
+            size: rec.size || undefined,
+            color: rec.color || undefined,
+          }
+          fetch(`/api/products/${rec.productId}`)
+            .then((r) => r.json())
+            .then((pd) => {
+              if (pd.success) {
+                setItems([{ ...item, name: pd.data.name, productName: pd.data.name }])
+              } else {
+                setItems([item])
+              }
+            })
+            .catch(() => setItems([item]))
+        }
+      })
+      .catch(() => {})
+  }, [recoveryToken, updateFields])
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -390,6 +436,7 @@ export function CheckoutForm() {
           deliveryZone,
           paymentMethod,
           couponCode: couponApplied ? couponCode : undefined,
+          recoveryToken: recoveryToken || undefined,
           phoneVerifiedToken,
           items: items.map((item) => ({
             productId: item.productId,

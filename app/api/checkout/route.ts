@@ -4,17 +4,17 @@ import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
 import { generateOrderNumber } from "@/lib/order-number"
 import { getDeliveryFee } from "@/lib/delivery"
-import { checkoutSchema } from "@/lib/validations"
+import { checkoutSchemaWithRecovery } from "@/lib/validations"
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/mailer"
 import { verifyPhoneVerifiedToken } from "@/lib/phone-verify-token"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const parsed = checkoutSchema.safeParse(body)
+    const parsed = checkoutSchemaWithRecovery.safeParse(body)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
-    const { items, deliveryZone, paymentMethod, couponCode, phoneVerifiedToken, ...customer } = parsed.data
+    const { items, deliveryZone, paymentMethod, couponCode, phoneVerifiedToken, recoveryToken, ...customer } = parsed.data
 
     const session = await auth()
     const userId = session?.user?.id ?? null
@@ -208,6 +208,13 @@ export async function POST(request: NextRequest) {
         color: item.color,
       })),
     }).catch(() => {})
+
+    if (recoveryToken) {
+      prisma.recoveryCheckoutToken.update({
+        where: { token: recoveryToken },
+        data: { usedAt: new Date() },
+      }).catch(() => {})
+    }
 
     return success({ order }, 201)
   } catch (err) {

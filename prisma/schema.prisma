@@ -26,6 +26,7 @@ model User {
   orders        Order[]
   emailTokens   EmailVerificationToken[]
   resetTokens   PasswordResetToken[]
+  recoveryTokensCreated RecoveryCheckoutToken[] @relation("CreatedRecoveryTokens")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -318,7 +319,20 @@ model AbandonedCheckout {
   lastSeenAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  recoveryTokens RecoveryCheckoutToken[]
 
   @@index([email])
   @@index([draftToken])
+}
+
+model RecoveryCheckoutToken {
+  id                  String   @id @default(cuid())
+  token               String   @unique
+  abandonedCheckoutId String
+  abandonedCheckout   AbandonedCheckout @relation(fields: [abandonedCheckoutId], references: [id], onDelete: Cascade)
+  expiresAt           DateTime
+  usedAt              DateTime?
+  createdAt           DateTime @default(now())
+  createdByAdminId    String?
+  createdByAdmin      User?    @relation("CreatedRecoveryTokens", fields: [createdByAdminId], references: [id])
 }

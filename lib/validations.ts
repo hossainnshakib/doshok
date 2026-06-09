@@ -207,6 +207,14 @@ export const abandonedAdminUpdateSchema = z.object({
   notes: z.string().optional(),
 })
 
+export const recoveryTokenSchema = z.object({
+  token: z.string().min(1, "Token is required"),
+})
+
+export const checkoutSchemaWithRecovery = checkoutSchema.extend({
+  recoveryToken: z.string().optional(),
+})
+
 export const paymentProvider = z.enum([
   "BKASH", "NAGAD", "ROCKET", "UPAY", "SSLCOMMERZ", "AAMARPAY", "COD",
 ])
