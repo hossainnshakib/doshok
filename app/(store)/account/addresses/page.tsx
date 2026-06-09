@@ -47,9 +47,9 @@ function EmptyState() {
       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
         <MapPin className="h-8 w-8 text-muted-foreground" />
       </div>
-      <p className="text-base font-medium text-foreground">No saved addresses</p>
-      <p className="mt-1 text-sm text-muted-foreground max-w-sm mx-auto">
-        Save delivery addresses to checkout faster.
+      <p className="text-base font-semibold text-foreground">No saved addresses</p>
+      <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+        You haven&apos;t added any delivery addresses yet. Save one now to breeze through checkout next time.
       </p>
     </div>
   )

@@ -88,9 +88,9 @@ export default function TrackOrderPage() {
     setLoading(true)
     setSearched(true)
     try {
-      const response = await fetch(`/api/orders/number/${encodeURIComponent(orderNumber)}`)
+      const response = await fetch(`/api/orders/number/${encodeURIComponent(orderNumber)}?phone=${encodeURIComponent(phone)}`)
       const data = await response.json()
-      if (data.success && data.data.customerPhone === phone) {
+      if (data.success) {
         setOrder(data.data)
       } else {
         setOrder(null)

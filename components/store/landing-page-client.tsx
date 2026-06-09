@@ -56,12 +56,6 @@ type LandingPageClientProps = {
   slug: string
 }
 
-const DELIVERY_FEES: Record<DeliveryZone, number> = {
-  chatto: 60,
-  dhaka: 100,
-  outside: 130,
-}
-
 const STEPS = [
   { index: 0, label: "Select" },
   { index: 1, label: "Contact" },
@@ -76,6 +70,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const [quantity, setQuantity] = useState(1)
   const [step, setStep] = useState(0)
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZone>("dhaka")
+  const [deliveryFees, setDeliveryFees] = useState<Record<DeliveryZone, number>>({ chatto: 60, dhaka: 100, outside: 130 })
   const [paymentMethod, setPaymentMethod] = useState<string>("cod")
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodSetting[]>([])
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true)
@@ -163,7 +158,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const selectedVariant = product.variants.find(
     (v) => v.size === selectedSize && v.color === selectedColor
   )
-  const deliveryFee = DELIVERY_FEES[deliveryZone]
+  const deliveryFee = deliveryFees[deliveryZone]
   const subtotal = product.price * quantity
   const discount = couponDiscount
   const total = subtotal + deliveryFee - discount
@@ -235,6 +230,18 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
       })
       .catch(() => {})
       .finally(() => setPaymentMethodsLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/delivery-fees")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && typeof d.data === "object" && !Array.isArray(d.data)) {
+          const feeMap = d.data as Record<DeliveryZone, number>
+          setDeliveryFees(feeMap)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const scrollToTop = useCallback(() => {
@@ -433,7 +440,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
               productId: product.id,
               variantId: selectedVariant?.id,
               quantity,
-              price: product.price,
             },
           ],
         }),
@@ -884,7 +890,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                   <SelectContent>
                     {Object.entries(DELIVERY_ZONE_NAMES).map(([key, name]) => (
                       <SelectItem key={key} value={key}>
-                        {name} (৳{DELIVERY_FEES[key as DeliveryZone]})
+                        {name} (৳{deliveryFees[key as DeliveryZone] ?? "—"})
                       </SelectItem>
                     ))}
                   </SelectContent>

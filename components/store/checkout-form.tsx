@@ -37,12 +37,6 @@ type PaymentMethodSetting = {
 
 const ONLINE_PROVIDERS = ["BKASH", "NAGAD", "ROCKET", "UPAY", "SSLCOMMERZ", "AAMARPAY"]
 
-const DELIVERY_FEES: Record<string, number> = {
-  chatto: 60,
-  dhaka: 100,
-  outside: 130,
-}
-
 const STEPS = [
   { index: 0, label: "Contact", description: "Who & where to reach" },
   { index: 1, label: "Delivery", description: "Delivery address & zone" },
@@ -68,6 +62,7 @@ export function CheckoutForm() {
 
   const [items, setItems] = useState<(CartItem & { productName?: string })[]>([])
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZone>("dhaka")
+  const [deliveryFee, setDeliveryFee] = useState(0)
   const [paymentMethod, setPaymentMethod] = useState<string>("cod")
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodSetting[]>([])
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true)
@@ -188,7 +183,10 @@ export function CheckoutForm() {
         if (rec.email) updates.email = rec.email
         if (rec.phone) updates.phone = rec.phone
         if (rec.address) updates.fullAddress = rec.address
-        if (rec.deliveryZone) updates.selectedDeliveryZone = rec.deliveryZone
+        if (rec.deliveryZone) {
+          updates.selectedDeliveryZone = rec.deliveryZone
+          setDeliveryZone(rec.deliveryZone as DeliveryZone)
+        }
         if (rec.couponCode) updates.couponCode = rec.couponCode
 
         if (Object.keys(updates).length > 0) {
@@ -223,6 +221,18 @@ export function CheckoutForm() {
       })
       .catch(() => {})
   }, [recoveryToken, updateFields])
+
+  useEffect(() => {
+    fetch("/api/delivery-fees")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && typeof d.data === "object" && !Array.isArray(d.data)) {
+          const feeMap = d.data as Record<DeliveryZone, number>
+          setDeliveryFee(feeMap[deliveryZone] ?? 100)
+        }
+      })
+      .catch(() => setDeliveryFee(100))
+  }, [deliveryZone])
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -271,6 +281,7 @@ export function CheckoutForm() {
       fullAddress: addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ""),
       selectedDeliveryZone: addr.zone,
     })
+    setDeliveryZone(addr.zone as DeliveryZone)
   }
 
   const scrollToTop = useCallback(() => {
@@ -327,7 +338,6 @@ export function CheckoutForm() {
   }, [goBack, scrollToTop])
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
-  const deliveryFee = DELIVERY_FEES[deliveryZone]
   const discount = couponDiscount
   const total = subtotal + deliveryFee - discount
 
@@ -480,7 +490,6 @@ export function CheckoutForm() {
             productId: item.productId,
             variantId: item.variantId,
             quantity: item.quantity,
-            price: item.price,
           })),
         }),
       })
@@ -847,7 +856,7 @@ export function CheckoutForm() {
                         <SelectContent>
                           {Object.entries(DELIVERY_ZONE_NAMES).map(([key, name]) => (
                             <SelectItem key={key} value={key}>
-                              {name} (৳{DELIVERY_FEES[key]})
+                              {name}
                             </SelectItem>
                           ))}
                         </SelectContent>

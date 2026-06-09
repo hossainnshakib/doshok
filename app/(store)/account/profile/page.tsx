@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { User, Loader2 } from "lucide-react"
+import { User, Loader2, BadgeCheck, AlertTriangle, Mail, Phone } from "lucide-react"
 
 type ProfileData = {
   firstName: string
@@ -77,6 +78,18 @@ export default function AccountProfilePage() {
     }
   }
 
+  const isVerified = !!session?.user?.emailVerified
+
+  const fields = [
+    { key: "phone", filled: !!phone },
+    { key: "dateOfBirth", filled: !!dateOfBirth },
+    { key: "gender", filled: !!gender },
+    { key: "emailVerified", filled: isVerified },
+  ]
+  const completedCount = fields.filter((f) => f.filled).length
+  const totalCount = fields.length
+  const completionPercent = Math.round((completedCount / totalCount) * 100)
+
   if (fetching) {
     return (
       <div className="text-center py-12 text-sm text-muted-foreground animate-pulse">
@@ -86,11 +99,64 @@ export default function AccountProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2 font-medium">Settings</p>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Profile</h1>
       </div>
+
+      <Card className="border-border/50 rounded-2xl shadow-sm">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium">Profile Completion</p>
+            <p className="text-sm text-muted-foreground">{completionPercent}%</p>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-700 rounded-full"
+              style={{ width: `${completionPercent}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-xs text-muted-foreground">
+            {fields.map((f) => (
+              <span key={f.key} className="flex items-center gap-1">
+                {f.filled ? (
+                  <BadgeCheck className="h-3 w-3 text-primary" />
+                ) : (
+                  <AlertTriangle className="h-3 w-3 text-muted-foreground/50" />
+                )}
+                {f.key === "emailVerified" ? "Email Verified" : f.key.charAt(0).toUpperCase() + f.key.slice(1)}
+              </span>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {!phone && (
+        <Card className="border-amber-200/50 bg-amber-50/50 dark:border-amber-800/50 dark:bg-amber-950/20 rounded-2xl shadow-sm">
+          <CardContent className="flex items-center gap-3 py-3 px-4">
+            <Phone className="h-4 w-4 text-amber-500 shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-300 flex-1">
+              Add a phone number for faster checkout.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isVerified && (
+        <Card className="border-amber-200/50 bg-amber-50/50 dark:border-amber-800/50 dark:bg-amber-950/20 rounded-2xl shadow-sm">
+          <CardContent className="flex items-center gap-3 py-3 px-4">
+            <Mail className="h-4 w-4 text-amber-500 shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-300 flex-1">
+              Email not verified.{" "}
+              <Link href="/account" className="font-medium underline underline-offset-2 hover:text-amber-900">
+                Verify now
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-border/50 rounded-2xl shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">

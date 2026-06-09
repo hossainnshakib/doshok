@@ -71,18 +71,6 @@ export async function POST(request: NextRequest) {
       return { ...item, price: dbPrice }
     })
 
-    for (const item of validatedItems) {
-      if (item.variantId) {
-        const variant = variantMap.get(item.variantId)
-        if (!variant) return error(`Variant not found for item in product ${productMap.get(item.productId)?.name || item.productId}`)
-        if (variant.stock < item.quantity) {
-          return error(
-            `Insufficient stock for "${productMap.get(item.productId)?.name || "Product"}". Available: ${variant.stock}, requested: ${item.quantity}`
-          )
-        }
-      }
-    }
-
     const subtotal = validatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
     let discount = 0
