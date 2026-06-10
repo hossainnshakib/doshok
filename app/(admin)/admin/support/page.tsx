@@ -11,7 +11,7 @@ export default function SupportPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader eyebrow="Support" title="Support Hub" description="Manage customer inquiries, support tickets, and contact messages." />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {sections.map((section) => (
           <AdminHubCard key={section.href} href={section.href} title={section.label} description={section.desc} icon={section.icon} badge={section.badge} />
         ))}

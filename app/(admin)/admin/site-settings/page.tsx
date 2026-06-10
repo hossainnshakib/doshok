@@ -178,7 +178,7 @@ export default function SiteSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <AdminPageHeader eyebrow="Settings" title="Site Settings" description="Set the brand details and theme preferences customers and admin see across the store." />
+      <AdminPageHeader eyebrow="Settings" title="Site Settings" description="Set the brand details and theme preferences customers and admin see across the store." backHref="/admin/settings" />
 
       <AdminSectionCard title="Brand Info" description="Storefront brand label and short footer description.">
           <div className="space-y-2">
@@ -352,7 +352,7 @@ export default function SiteSettingsPage() {
                 <Label className="text-xs">URL</Label>
                 <Input value={link.href} onChange={(e) => updateFooterLink(i, "href", e.target.value)} placeholder="/privacy or https://..." />
               </div>
-              <Button type="button" size="icon" variant="ghost" onClick={() => removeFooterLink(i)} className="shrink-0 mb-1">
+              <Button type="button" size="icon" variant="ghost" onClick={() => removeFooterLink(i)} className="shrink-0 mb-1 text-muted-foreground hover:text-destructive">
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

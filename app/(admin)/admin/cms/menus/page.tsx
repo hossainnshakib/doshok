@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { AdminPageHeader, AdminSectionCard } from "@/components/admin/admin-ui"
-import { Plus, Trash2, ExternalLink, ArrowRight } from "lucide-react"
+import { Plus, Trash2, ExternalLink, ArrowRight, ArrowLeft } from "lucide-react"
 
 type FooterLinkItem = { label: string; href: string; group: string }
 type MenuLink = { label: string; href: string }
@@ -139,7 +140,12 @@ export default function CMSMenusPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <AdminPageHeader eyebrow="CMS" title="Navigation Menus" description="Configure storefront navigation links shown in the header quick bar and footer columns." />
+      <AdminPageHeader eyebrow="CMS" title="Navigation Menus" description="Configure storefront navigation links shown in the header quick bar and footer columns." backHref="/admin/cms" />
+
+      <Link href="/admin/cms" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to CMS Hub
+      </Link>
 
       <AdminSectionCard title="Header Quick Links" description="Links shown in the top bar of the storefront header. Use internal paths only.">
         <div className="space-y-2">

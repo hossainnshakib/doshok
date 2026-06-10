@@ -78,6 +78,7 @@ export default function AdminOrdersPage() {
         eyebrow="Sales"
         title="Orders"
         description={`${total} total order${total === 1 ? "" : "s"}${status !== "all" ? ` in "${status}"` : ""}.`}
+        backHref="/admin/sales"
       />
 
       <div className="flex flex-wrap gap-1.5">

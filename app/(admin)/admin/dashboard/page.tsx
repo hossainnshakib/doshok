@@ -17,8 +17,6 @@ export default async function AdminDashboardPage() {
     lowStockProducts,
     categoriesCount,
     couponsCount,
-    shippedOrders,
-    deliveredOrders,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.order.count(),
@@ -37,8 +35,6 @@ export default async function AdminDashboardPage() {
     }),
     prisma.category.count(),
     prisma.coupon.count({ where: { active: true } }),
-    prisma.order.count({ where: { orderStatus: "shipped" } }),
-    prisma.order.count({ where: { orderStatus: "delivered" } }),
   ])
 
   const totalRevenue = totalRevenueResult._sum.total ?? 0
@@ -84,8 +80,10 @@ export default async function AdminDashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {recentOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
+                    <TableRow key={order.id} className="hover:bg-neutral-50/50">
+                      <TableCell className="font-mono text-xs">
+                        <Link href={`/admin/orders/${order.id}`} className="hover:underline">{order.orderNumber}</Link>
+                      </TableCell>
                       <TableCell>
                         <p className="font-medium text-sm">{order.customerName}</p>
                         <p className="text-xs text-muted-foreground">{order.customerPhone}</p>

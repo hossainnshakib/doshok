@@ -16,6 +16,7 @@ import { saveLandingDraft, loadLandingDraft, clearLandingDraft, clearBuyNowConte
 import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
 import type { ConfirmationResult } from "@/lib/firebase-client"
 import { useSession } from "next-auth/react"
+import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
 
 type PaymentMethodSetting = {
   provider: string
@@ -94,11 +95,18 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   // Form fields
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [division, setDivision] = useState("")
-  const [district, setDistrict] = useState("")
-  const [thana, setThana] = useState("")
+  const [divisionId, setDivisionId] = useState("")
+  const [divisionName, setDivisionName] = useState("")
+  const [districtId, setDistrictId] = useState("")
+  const [districtName, setDistrictName] = useState("")
+  const [upazilaId, setUpazilaId] = useState("")
+  const [upazilaName, setUpazilaName] = useState("")
   const [fullAddress, setFullAddress] = useState("")
   const [note, setNote] = useState("")
+
+  const [divisions, setDivisions] = useState<Awaited<ReturnType<typeof getDivisions>>>([])
+  const [districts, setDistricts] = useState<Awaited<ReturnType<typeof getDistrictsByDivision>>>([])
+  const [upazilas, setUpazilas] = useState<Awaited<ReturnType<typeof getUpazilasByDistrict>>>([])
 
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user
@@ -106,6 +114,10 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const [showRestoreNotice, setShowRestoreNotice] = useState(false)
   const restored = useRef(false)
   const restoredDraft = useRef<Record<string, unknown> | null>(null)
+
+  useEffect(() => {
+    setDivisions(getDivisions())
+  }, [])
 
   // Restore draft on mount
   useEffect(() => {
@@ -121,9 +133,20 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
       if (saved.name) setName(saved.name)
       if (saved.email) setEmail(saved.email)
       if (saved.phone) setPhone(saved.phone)
-      if (saved.division) setDivision(saved.division)
-      if (saved.district) setDistrict(saved.district)
-      if (saved.thana) setThana(saved.thana)
+      if (saved.divisionId) {
+        setDivisionId(saved.divisionId)
+        setDivisionName(saved.divisionName || "")
+        setDistricts(getDistrictsByDivision(saved.divisionId))
+      }
+      if (saved.districtId) {
+        setDistrictId(saved.districtId)
+        setDistrictName(saved.districtName || "")
+        setUpazilas(getUpazilasByDistrict(saved.districtId))
+      }
+      if (saved.upazilaId) {
+        setUpazilaId(saved.upazilaId)
+        setUpazilaName(saved.upazilaName || "")
+      }
       if (saved.fullAddress) setFullAddress(saved.fullAddress)
       if (saved.note) setNote(saved.note)
       if (saved.selectedDeliveryZone) setDeliveryZone(saved.selectedDeliveryZone as DeliveryZone)
@@ -139,13 +162,14 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
     saveLandingDraft(slug, {
       selectedSize, selectedColor, quantity,
       name, email, phone,
-      division, district, thana, fullAddress, note,
+      divisionId, divisionName, districtId, districtName, upazilaId, upazilaName,
+      fullAddress, note,
       selectedDeliveryZone: deliveryZone,
       selectedPaymentMethod: paymentMethod,
       couponCode,
       currentStep: step,
     })
-  }, [slug, selectedSize, selectedColor, quantity, name, email, phone, division, district, thana, fullAddress, note, deliveryZone, paymentMethod, couponCode, step])
+  }, [slug, selectedSize, selectedColor, quantity, name, email, phone, divisionId, divisionName, districtId, districtName, upazilaId, upazilaName, fullAddress, note, deliveryZone, paymentMethod, couponCode, step])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
@@ -263,9 +287,8 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
           errors.push("Valid phone number (11+ digits) is required")
         break
       case 2:
-        if (!division.trim()) errors.push("Division is required")
-        if (!district.trim()) errors.push("District is required")
-        if (!thana.trim()) errors.push("Thana is required")
+        if (!districtId) errors.push("Division and district are required")
+        if (!upazilaId) errors.push("Upazila / Thana is required")
         if (!fullAddress.trim()) errors.push("Full address is required")
         break
       case 3:
@@ -275,7 +298,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
         break
     }
     return errors
-  }, [step, selectedSize, selectedColor, name, email, phone, division, district, thana, fullAddress, couponCode, couponApplied])
+  }, [step, selectedSize, selectedColor, name, email, phone, divisionId, districtId, upazilaId, fullAddress, couponCode, couponApplied])
 
   const handleNext = useCallback(() => {
     const errors = validateCurrentStep()
@@ -426,12 +449,14 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
           name,
           email,
           phone,
-          division,
-          district,
-          thana,
+          divisionId,
+          divisionName,
+          districtId,
+          districtName,
+          upazilaId,
+          upazilaName,
           fullAddress,
           note,
-          deliveryZone,
           paymentMethod,
           couponCode: couponApplied ? couponCode : undefined,
           phoneVerifiedToken,
@@ -594,9 +619,12 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                         setName("")
                         setEmail("")
                         setPhone("")
-                        setDivision("")
-                        setDistrict("")
-                        setThana("")
+                        setDivisionId("")
+                        setDivisionName("")
+                        setDistrictId("")
+                        setDistrictName("")
+                        setUpazilaId("")
+                        setUpazilaName("")
                         setFullAddress("")
                         setNote("")
                         setDeliveryZone("dhaka")
@@ -859,52 +887,101 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
             <h2 className="text-lg font-semibold">Delivery Address</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="division">Division</Label>
-                <Input
-                  id="division"
-                  value={division}
-                  onChange={(e) => setDivision(e.target.value)}
-                  placeholder="Chattogram"
-                  className="h-11 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="district">District</Label>
-                <Input
-                  id="district"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  placeholder="Chattogram"
-                  className="h-11 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="thana">Thana / Upazila</Label>
-                <Input
-                  id="thana"
-                  value={thana}
-                  onChange={(e) => setThana(e.target.value)}
-                  placeholder="Kotwali"
-                  className="h-11 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Delivery Zone</Label>
+                <Label>Division</Label>
                 <Select
-                  value={deliveryZone}
-                  onValueChange={(v) => setDeliveryZone(v as DeliveryZone)}
+                  value={divisionId}
+                  onValueChange={(v) => {
+                    if (!v) return
+                    const div = divisions.find((d) => d.id === v)
+                    if (div) {
+                      setDivisionId(div.id)
+                      setDivisionName(div.name)
+                      setDistrictId("")
+                      setDistrictName("")
+                      setUpazilaId("")
+                      setUpazilaName("")
+                      setDistricts(getDistrictsByDivision(v))
+                      setUpazilas([])
+                    }
+                  }}
                 >
                   <SelectTrigger className="h-11 rounded-xl">
-                    <SelectValue />
+                    <SelectValue placeholder="Select division" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(DELIVERY_ZONE_NAMES).map(([key, name]) => (
-                      <SelectItem key={key} value={key}>
-                        {name} (৳{deliveryFees[key as DeliveryZone] ?? "—"})
+                    {divisions.map((div) => (
+                      <SelectItem key={div.id} value={div.id}>
+                        {div.name} {div.nameBn ? `(${div.nameBn})` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>District</Label>
+                <Select
+                  value={districtId}
+                  onValueChange={(v) => {
+                    if (!v) return
+                    const dist = districts.find((d) => d.id === v)
+                    if (dist) {
+                      setDistrictId(dist.id)
+                      setDistrictName(dist.name)
+                      setUpazilaId("")
+                      setUpazilaName("")
+                      setUpazilas(getUpazilasByDistrict(v))
+                    }
+                  }}
+                  disabled={!divisionId}
+                >
+                  <SelectTrigger className="h-11 rounded-xl">
+                    <SelectValue placeholder={divisionId ? "Select district" : "Select division first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districts.map((dist) => (
+                      <SelectItem key={dist.id} value={dist.id}>
+                        {dist.name} {dist.nameBn ? `(${dist.nameBn})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Upazila / Thana</Label>
+                <Select
+                  value={upazilaId}
+                  onValueChange={(v) => {
+                    if (!v) return
+                    const upa = upazilas.find((u) => u.id === v)
+                    if (upa) {
+                      setUpazilaId(upa.id)
+                      setUpazilaName(upa.name)
+                    }
+                  }}
+                  disabled={!districtId}
+                >
+                  <SelectTrigger className="h-11 rounded-xl">
+                    <SelectValue placeholder={districtId ? "Select upazila/thana" : "Select district first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {upazilas.map((upa) => (
+                      <SelectItem key={upa.id} value={upa.id}>
+                        {upa.name} {upa.nameBn ? `(${upa.nameBn})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Delivery Area</Label>
+                <div className="h-11 rounded-xl border border-input bg-muted/30 px-4 flex items-center text-sm">
+                  <Truck className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                  {districtId ? (
+                    <span>{DELIVERY_ZONE_NAMES[deliveryZone as keyof typeof DELIVERY_ZONE_NAMES]} &mdash; ৳{deliveryFees[deliveryZone] ?? "—"}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Select district for delivery info</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="space-y-2">

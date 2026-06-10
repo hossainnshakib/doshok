@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
@@ -24,6 +23,8 @@ import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
 import type { ConfirmationResult } from "@/lib/firebase-client"
 import { useSession } from "next-auth/react"
 import { User, LogIn, MapPin, Home, Briefcase, Users } from "lucide-react"
+import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
+import { AddressCombobox } from "@/components/store/address-combobox"
 
 type PaymentMethodSetting = {
   provider: string
@@ -91,6 +92,10 @@ export function CheckoutForm() {
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const formRef = useRef<HTMLDivElement>(null)
 
+  const [divisions, setDivisions] = useState<Awaited<ReturnType<typeof getDivisions>>>([])
+  const [districts, setDistricts] = useState<Awaited<ReturnType<typeof getDistrictsByDivision>>>([])
+  const [upazilas, setUpazilas] = useState<Awaited<ReturnType<typeof getUpazilasByDistrict>>>([])
+
   useEffect(() => {
     const urlCoupon = searchParams.get("coupon")
     if (urlCoupon) {
@@ -126,6 +131,10 @@ export function CheckoutForm() {
       data: JSON.stringify({ phoneVerified: true, userId: session?.user?.id || undefined }),
     })
   }, [phoneOtpVerified])
+
+  useEffect(() => {
+    setDivisions(getDivisions())
+  }, [])
 
   useEffect(() => {
     if (isBuyNow) {
@@ -223,16 +232,23 @@ export function CheckoutForm() {
   }, [recoveryToken, updateFields])
 
   useEffect(() => {
-    fetch("/api/delivery-fees")
+    if (!draft.districtId) return
+    const url = draft.districtId ? `/api/delivery-fees?districtId=${encodeURIComponent(draft.districtId)}` : "/api/delivery-fees"
+    fetch(url)
       .then((r) => r.json())
       .then((d) => {
-        if (d.success && typeof d.data === "object" && !Array.isArray(d.data)) {
-          const feeMap = d.data as Record<DeliveryZone, number>
-          setDeliveryFee(feeMap[deliveryZone] ?? 100)
+        if (d.success) {
+          if (typeof d.data === "object" && !Array.isArray(d.data) && "fee" in d.data) {
+            setDeliveryFee((d.data as { zone: string; fee: number }).fee)
+            setDeliveryZone((d.data as { zone: string; fee: number }).zone as DeliveryZone)
+          } else if (typeof d.data === "object" && !Array.isArray(d.data)) {
+            const feeMap = d.data as Record<DeliveryZone, number>
+            setDeliveryFee(feeMap[deliveryZone] ?? 100)
+          }
         }
       })
       .catch(() => setDeliveryFee(100))
-  }, [deliveryZone])
+  }, [draft.districtId, deliveryZone])
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -296,13 +312,18 @@ export function CheckoutForm() {
     updateFields({
       name: addr.recipientName,
       phone: addr.phone,
-      division: addr.city,
-      district: addr.city,
-      thana: addr.city,
+      divisionId: "",
+      divisionName: addr.city,
+      districtId: "",
+      districtName: addr.city,
+      upazilaId: "",
+      upazilaName: addr.city,
       fullAddress: addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ""),
       selectedDeliveryZone: addr.zone,
     })
     setDeliveryZone(addr.zone as DeliveryZone)
+    setDistricts([])
+    setUpazilas([])
   }
 
   const scrollToTop = useCallback(() => {
@@ -321,9 +342,8 @@ export function CheckoutForm() {
         break
       }
       case 1: {
-        if (!draft.division.trim()) errors.push("Division is required")
-        if (!draft.district.trim()) errors.push("District is required")
-        if (!draft.thana.trim()) errors.push("Thana is required")
+        if (!draft.districtId) errors.push("Division and district are required")
+        if (!draft.upazilaId) errors.push("Upazila / Thana is required")
         if (!draft.fullAddress.trim()) errors.push("Full address is required")
         break
       }
@@ -497,12 +517,14 @@ export function CheckoutForm() {
           name: draft.name,
           email: draft.email,
           phone: draft.phone,
-          division: draft.division,
-          district: draft.district,
-          thana: draft.thana,
+          divisionId: draft.divisionId,
+          divisionName: draft.divisionName,
+          districtId: draft.districtId,
+          districtName: draft.districtName,
+          upazilaId: draft.upazilaId,
+          upazilaName: draft.upazilaName,
           fullAddress: draft.fullAddress,
           note: draft.note,
-          deliveryZone,
           paymentMethod,
           couponCode: couponApplied ? couponCode : undefined,
           recoveryToken: recoveryToken || undefined,
@@ -526,7 +548,7 @@ export function CheckoutForm() {
               phone: draft.phone,
               addressLine1: draft.fullAddress,
               addressLine2: "",
-              city: draft.division,
+              city: draft.districtName || draft.divisionName,
               zone: deliveryZone,
               postalCode: "",
               isDefault: savedAddresses.length === 0,
@@ -583,9 +605,12 @@ export function CheckoutForm() {
                     <span>Step: {STEPS[step]?.label || `Step ${step + 1}`}</span>
                     {draft.email && <span className="truncate">Email: {maskEmail(draft.email)}</span>}
                     {draft.phone && <span className="truncate">Phone: {maskPhone(draft.phone)}</span>}
+                    {draft.districtName && (
+                      <span className="truncate">{draft.upazilaName}, {draft.districtName}</span>
+                    )}
                     {draft.selectedDeliveryZone && (
                       <span className="truncate">
-                        Delivery: {DELIVERY_ZONE_NAMES[draft.selectedDeliveryZone as keyof typeof DELIVERY_ZONE_NAMES] || draft.selectedDeliveryZone}
+                        {DELIVERY_ZONE_NAMES[draft.selectedDeliveryZone as keyof typeof DELIVERY_ZONE_NAMES] || draft.selectedDeliveryZone}
                       </span>
                     )}
                     {draft.selectedPaymentMethod && (
@@ -842,67 +867,110 @@ export function CheckoutForm() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="division">Division</Label>
-                      <Input
-                        id="division"
-                        value={draft.division}
-                        onChange={(e) => { updateField("division", e.target.value); setSelectedAddressId(null) }}
-                        placeholder="Chattogram"
+                      <AddressCombobox
+                        options={divisions}
+                        value={draft.divisionId}
+                        onChange={(v) => {
+                          if (!v) return
+                          const div = divisions.find((d) => d.id === v)
+                          if (div) {
+                            updateFields({
+                              divisionId: div.id,
+                              divisionName: div.name,
+                              districtId: "",
+                              districtName: "",
+                              upazilaId: "",
+                              upazilaName: "",
+                            })
+                            setDistricts(getDistrictsByDivision(v))
+                            setUpazilas([])
+                            setSelectedAddressId(null)
+                          }
+                        }}
+                        placeholder="Select division"
+                        disabled={false}
                         className="h-11 rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="district">District</Label>
-                      <Input
-                        id="district"
-                        value={draft.district}
-                        onChange={(e) => { updateField("district", e.target.value); setSelectedAddressId(null) }}
-                        placeholder="Chattogram"
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="thana">Thana / Upazila</Label>
-                      <Input
-                        id="thana"
-                        value={draft.thana}
-                        onChange={(e) => { updateField("thana", e.target.value); setSelectedAddressId(null) }}
-                        placeholder="Kotwali"
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="deliveryZone">Delivery Zone</Label>
-                      <Select
-                        value={deliveryZone}
-                        onValueChange={(v) => {
+                      <AddressCombobox
+                        options={districts}
+                        value={draft.districtId}
+                        onChange={(v) => {
                           if (!v) return
-                          setDeliveryZone(v as DeliveryZone)
-                          updateField("selectedDeliveryZone", v)
-                          setSelectedAddressId(null)
+                          const dist = districts.find((d) => d.id === v)
+                          if (dist) {
+                            updateFields({
+                              districtId: dist.id,
+                              districtName: dist.name,
+                              upazilaId: "",
+                              upazilaName: "",
+                            })
+                            setUpazilas(getUpazilasByDistrict(v))
+                            setSelectedAddressId(null)
+                          }
                         }}
-                      >
-                        <SelectTrigger className="h-11 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(DELIVERY_ZONE_NAMES).map(([key, name]) => (
-                            <SelectItem key={key} value={key}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder={draft.divisionId ? "Select district" : "Select division first"}
+                        disabled={!draft.divisionId}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="upazila">Upazila / Thana</Label>
+                      <AddressCombobox
+                        options={upazilas}
+                        value={draft.upazilaId}
+                        onChange={(v) => {
+                          if (!v) return
+                          const upa = upazilas.find((u) => u.id === v)
+                          if (upa) {
+                            updateFields({
+                              upazilaId: upa.id,
+                              upazilaName: upa.name,
+                            })
+                            setSelectedAddressId(null)
+                          }
+                        }}
+                        placeholder={draft.districtId ? "Select upazila/thana" : "Select district first"}
+                        disabled={!draft.districtId}
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Delivery Area</Label>
+                      <div className="h-11 rounded-xl border border-input bg-muted/30 px-4 flex items-center text-sm">
+                        <Truck className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                        {draft.districtId ? (
+                          <span>
+                            {DELIVERY_ZONE_NAMES[deliveryZone as keyof typeof DELIVERY_ZONE_NAMES]} &mdash; ৳{deliveryFee}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Select district for delivery info</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fullAddress">Full Address</Label>
-                    <Input
-                      id="fullAddress"
-                      value={draft.fullAddress}
-                      onChange={(e) => { updateField("fullAddress", e.target.value); setSelectedAddressId(null) }}
-                      placeholder="House #, Road #, Area"
-                      className="h-11 rounded-xl"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullAddress">Full Address</Label>
+                      <Input
+                        id="fullAddress"
+                        value={draft.fullAddress}
+                        onChange={(e) => { updateField("fullAddress", e.target.value); setSelectedAddressId(null) }}
+                        placeholder="House #, Road #, Area"
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="country">Country</Label>
+                      <Input
+                        id="country"
+                        value="Bangladesh"
+                        disabled
+                        className="h-11 rounded-xl bg-muted/30"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="note">Order Note (optional)</Label>
@@ -1008,46 +1076,73 @@ export function CheckoutForm() {
                     >
                       {paymentMethods.map((pm) => {
                         const isOnline = ONLINE_PROVIDERS.includes(pm.provider)
+                        const isEnabled = pm.enabled
                         const isCod = pm.provider === "COD"
                         const isBkash = pm.provider === "BKASH"
+                        const isSelectable = isEnabled && !isOnline || (isOnline && isBkash && isEnabled)
+
                         return (
                           <div
                             key={pm.provider}
                             className={`flex items-start gap-4 rounded-xl border p-4 transition-all ${
-                              paymentMethod === pm.provider.toLowerCase()
+                              paymentMethod === pm.provider.toLowerCase() && isSelectable
                                 ? "border-primary bg-primary/5"
-                                : "hover:border-muted-foreground/30"
+                                : isSelectable
+                                  ? "border-border/50 hover:border-muted-foreground/30"
+                                  : "border-border/30 opacity-50 cursor-not-allowed bg-muted/20"
                             }`}
+                            onClick={() => {
+                              if (isSelectable) {
+                                setPaymentMethod(pm.provider.toLowerCase())
+                                updateField("selectedPaymentMethod", pm.provider.toLowerCase())
+                              }
+                            }}
                           >
                             <RadioGroupItem
                               value={pm.provider.toLowerCase()}
                               id={pm.provider}
+                              disabled={!isSelectable}
                             />
                             <div className="flex-1 min-w-0">
                               <Label
                                 htmlFor={pm.provider}
-                                className="font-medium text-sm cursor-pointer"
+                                className={`font-medium text-sm cursor-pointer ${!isSelectable ? "cursor-not-allowed" : ""}`}
                               >
                                 {pm.displayName}
-                                {isOnline && !isBkash && (
-                                  <span className="ml-2 text-xs text-muted-foreground italic">
-                                    — Coming soon
-                                  </span>
-                                )}
-                                {isBkash && pm.enabled && (
-                                  <span className="ml-2 text-xs text-green-600 font-medium">
-                                    — Pay now
-                                  </span>
-                                )}
                               </Label>
-                              {pm.instructions && (
+                              {isCod && isEnabled && (
+                                <div className="mt-1.5 space-y-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    Pay the full amount (৳{total.toLocaleString()}) when your order is delivered.
+                                  </p>
+                                  <p className="text-xs text-amber-600">
+                                    No advance payment required.
+                                  </p>
+                                </div>
+                              )}
+                              {isBkash && isEnabled && (
+                                <div className="mt-1.5 space-y-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    Pay now with bKash to confirm your order instantly.
+                                  </p>
+                                  <p className="text-xs font-medium text-primary">
+                                    Amount to pay: ৳{total.toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+                              {pm.instructions && isEnabled && (
                                 <p className="text-xs text-muted-foreground mt-1">
                                   {pm.instructions}
                                 </p>
                               )}
-                              {isCod && pm.supportsCodDeliveryCharge && (
-                                <p className="text-xs text-amber-600 mt-1">
-                                  Delivery charge prepayment will be required when online payment is activated.
+                              {isOnline && !isEnabled && (
+                                <p className="text-xs text-muted-foreground mt-1 italic">
+                                  Currently unavailable
+                                </p>
+                              )}
+                              {isOnline && isEnabled && !isBkash && (
+                                <p className="text-xs text-muted-foreground mt-1 italic">
+                                  {pm.displayName} is not yet configured
                                 </p>
                               )}
                             </div>
@@ -1160,7 +1255,7 @@ export function CheckoutForm() {
                     <div className="space-y-2 pb-4 pt-4">
                       <h3 className="text-sm font-medium text-muted-foreground">Delivery</h3>
                       <p className="text-sm">{draft.fullAddress}</p>
-                      <p className="text-sm">{draft.thana}, {draft.district}, {draft.division}</p>
+                      <p className="text-sm">{draft.upazilaName}, {draft.districtName}, Bangladesh</p>
                       <p className="text-sm">{DELIVERY_ZONE_NAMES[deliveryZone as keyof typeof DELIVERY_ZONE_NAMES] || deliveryZone}</p>
                       {draft.note && <p className="text-sm text-muted-foreground italic">Note: {draft.note}</p>}
                     </div>

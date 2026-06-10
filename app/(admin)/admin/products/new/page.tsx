@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
+import { AdminBackLink, AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
 import { AlertTriangle, Archive, EyeOff, Layers, Save, SendHorizonal } from "lucide-react"
 import { LOW_STOCK_THRESHOLD } from "@/types"
+import { generateSlug, slugifyName } from "@/lib/slug"
 
 type VariantInput = {
   size: string
@@ -41,6 +42,7 @@ export default function NewProductPage() {
   const [landingHeadline, setLandingHeadline] = useState("")
   const [landingSubheadline, setLandingSubheadline] = useState("")
   const [landingCopy, setLandingCopy] = useState("")
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
 
   useEffect(() => {
     fetch("/api/categories")
@@ -58,6 +60,18 @@ export default function NewProductPage() {
 
   function addVariant() {
     setVariants([...variants, { size: "", color: "", colorHex: "", stock: 0, sku: "" }])
+  }
+
+  function handleNameChange(value: string) {
+    setName(value)
+    if (!slugManuallyEdited && value.trim()) {
+      setSlug(slugifyName(value))
+    }
+  }
+
+  function handleSlugChange(value: string) {
+    setSlug(value)
+    setSlugManuallyEdited(true)
   }
 
   function updateVariant(i: number, field: keyof VariantInput, value: string | number) {
@@ -116,6 +130,7 @@ export default function NewProductPage() {
   return (
     <div className="max-w-6xl space-y-6">
       <AdminPageHeader eyebrow="Commerce" title="New Product" description="Add a catalog item with pricing, variants, and images." />
+      <AdminBackLink href="/admin/products" label="Back to Products" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] lg:gap-8">
         <div className="space-y-6">
@@ -126,14 +141,15 @@ export default function NewProductPage() {
                   <Label htmlFor="name" className="flex items-center gap-1">
                     Name <span className="text-red-500">*</span>
                   </Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Premium Cotton Panjabi" required />
+                  <Input id="name" value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Premium Cotton Panjabi" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="slug" className="flex items-center gap-1">
                     Slug <span className="text-red-500">*</span>
                     {slug && <span className="text-[10px] text-muted-foreground font-normal">/{slug}</span>}
+                    {slugManuallyEdited && <span className="text-[10px] text-primary font-normal ml-1">(manually set)</span>}
                   </Label>
-                  <Input id="slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. premium-cotton-panjabi" required />
+                  <Input id="slug" value={slug} onChange={(e) => handleSlugChange(e.target.value)} placeholder="e.g. premium-cotton-panjabi" required />
                 </div>
               </div>
               <div className="space-y-2">

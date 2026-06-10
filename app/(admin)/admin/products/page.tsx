@@ -38,6 +38,7 @@ export default async function AdminProductsPage({
         title="Products"
         description={`${products.length} product${products.length === 1 ? "" : "s"} in the Doshok catalog.`}
         action={{ label: "Add Product", href: "/admin/products/new" }}
+        backHref="/admin/commerce"
       />
 
       <div className="flex gap-1.5 flex-wrap">

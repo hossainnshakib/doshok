@@ -15,12 +15,14 @@ import {
   Check,
   ChevronRight,
   PackageCheck,
-  Search,
   Share2,
-  ShieldCheck,
   ShoppingBag,
   Truck,
-  Zap,
+  RotateCcw,
+  Ruler,
+  Package,
+  ShieldCheck,
+  MessageSquare,
 } from "lucide-react"
 
 type ProductWithVariants = {
@@ -53,6 +55,9 @@ type ProductSummary = {
   variants: { stock: number }[]
 }
 
+const INFO_TABS = ["Description", "Delivery & Return", "Size Guide"] as const
+type InfoTab = (typeof INFO_TABS)[number]
+
 export function ProductDetailClient({
   product,
   relatedProducts,
@@ -67,6 +72,7 @@ export function ProductDetailClient({
   const [selectedColor, setSelectedColor] = useState(firstAvailableVariant?.color ?? "")
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [infoTab, setInfoTab] = useState<InfoTab>("Description")
 
   useEffect(() => {
     trackRecentlyViewed({
@@ -178,7 +184,8 @@ export function ProductDetailClient({
         <span className="line-clamp-1 text-foreground">{product.name}</span>
       </div>
 
-      <section className="grid gap-5 rounded-[1.5rem] border border-border/70 bg-background p-4 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-6">
+      <div className="grid gap-6 rounded-[1.5rem] border border-border/70 bg-background p-4 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-6 lg:gap-8">
+        {/* Gallery */}
         <div>
           <div className="grid gap-3 md:grid-cols-[72px_1fr]">
             <div className="order-2 flex gap-2 overflow-x-auto md:order-1 md:flex-col md:overflow-visible">
@@ -215,46 +222,39 @@ export function ProductDetailClient({
               ) : (
                 <ProductImagePlaceholder />
               )}
-              <button
-                className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-foreground shadow-lg backdrop-blur transition-transform hover:scale-105 active:scale-95"
-                aria-label="Zoom product image"
-              >
-                <Search className="h-5 w-5" />
-              </button>
             </div>
           </div>
 
+          {/* Trust badges */}
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { icon: ShieldCheck, label: "Secure Checkout", desc: "OTP verified" },
-              { icon: Truck, label: "Fast Delivery", desc: "Chattogram" },
-              { icon: PackageCheck, label: "Easy Return", desc: "Hassle-free" },
-              { icon: ShoppingBag, label: "COD Available", desc: "Pay on delivery" },
+              { icon: ShieldCheck, label: "Secure Checkout", desc: "Verified" },
+              { icon: Truck, label: "Home Delivery", desc: "Nationwide" },
+              { icon: RotateCcw, label: "Easy Returns", desc: "Within policy" },
+              { icon: PackageCheck, label: "COD Available", desc: "Pay on delivery" },
             ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex items-center gap-2 rounded-lg border border-border/50 bg-background p-2.5">
+              <div key={label} className="flex items-center gap-2.5 rounded-xl border border-border/50 bg-background p-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/5">
                   <Icon className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold">{label}</p>
-                  <p className="text-[9px] text-muted-foreground">{desc}</p>
+                  <p className="text-[10px] font-bold leading-tight">{label}</p>
+                  <p className="text-[9px] text-muted-foreground leading-tight">{desc}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <aside className="space-y-5 lg:pl-5">
+        {/* Product Info */}
+        <aside className="space-y-5 lg:pl-2">
           <div>
-            <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-4xl">{product.name}</h1>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{product.category.name}</p>
+            <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-3xl">{product.name}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className={cn("font-bold", isSoldOut ? "text-red-500" : "text-foreground")}>
-                {isSoldOut ? "Sold out" : `${totalStock} in stock`}
+                {isSoldOut ? "Out of stock" : `${totalStock} in stock`}
               </span>
-              <span>·</span>
-              <Link href={`/products?category=${product.category.slug}`} className="font-bold text-foreground hover:underline">
-                {product.category.name}
-              </Link>
             </div>
           </div>
 
@@ -263,21 +263,21 @@ export function ProductDetailClient({
               <span className="text-4xl font-black tracking-[-0.04em]">৳{product.price.toLocaleString()}</span>
               {product.oldPrice && (
                 <>
-                  <span className="pb-1 text-sm font-bold text-red-400 line-through">৳{product.oldPrice.toLocaleString()}</span>
+                  <span className="pb-1 text-sm font-bold text-muted-foreground line-through">৳{product.oldPrice.toLocaleString()}</span>
                   <span className="pb-1 text-sm font-black text-emerald-600">{discountPercent}% off</span>
                 </>
               )}
             </div>
             {product.defaultCouponCode && !isSoldOut && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
-                <Zap className="h-3.5 w-3.5" /> Use coupon {product.defaultCouponCode} at checkout
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600">
+                Use coupon {product.defaultCouponCode} at checkout
               </p>
             )}
           </div>
 
           {colors.length > 0 && (
             <div>
-              <p className="mb-2 text-sm font-black">Select Color</p>
+              <p className="mb-2 text-sm font-bold">Color{colors.length > 1 ? "s" : ""}</p>
               <div className="flex flex-wrap gap-2">
                 {colors.map((color) => {
                   const variant = product.variants.find((item) => item.color === color)
@@ -287,7 +287,7 @@ export function ProductDetailClient({
                       key={color}
                       onClick={() => setSelectedColor(color)}
                       className={cn(
-                        "flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border bg-muted text-[10px] font-bold transition-all",
+                        "flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border bg-muted text-[10px] font-bold transition-all",
                         selectedColor === color ? "border-primary ring-2 ring-primary/20 shadow-sm" : "border-border hover:border-primary/40"
                       )}
                       title={color}
@@ -295,10 +295,7 @@ export function ProductDetailClient({
                       {image ? (
                         <img src={image} alt={color} className="h-full w-full object-cover" />
                       ) : (
-                        <span
-                          className="h-full w-full"
-                          style={{ backgroundColor: variant?.colorHex ?? "#e5e7eb" }}
-                        />
+                        <span className="h-full w-full" style={{ backgroundColor: variant?.colorHex ?? "#e5e7eb" }} />
                       )}
                     </button>
                   )
@@ -307,41 +304,45 @@ export function ProductDetailClient({
             </div>
           )}
 
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-black">Select Size</p>
-              <Link href="/size-guide" className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Size Guide</Link>
+          {sizes.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-bold">Size</p>
+                <Link href="/size-guide" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  <Ruler className="h-3 w-3" /> Size Guide
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {sizes.map((size) => {
+                  const hasStock = product.variants.some(
+                    (variant) => variant.size === size && variant.stock > 0
+                  )
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      disabled={!hasStock}
+                      className={cn(
+                        "h-10 min-w-14 rounded-lg border px-4 text-sm font-bold transition-all",
+                        selectedSize === size
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background hover:border-primary/40",
+                        !hasStock && "cursor-not-allowed opacity-30 line-through"
+                      )}
+                    >
+                      {size}
+                    </button>
+                  )
+                })}
+              </div>
+              {isLowStock && selectedVariant && (
+                <p className="mt-2 text-xs font-bold text-amber-600">Only {selectedStock} left for this option.</p>
+              )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {sizes.map((size) => {
-                const hasStock = product.variants.some(
-                  (variant) => variant.size === size && variant.stock > 0
-                )
-                return (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    disabled={!hasStock}
-                    className={cn(
-                      "h-10 min-w-14 rounded-lg border px-4 text-sm font-black transition-all",
-                      selectedSize === size
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background hover:border-primary/40",
-                      !hasStock && "cursor-not-allowed opacity-30 line-through"
-                    )}
-                  >
-                    {size}
-                  </button>
-                )
-              })}
-            </div>
-            {isLowStock && selectedVariant && (
-              <p className="mt-2 text-xs font-bold text-amber-600">Only {selectedStock} left for this option.</p>
-            )}
-          </div>
+          )}
 
           <div>
-            <p className="mb-2 text-sm font-black">Quantity</p>
+            <p className="mb-2 text-sm font-bold">Quantity</p>
             <div className="flex w-fit items-center overflow-hidden rounded-lg border border-border">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -350,7 +351,7 @@ export function ProductDetailClient({
               >
                 -
               </button>
-              <span className="flex h-10 w-12 items-center justify-center border-x border-border text-sm font-black tabular-nums">
+              <span className="flex h-10 w-12 items-center justify-center border-x border-border text-sm font-bold tabular-nums">
                 {quantity}
               </span>
               <button
@@ -365,7 +366,7 @@ export function ProductDetailClient({
 
           <div className="hidden space-y-3 pt-1 md:block">
             <Button size="lg" className="h-12 w-full rounded-xl text-sm font-black" onClick={handleBuyNow} disabled={isSoldOut}>
-              {isSoldOut ? "Sold Out" : "Buy this Item"}
+              {isSoldOut ? "Sold Out" : "Buy Now"}
             </Button>
             <Button size="lg" variant="outline" className="h-12 w-full rounded-xl border-primary text-sm font-black" onClick={handleAddToCart} disabled={isSoldOut}>
               {isSoldOut ? (
@@ -380,7 +381,7 @@ export function ProductDetailClient({
 
           <div className="grid grid-cols-2 gap-2 text-xs font-bold text-muted-foreground">
             <button
-              onClick={() => toast.info("Coming soon")}
+              onClick={() => toast.info("Wishlist will be available soon")}
               className="flex items-center justify-center gap-2 rounded-lg border border-border py-3 transition-colors hover:bg-muted hover:text-foreground"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
@@ -402,31 +403,129 @@ export function ProductDetailClient({
             </button>
           </div>
         </aside>
-      </section>
+      </div>
 
-      <section id="description" className="mt-5 rounded-[1.5rem] border border-border/70 bg-background p-4 shadow-sm md:p-6">
-        <div className="mb-6 flex gap-2 flex-wrap">
-          <span className="shrink-0 rounded-lg border border-primary bg-primary px-5 py-2 text-xs font-black text-primary-foreground">
-            Details
-          </span>
+      {/* Info Tabs */}
+      <section className="mt-5 rounded-[1.5rem] border border-border/70 bg-background shadow-sm overflow-hidden">
+        <div className="flex border-b border-border/50 overflow-x-auto">
+          {INFO_TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setInfoTab(tab)}
+              className={cn(
+                "shrink-0 px-6 py-4 text-sm font-bold transition-colors border-b-2 -mb-px",
+                infoTab === tab
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
 
-        <div className="max-w-5xl">
-          <h2 className="text-xl font-black">Product Details</h2>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            {product.description ?? "A Doshok essential selected for clean styling, comfortable wear, and everyday versatility."}
-          </p>
-          <div className="mt-5 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-            <DetailRow label="Category" value={product.category.name} />
-            <DetailRow label="Stock Available" value={`${totalStock} pcs`} />
-            <DetailRow label="Specification" value="Quality checked, comfortable fit, easy care" />
-            <DetailRow label="Department" value="Women" />
-          </div>
+        <div className="p-6">
+          {infoTab === "Description" && (
+            <div className="space-y-4">
+              {product.description ? (
+                <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">{product.description}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No description available for this product.</p>
+              )}
+              <div className="pt-4 border-t border-border/50">
+                <div className="grid gap-3 text-sm sm:grid-cols-2">
+                  <DetailRow label="Category" value={product.category.name} />
+                  <DetailRow label="Stock Available" value={`${totalStock} pcs`} />
+                </div>
+              </div>
+            </div>
+          )}
+          {infoTab === "Delivery & Return" && (
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <Truck className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                <div>
+                  <p className="font-bold text-foreground">Home Delivery</p>
+                  <p>We deliver to most areas in Bangladesh. Delivery charges vary by location:</p>
+                  <ul className="mt-2 space-y-1">
+                    <li>Inside Dhaka: ৳100</li>
+                    <li>Inside Chattogram: ৳60</li>
+                    <li>Outside Dhaka & Chattogram: ৳130</li>
+                  </ul>
+                  <p className="mt-2">Delivery usually takes 2-5 business days depending on location.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <RotateCcw className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                <div>
+                  <p className="font-bold text-foreground">Returns & Exchanges</p>
+                  <p>Products can be returned within 3 days of delivery if they are unused, unwashed, and in original packaging with tags intact. Exchange is subject to availability. Read our full return policy for details.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <PackageCheck className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                <div>
+                  <p className="font-bold text-foreground">Cash on Delivery</p>
+                  <p>Pay for your order when it arrives. No advance payment required for COD orders.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {infoTab === "Size Guide" && (
+            <div className="space-y-4 text-sm">
+              <p className="text-muted-foreground">Use the size guide below to find your best fit. Measurements are in inches.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="py-2 px-3 text-left font-bold">Size</th>
+                      <th className="py-2 px-3 text-left font-bold">Chest</th>
+                      <th className="py-2 px-3 text-left font-bold">Length</th>
+                      <th className="py-2 px-3 text-left font-bold">Fit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-muted-foreground">
+                    <tr className="border-b border-border/50">
+                      <td className="py-2 px-3 font-bold">S</td>
+                      <td className="py-2 px-3">36-38</td>
+                      <td className="py-2 px-3">26</td>
+                      <td className="py-2 px-3">Regular</td>
+                    </tr>
+                    <tr className="border-b border-border/50">
+                      <td className="py-2 px-3 font-bold">M</td>
+                      <td className="py-2 px-3">38-40</td>
+                      <td className="py-2 px-3">27</td>
+                      <td className="py-2 px-3">Regular</td>
+                    </tr>
+                    <tr className="border-b border-border/50">
+                      <td className="py-2 px-3 font-bold">L</td>
+                      <td className="py-2 px-3">40-42</td>
+                      <td className="py-2 px-3">28</td>
+                      <td className="py-2 px-3">Relaxed</td>
+                    </tr>
+                    <tr className="border-b border-border/50">
+                      <td className="py-2 px-3 font-bold">XL</td>
+                      <td className="py-2 px-3">42-44</td>
+                      <td className="py-2 px-3">29</td>
+                      <td className="py-2 px-3">Relaxed</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 font-bold">XXL</td>
+                      <td className="py-2 px-3">44-46</td>
+                      <td className="py-2 px-3">30</td>
+                      <td className="py-2 px-3">Relaxed</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground">Not sure of your size? Check our detailed <Link href="/size-guide" className="text-primary underline">size guide</Link> or contact us for help.</p>
+            </div>
+          )}
         </div>
       </section>
 
       {relatedProducts.length > 0 && (
-        <section id="related-products" className="mt-10 pb-4">
+        <section className="mt-10 pb-4">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-xl font-black">You May Also Like</h2>
           </div>
@@ -480,7 +579,6 @@ function ProductImagePlaceholder({ small = false }: { small?: boolean }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
       <PackageCheck className={small ? "h-5 w-5" : "h-10 w-10"} />
-      {!small && <span className="text-sm font-medium">Image coming soon</span>}
     </div>
   )
 }
@@ -493,3 +591,4 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
+

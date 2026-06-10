@@ -1,175 +1,89 @@
-// TODO: Replace placeholder data with verified Bangladesh division/district/upazila dataset.
-// Bangladesh has 8 divisions, 64+ districts, and 500+ upazilas.
-// Source: https://en.wikipedia.org/wiki/Administrative_divisions_of_Bangladesh
+import divisionsData from "@/data/raw/bangladesh/divisions.json"
+import districtsData from "@/data/raw/bangladesh/districts.json"
+import upazilasData from "@/data/raw/bangladesh/upazilas.json"
 
-export type Division = {
-  id: string
-  name: string
-  nameBn: string
-  districts: District[]
+export type Division = (typeof divisionsData)[number]
+export type District = (typeof districtsData)[number]
+export type Upazila = (typeof upazilasData)[number]
+
+const divisions = divisionsData as Division[]
+const districts = districtsData as District[]
+const upazilas = upazilasData as Upazila[]
+
+const divisionMap = new Map(divisions.map((d) => [d.id, d]))
+const districtMap = new Map(districts.map((d) => [d.id, d]))
+const upazilaMap = new Map(upazilas.map((u) => [u.id, u]))
+
+const districtsByDivision = new Map<string, District[]>()
+const upazilasByDistrict = new Map<string, Upazila[]>()
+
+for (const district of districts) {
+  const list = districtsByDivision.get(district.divisionId) ?? []
+  list.push(district)
+  districtsByDivision.set(district.divisionId, list)
 }
 
-export type District = {
-  id: string
-  name: string
-  nameBn: string
-  divisionId: string
-  upazilas: Upazila[]
+for (const upazila of upazilas) {
+  const list = upazilasByDistrict.get(upazila.districtId) ?? []
+  list.push(upazila)
+  upazilasByDistrict.set(upazila.districtId, list)
 }
-
-export type Upazila = {
-  id: string
-  name: string
-  nameBn: string
-  districtId: string
-}
-
-// Placeholder - must be replaced with complete verified dataset
-const PLACEHOLDER_DIVISIONS: Division[] = [
-  {
-    id: "dhaka",
-    name: "Dhaka",
-    nameBn: "ঢাকা",
-    districts: [
-      {
-        id: "dhaka-district",
-        name: "Dhaka",
-        nameBn: "ঢাকা জেলা",
-        divisionId: "dhaka",
-        upazilas: [
-          { id: "dhaka-sadar", name: "Dhaka Sadar", nameBn: "ঢাকা সদর", districtId: "dhaka-district" },
-          { id: "dohar", name: "Dohar", nameBn: "দোহার", districtId: "dhaka-district" },
-          { id: "keraniganj", name: "Keraniganj", nameBn: "কেরাণীগঞ্জ", districtId: "dhaka-district" },
-          { id: "savar", name: "Savar", nameBn: "সাভার", districtId: "dhaka-district" },
-          { id: "tongi", name: "Tongi", nameBn: "টঙ্গী", districtId: "dhaka-district" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "chattogram",
-    name: "Chattogram",
-    nameBn: "চট্টগ্রাম",
-    districts: [
-      {
-        id: "chattogram-district",
-        name: "Chattogram",
-        nameBn: "চট্টগ্রাম জেলা",
-        divisionId: "chattogram",
-        upazilas: [
-          { id: "chattogram-sadar", name: "Chattogram Sadar", nameBn: "চট্টগ্রাম সদর", districtId: "chattogram-district" },
-          { id: "halishahar", name: "Halishahar", nameBn: "হালিশহর", districtId: "chattogram-district" },
-          { id: "panchlaish", name: "Panchlaish", nameBn: "পাঁচলাইশ", districtId: "chattogram-district" },
-          { id: "kotwali", name: "Kotwali", nameBn: "কোতোয়ালী", districtId: "chattogram-district" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "rajshahi",
-    name: "Rajshahi",
-    nameBn: "রাজশাহী",
-    districts: [],
-  },
-  {
-    id: "sylhet",
-    name: "Sylhet",
-    nameBn: "সিলেট",
-    districts: [],
-  },
-  {
-    id: "khulna",
-    name: "Khulna",
-    nameBn: "খুলনা",
-    districts: [],
-  },
-  {
-    id: "barishal",
-    name: "Barishal",
-    nameBn: "বরিশাল",
-    districts: [],
-  },
-  {
-    id: "rangpur",
-    name: "Rangpur",
-    nameBn: "রংপুর",
-    districts: [],
-  },
-  {
-    id: "mymensingh",
-    name: "Mymensingh",
-    nameBn: "ময়মনসিংহ",
-    districts: [],
-  },
-]
 
 export function getDivisions(): Division[] {
-  return PLACEHOLDER_DIVISIONS
+  return divisions
 }
 
 export function getDivisionById(id: string): Division | undefined {
-  return PLACEHOLDER_DIVISIONS.find((d) => d.id === id)
+  return divisionMap.get(id)
 }
 
 export function getDistrictsByDivision(divisionId: string): District[] {
-  const division = getDivisionById(divisionId)
-  return division?.districts ?? []
+  return districtsByDivision.get(divisionId) ?? []
 }
 
 export function getDistrictById(id: string): District | undefined {
-  for (const division of PLACEHOLDER_DIVISIONS) {
-    const district = division.districts.find((d) => d.id === id)
-    if (district) return district
-  }
-  return undefined
+  return districtMap.get(id)
 }
 
 export function getUpazilasByDistrict(districtId: string): Upazila[] {
-  const district = getDistrictById(districtId)
-  return district?.upazilas ?? []
+  return upazilasByDistrict.get(districtId) ?? []
 }
 
 export function getUpazilaById(id: string): Upazila | undefined {
-  for (const division of PLACEHOLDER_DIVISIONS) {
-    for (const district of division.districts) {
-      const upazila = district.upazilas.find((u) => u.id === id)
-      if (upazila) return upazila
-    }
-  }
-  return undefined
+  return upazilaMap.get(id)
 }
 
 export function searchDivisions(query: string): Division[] {
   const q = query.toLowerCase()
-  return PLACEHOLDER_DIVISIONS.filter(
+  return divisions.filter(
     (d) => d.name.toLowerCase().includes(q) || d.nameBn.includes(q)
+  )
+}
+
+export function searchDistrictsScoped(divisionId: string, query: string): District[] {
+  const q = query.toLowerCase()
+  return getDistrictsByDivision(divisionId).filter(
+    (d) => d.name.toLowerCase().includes(q) || d.nameBn.includes(q)
+  )
+}
+
+export function searchUpazilasScoped(districtId: string, query: string): Upazila[] {
+  const q = query.toLowerCase()
+  return getUpazilasByDistrict(districtId).filter(
+    (u) => u.name.toLowerCase().includes(q) || u.nameBn.includes(q)
   )
 }
 
 export function searchDistricts(query: string): District[] {
   const q = query.toLowerCase()
-  const results: District[] = []
-  for (const division of PLACEHOLDER_DIVISIONS) {
-    for (const district of division.districts) {
-      if (district.name.toLowerCase().includes(q) || district.nameBn.includes(q)) {
-        results.push(district)
-      }
-    }
-  }
-  return results
+  return districts.filter(
+    (d) => d.name.toLowerCase().includes(q) || d.nameBn.includes(q)
+  )
 }
 
 export function searchUpazilas(query: string): Upazila[] {
   const q = query.toLowerCase()
-  const results: Upazila[] = []
-  for (const division of PLACEHOLDER_DIVISIONS) {
-    for (const district of division.districts) {
-      for (const upazila of district.upazilas) {
-        if (upazila.name.toLowerCase().includes(q) || upazila.nameBn.includes(q)) {
-          results.push(upazila)
-        }
-      }
-    }
-  }
-  return results
+  return upazilas.filter(
+    (u) => u.name.toLowerCase().includes(q) || u.nameBn.includes(q)
+  )
 }

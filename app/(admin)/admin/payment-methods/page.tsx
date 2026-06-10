@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +21,7 @@ import {
   Landmark,
   Banknote,
   Truck,
+  ArrowLeft,
 } from "lucide-react"
 import { AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 
@@ -216,7 +218,7 @@ export default function AdminPaymentMethodsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <AdminPageHeader eyebrow="Settings" title="Payment Methods" description="Loading setup-ready payment providers..." />
+        <AdminPageHeader eyebrow="Operations" title="Payment Methods" description="Loading setup-ready payment providers..." />
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
@@ -225,6 +227,11 @@ export default function AdminPaymentMethodsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader eyebrow="Operations" title="Payment Methods" description="Configure setup-ready payment gateways. Credentials are encrypted. Existing values appear masked for security." />
+
+      <Link href="/admin/operations" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to Operations Hub
+      </Link>
 
       <div className="grid gap-4">
         {methods.map((method) => {

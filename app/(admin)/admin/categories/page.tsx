@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { ImageIcon, Pencil, Trash2, Check, X } from "lucide-react"
 import { AdminEmptyState, AdminPageHeader, AdminSectionCard, AdminTableShell, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
+import { slugifyName } from "@/lib/slug"
 
 type CategoryWithMeta = {
   id: string
@@ -25,6 +26,7 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<CategoryWithMeta[]>([])
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [image, setImage] = useState<string[]>([])
   const [isSubcategory, setIsSubcategory] = useState(false)
   const [parentId, setParentId] = useState("")
@@ -32,6 +34,7 @@ export default function AdminCategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
   const [editSlug, setEditSlug] = useState("")
+  const [editSlugManuallyEdited, setEditSlugManuallyEdited] = useState(false)
   const [editImage, setEditImage] = useState<string[]>([])
   const [editIsSubcategory, setEditIsSubcategory] = useState(false)
   const [editParentId, setEditParentId] = useState("")
@@ -56,6 +59,30 @@ export default function AdminCategoriesPage() {
 
   const parentCategories = categories.filter((c) => !c.parentId)
 
+  function handleNameChange(value: string) {
+    setName(value)
+    if (!slugManuallyEdited && value.trim()) {
+      setSlug(slugifyName(value))
+    }
+  }
+
+  function handleSlugChange(value: string) {
+    setSlug(value)
+    setSlugManuallyEdited(true)
+  }
+
+  function handleEditNameChange(value: string) {
+    setEditName(value)
+    if (!editSlugManuallyEdited && value.trim()) {
+      setEditSlug(slugifyName(value))
+    }
+  }
+
+  function handleEditSlugChange(value: string) {
+    setEditSlug(value)
+    setEditSlugManuallyEdited(true)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -79,6 +106,7 @@ export default function AdminCategoriesPage() {
       toast.success(isSubcategory ? "Subcategory created" : "Category created")
       setName("")
       setSlug("")
+      setSlugManuallyEdited(false)
       setImage([])
       setIsSubcategory(false)
       setParentId("")
@@ -93,6 +121,7 @@ export default function AdminCategoriesPage() {
     setEditingId(cat.id)
     setEditName(cat.name)
     setEditSlug(cat.slug)
+    setEditSlugManuallyEdited(false)
     setEditImage(cat.image ? [cat.image] : [])
     setEditIsSubcategory(!!cat.parentId)
     setEditParentId(cat.parentId || "")
@@ -117,6 +146,7 @@ export default function AdminCategoriesPage() {
     if (data.success) {
       toast.success("Category updated")
       setEditingId(null)
+      setEditSlugManuallyEdited(false)
       loadCategories()
     } else {
       toast.error(data.error ?? "Failed to update")
@@ -141,18 +171,19 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader eyebrow="Commerce" title="Categories" description="Organize the single-brand catalog into browsable storefront collections." />
+      <AdminPageHeader eyebrow="Commerce" title="Categories" description="Organize the single-brand catalog into browsable storefront collections." backHref="/admin/commerce" />
 
       <AdminSectionCard title="Create Category" description="Use clean, lowercase slugs for filtering. Subcategories are organized under parent categories.">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="catName">Category name</Label>
-              <Input id="catName" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Panjabi" required />
+              <Input id="catName" value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Panjabi" required />
             </div>
             <div className="space-y-1">
               <Label htmlFor="catSlug">Slug</Label>
-              <Input id="catSlug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="e.g. panjabi" required />
+              <Input id="catSlug" value={slug} onChange={(e) => handleSlugChange(e.target.value)} placeholder="e.g. panjabi" required />
+              {slugManuallyEdited && <span className="text-[10px] text-muted-foreground">manually set</span>}
             </div>
           </div>
 
@@ -195,7 +226,7 @@ export default function AdminCategoriesPage() {
             folder="categories"
           />
 
-          <Button type="submit" disabled={loading} className="h-10 rounded-full px-5">
+          <Button type="submit" disabled={loading} className="h-10 rounded-full px-6">
             {loading ? "Creating..." : isSubcategory ? "Add subcategory" : "Add category"}
           </Button>
         </form>
@@ -232,10 +263,10 @@ export default function AdminCategoriesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
+                    <Input value={editName} onChange={(e) => handleEditNameChange(e.target.value)} className="h-8" />
                   </TableCell>
                   <TableCell>
-                    <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} className="h-8 font-mono text-sm" />
+                    <Input value={editSlug} onChange={(e) => handleEditSlugChange(e.target.value)} className="h-8 font-mono text-sm" />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">

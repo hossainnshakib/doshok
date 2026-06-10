@@ -10,9 +10,12 @@ export type CheckoutDraft = {
   name: string
   phone: string
   email: string
-  division: string
-  district: string
-  thana: string
+  divisionId: string
+  divisionName: string
+  districtId: string
+  districtName: string
+  upazilaId: string
+  upazilaName: string
   fullAddress: string
   note: string
   selectedDeliveryZone: string
@@ -57,9 +60,12 @@ export function createEmptyDraft(): CheckoutDraft {
     name: "",
     phone: "",
     email: "",
-    division: "",
-    district: "",
-    thana: "",
+    divisionId: "",
+    divisionName: "",
+    districtId: "",
+    districtName: "",
+    upazilaId: "",
+    upazilaName: "",
     fullAddress: "",
     note: "",
     selectedDeliveryZone: "dhaka",
@@ -79,8 +85,13 @@ export function loadDraft(): CheckoutDraft | null {
   const raw = safeGet(localStorage, DRAFT_KEY)
   if (!raw) return null
   try {
-    const draft = JSON.parse(raw) as CheckoutDraft
+    const parsed = JSON.parse(raw)
+    const draft = parsed as CheckoutDraft
     if (isExpired(draft.updatedAt)) {
+      safeRemove(localStorage, DRAFT_KEY)
+      return null
+    }
+    if (!draft.divisionId && !draft.districtId) {
       safeRemove(localStorage, DRAFT_KEY)
       return null
     }

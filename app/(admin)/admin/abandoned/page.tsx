@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 
@@ -39,7 +38,7 @@ export default async function AdminAbandonedPage() {
               <TableCell className="font-mono text-sm">{item.phone || "—"}</TableCell>
               <TableCell className="text-muted-foreground">{item.email || "—"}</TableCell>
               <TableCell>
-                <Badge variant="secondary" className="capitalize">{item.step}</Badge>
+                <AdminStatusBadge status={item.step} />
               </TableCell>
               <TableCell className="font-mono text-sm">{item.couponCode || "—"}</TableCell>
               <TableCell className="font-medium tabular-nums">
@@ -55,7 +54,7 @@ export default async function AdminAbandonedPage() {
                 )}
               </TableCell>
               <TableCell>
-                <AdminStatusBadge status={item.contacted ? "Contacted" : "Not Contacted"} />
+                <AdminStatusBadge status={item.contacted ? "Contacted" : "Pending"} />
               </TableCell>
               <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                 {item.createdAt.toLocaleDateString()}

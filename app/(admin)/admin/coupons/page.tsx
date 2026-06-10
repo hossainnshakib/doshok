@@ -63,7 +63,7 @@ export default function AdminCouponsPage() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader eyebrow="Commerce" title="Coupons" description={`${coupons.length} promotion code${coupons.length === 1 ? "" : "s"} available for campaigns.`} action={{ label: "New Coupon", href: "/admin/coupons/new" }} />
+      <AdminPageHeader eyebrow="Commerce" title="Coupons" description={`${coupons.length} promotion code${coupons.length === 1 ? "" : "s"} available for campaigns.`} action={{ label: "New Coupon", href: "/admin/coupons/new" }} backHref="/admin/commerce" />
 
       {coupons.length === 0 ? (
         <AdminEmptyState title="No coupons yet" description="Create a campaign-friendly code for launches, sale periods, or loyalty offers." action={{ label: "New Coupon", href: "/admin/coupons/new" }} />
@@ -105,7 +105,7 @@ export default function AdminCouponsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 flex-wrap">
-                    <button onClick={() => toggleActive(c.id, c.active)}>
+                    <button onClick={() => toggleActive(c.id, c.active)} className="cursor-pointer">
                       <AdminStatusBadge status={c.active} />
                     </button>
                     {expired && (
@@ -117,13 +117,13 @@ export default function AdminCouponsPage() {
                   <div className="flex justify-end gap-1">
                     <Link
                       href={`/admin/coupons/${c.id}`}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl hover:bg-muted"
                     >
                       <Pencil className="h-4 w-4" />
                     </Link>
                     <button
                       onClick={() => handleDelete(c.id, c.code)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted text-destructive"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-xl hover:bg-destructive/10 text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

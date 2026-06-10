@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { AdminPageHeader, AdminSectionCard } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
@@ -103,7 +105,12 @@ export default function CMSBannersPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <AdminPageHeader eyebrow="CMS" title="Banners" description="Manage the announcement bar and promotional banners shown across the storefront." />
+      <AdminPageHeader eyebrow="CMS" title="Banners" description="Manage the announcement bar and promotional banners shown across the storefront." backHref="/admin/cms" />
+
+      <Link href="/admin/cms" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to CMS Hub
+      </Link>
 
       <AdminSectionCard title="Announcement Bar" description="A thin bar shown at the top of every storefront page. Use for urgent offers or updates.">
         <div className="space-y-4">

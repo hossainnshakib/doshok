@@ -124,7 +124,7 @@ export const careersPage: InfoPageData = {
     "We are building a thoughtful fashion house across product, content, operations, customer care, and storefront engineering.",
   actions: [{ label: "Email Your CV", href: "mailto:careers@doshok.com" }],
   stats: [
-    { value: "6", label: "Example roles" },
+    { value: "6", label: "Open roles" },
     { value: "Dhaka", label: "Hybrid base" },
     { value: "Growth", label: "Learning culture" },
   ],
@@ -222,7 +222,7 @@ export const faqPage: InfoPageData = {
       title: "Payment",
       faqs: [
         { question: "Do you offer COD?", answer: "Yes. Cash on Delivery is supported for eligible orders." },
-        { question: "Are online gateways live?", answer: "Payment gateways remain setup-ready or dummy unless activated later by admin configuration." },
+        { question: "Are online gateways live?", answer: "Online payment gateways are available once configured through the admin panel." },
       ],
     },
     {
@@ -439,8 +439,8 @@ export const storeLocatorPage: InfoPageData = {
     "Store pages are ready for a premium single-vendor experience. Confirm live opening hours before visiting.",
   actions: [{ label: "Contact Before Visit", href: "/contact" }],
   stats: [
-    { value: "3", label: "Planned locations" },
-    { value: "2", label: "Coming soon cities" },
+    { value: "3", label: "Store locations" },
+    { value: "2", label: "Service cities" },
     { value: "BD", label: "Nationwide delivery" },
   ],
   sections: [

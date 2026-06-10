@@ -2,6 +2,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
+import { ArrowLeft } from "lucide-react"
 
 export default async function AdminCustomerOrdersPage() {
   const orders = await prisma.order.findMany({
@@ -16,6 +17,11 @@ export default async function AdminCustomerOrdersPage() {
         title="Customer Orders"
         description={`${orders.length} order${orders.length === 1 ? "" : "s"} linked to customer accounts.`}
       />
+
+      <Link href="/admin/customers" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to Customers Hub
+      </Link>
 
       {orders.length === 0 ? (
         <AdminEmptyState title="No customer orders yet" description="Orders from registered customers will appear here." />
@@ -35,7 +41,9 @@ export default async function AdminCustomerOrdersPage() {
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    <Link href={`/admin/orders/${order.id}`} className="hover:underline">{order.orderNumber}</Link>
+                  </TableCell>
                   <TableCell>
                     <div className="text-sm font-medium">{order.customerName}</div>
                     <div className="text-xs text-muted-foreground">{order.customerPhone}</div>

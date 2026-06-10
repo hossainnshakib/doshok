@@ -3,11 +3,16 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
 import { generateOrderNumber } from "@/lib/order-number"
-import { getDeliveryFee } from "@/lib/delivery"
+import { getDeliveryFeeByDistrict } from "@/lib/delivery"
 import { checkoutSchemaWithRecovery } from "@/lib/validations"
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/mailer"
 import { verifyPhoneVerifiedToken } from "@/lib/phone-verify-token"
 import { isBkashEnabled, createBkashPayment } from "@/lib/payment/bkash"
+import {
+  getDivisionById,
+  getDistrictById,
+  getUpazilaById,
+} from "@/lib/bangladesh-address"
 
 const ONLINE_PROVIDERS = ["bkash", "nagad", "rocket", "upay", "sslcommerz", "aamarpay"]
 const PAYMENT_EXPIRY_HOURS = 2
@@ -18,7 +23,7 @@ export async function POST(request: NextRequest) {
     const parsed = checkoutSchemaWithRecovery.safeParse(body)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
-    const { items, deliveryZone, paymentMethod, couponCode, phoneVerifiedToken, recoveryToken, ...customer } = parsed.data
+    const { items, paymentMethod, couponCode, phoneVerifiedToken, recoveryToken, ...customer } = parsed.data
 
     const session = await auth()
     const userId = session?.user?.id ?? null
@@ -36,6 +41,21 @@ export async function POST(request: NextRequest) {
       return error("Phone number does not match verification")
     }
 
+    const division = getDivisionById(customer.divisionId)
+    if (!division) return error("Invalid division selected")
+
+    const district = getDistrictById(customer.districtId)
+    if (!district) return error("Invalid district selected")
+    if (district.divisionId !== customer.divisionId) {
+      return error("District does not belong to the selected division")
+    }
+
+    const upazila = getUpazilaById(customer.upazilaId)
+    if (!upazila) return error("Invalid upazila/thana selected")
+    if (upazila.districtId !== customer.districtId) {
+      return error("Upazila/thana does not belong to the selected district")
+    }
+
     if (userId) {
       await prisma.user.update({
         where: { id: userId },
@@ -46,7 +66,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const deliveryFee = await getDeliveryFee(deliveryZone)
+    const { zone: deliveryZone, fee: deliveryFee } = await getDeliveryFeeByDistrict(customer.districtId)
     const orderNumber = await generateOrderNumber()
 
     const productIds = [...new Set(items.map((i) => i.productId))]
@@ -163,9 +183,9 @@ export async function POST(request: NextRequest) {
           couponCode: couponCode || null,
           address: {
             create: {
-              division: customer.division,
-              district: customer.district,
-              thana: customer.thana,
+              division: customer.divisionName,
+              district: customer.districtName,
+              thana: customer.upazilaName,
               fullAddress: customer.fullAddress,
               phone: customer.phone,
             },

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react"
-import { AdminEmptyState, AdminPageHeader, AdminSectionCard, AdminTableShell } from "@/components/admin/admin-ui"
+import { AdminBackLink, AdminEmptyState, AdminPageHeader, AdminSectionCard, AdminTableShell } from "@/components/admin/admin-ui"
 
 type DeliveryZone = {
   id: string
@@ -24,13 +24,27 @@ export default function AdminDeliveryZonesPage() {
   const [editFee, setEditFee] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const [initialLoading, setInitialLoading] = useState(true)
+
   async function load() {
     const res = await fetch("/api/delivery-zones")
     const d = await res.json()
     if (d.success) setZones(d.data)
+    setInitialLoading(false)
   }
 
   useEffect(() => { load() }, [])
+
+  if (initialLoading) {
+    return (
+      <div className="space-y-6">
+        <AdminPageHeader eyebrow="Operations" title="Delivery Zones" description="Control checkout delivery fees by customer area. Names should be short and recognisable." />
+        <div className="flex items-center justify-center py-16">
+          <p className="text-sm text-muted-foreground">Loading zones...</p>
+        </div>
+      </div>
+    )
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -90,6 +104,7 @@ export default function AdminDeliveryZonesPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader eyebrow="Operations" title="Delivery Zones" description="Control checkout delivery fees by customer area. Names should be short and recognisable." />
+      <AdminBackLink href="/admin/operations" label="Back to Operations Hub" />
 
       <AdminSectionCard title="Create Delivery Zone" description="Add a new zone with a flat delivery fee charged at checkout.">
           <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-[1fr_160px_auto] md:items-end">
@@ -134,7 +149,7 @@ export default function AdminDeliveryZonesPage() {
         </TableHeader>
         <TableBody>
           {zones.map((zone) => (
-            <TableRow key={zone.id}>
+            <TableRow key={zone.id} className={editingId === zone.id ? "bg-neutral-50" : ""}>
               {editingId === zone.id ? (
                 <>
                   <TableCell>

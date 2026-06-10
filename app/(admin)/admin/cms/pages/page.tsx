@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ExternalLink, Eye, Settings } from "lucide-react"
+import { Eye } from "lucide-react"
 import { AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -27,14 +27,7 @@ const INFO_PAGES = [
 export default function CMSPagesPage() {
   return (
     <div className="space-y-6">
-      <AdminPageHeader eyebrow="CMS" title="Pages" description="Manage static information pages shown across the storefront." />
-
-      <div className="rounded-[1.5rem] border border-dashed border-amber-300 bg-amber-50/50 p-5">
-        <h3 className="font-black text-amber-800">Content editing is coming soon</h3>
-        <p className="mt-1 text-sm text-amber-700">
-          Page content is managed in code for now. This panel will allow editing page content directly in a future update. You can still preview and review each page below.
-        </p>
-      </div>
+      <AdminPageHeader eyebrow="CMS" title="Pages" description="Manage static information pages shown across the storefront." backHref="/admin/cms" />
 
       <AdminTableShell>
         <Table>

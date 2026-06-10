@@ -2,6 +2,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
+import { ArrowLeft } from "lucide-react"
 
 export default async function AdminCustomerAddressesPage() {
   const addresses = await prisma.userAddress.findMany({
@@ -16,6 +17,11 @@ export default async function AdminCustomerAddressesPage() {
         title="Customer Addresses"
         description={`${addresses.length} saved address${addresses.length === 1 ? "" : "es"} in the system.`}
       />
+
+      <Link href="/admin/customers" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to Customers Hub
+      </Link>
 
       {addresses.length === 0 ? (
         <AdminEmptyState title="No addresses saved yet" description="Customer delivery addresses will appear here after checkout." />

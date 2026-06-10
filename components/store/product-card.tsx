@@ -42,7 +42,6 @@ export function ProductCard({ product }: ProductCardProps) {
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <PackageCheck className="h-8 w-8 text-muted-foreground/50" />
-            <span className="text-xs">Image coming soon</span>
           </div>
         )}
         {isSoldOut && (

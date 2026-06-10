@@ -71,7 +71,7 @@ export default async function ProductDetailPage({
           })
 
   return (
-    <div className="bg-[#eef2f5]">
+    <div>
       <ProductDetailClient product={product} relatedProducts={relatedProducts} />
     </div>
   )

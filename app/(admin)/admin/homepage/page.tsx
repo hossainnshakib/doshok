@@ -80,7 +80,7 @@ export default function AdminHomepagePage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <AdminPageHeader eyebrow="CMS" title="Homepage Settings" description="Control the storefront hero banner and curated featured product selection." />
+      <AdminPageHeader eyebrow="CMS" title="Homepage Settings" description="Control the storefront hero banner and curated featured product selection." backHref="/admin/cms" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <AdminSectionCard title="Hero Banner" description="Set the campaign copy and background image that greet customers on the homepage.">
@@ -141,8 +141,10 @@ export default function AdminHomepagePage() {
                 {featuredIds.map((id) => {
                   const product = products.find((p) => p.id === id)
                   return (
-                    <div key={id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                      <span>{product ? `${product.name} — ৳${product.price.toLocaleString()}` : id}</span>
+                    <div key={id} className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${!product ? 'border-red-200 bg-red-50' : ''}`}>
+                      <span className={!product ? 'text-muted-foreground italic' : ''}>
+                        {product ? `${product.name} — ৳${product.price.toLocaleString()}` : 'Product not found (may have been deleted)'}
+                      </span>
                       <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeFeatured(id)}>
                         <X className="h-3 w-3" />
                       </Button>

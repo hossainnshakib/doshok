@@ -1,11 +1,12 @@
 import Link from "next/link"
-import { ArrowLeft, MapPin } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { AdminPageHeader } from "@/components/admin/admin-ui"
 
 export default function CMSFooterPage() {
   return (
     <div className="space-y-6">
-      <AdminPageHeader eyebrow="CMS" title="Footer Content" description="Manage footer brand info, contact details, social links, and menu links." />
+      <AdminPageHeader eyebrow="CMS" title="Footer Content" description="Manage footer brand info, contact details, social links, and menu links." backHref="/admin/cms" />
+
       <div className="rounded-[1.5rem] border border-dashed border-black/10 bg-white p-12 text-center">
         <MapPin className="mx-auto mb-4 h-10 w-10 text-neutral-300" />
         <h2 className="text-lg font-black tracking-[-0.02em]">Footer settings are managed in Site Settings</h2>

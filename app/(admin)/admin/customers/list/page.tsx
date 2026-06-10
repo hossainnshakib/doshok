@@ -2,7 +2,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
-import { User } from "lucide-react"
+import { User, ArrowLeft } from "lucide-react"
 
 export default async function AdminCustomersPage() {
   const customers = await prisma.user.findMany({
@@ -21,6 +21,11 @@ export default async function AdminCustomersPage() {
         description={`${customers.length} registered customer${customers.length === 1 ? "" : "s"} in the system.`}
       />
 
+      <Link href="/admin/customers" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to Customers Hub
+      </Link>
+
       {customers.length === 0 ? (
         <AdminEmptyState title="No customers yet" description="Registered customers will appear here after they create an account." />
       ) : (
@@ -35,6 +40,7 @@ export default async function AdminCustomersPage() {
                 <TableHead className="text-center">Addresses</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -57,6 +63,14 @@ export default async function AdminCustomersPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     {customer.createdAt.toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      href={`/admin/customers/${customer.id}`}
+                      className="inline-flex h-8 items-center justify-center rounded-md px-2.5 text-xs font-bold hover:bg-muted"
+                    >
+                      View
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}

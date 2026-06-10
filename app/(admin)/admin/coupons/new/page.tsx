@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { AdminPageHeader } from "@/components/admin/admin-ui"
+import { AdminBackLink, AdminPageHeader } from "@/components/admin/admin-ui"
 
 export default function NewCouponPage() {
   const router = useRouter()
@@ -51,6 +51,7 @@ export default function NewCouponPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <AdminPageHeader eyebrow="Commerce" title="New Coupon" description="Create a campaign-ready coupon for offers, launches, and limited-time promotions." />
+      <AdminBackLink href="/admin/coupons" label="Back to Coupons" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Card className="rounded-[1.5rem] border-black/5 shadow-sm">

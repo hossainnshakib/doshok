@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,8 +14,9 @@ import {
   ChevronUp,
   Save,
   Package,
+  ArrowLeft,
 } from "lucide-react"
-import { AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ALLOWED_COURIERS, COURIER_LABELS, COURIER_CREDENTIAL_FIELDS, type CourierProvider } from "@/types"
 
 type CourierMethod = {
@@ -162,6 +164,11 @@ export default function AdminCourierMethodsPage() {
     <div className="space-y-6">
       <AdminPageHeader eyebrow="Operations" title="Courier Methods" description="Configure Pathao, Steadfast, and RedX. Credentials are encrypted. Live courier API integration is setup-ready." />
 
+      <Link href="/admin/operations" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to Operations Hub
+      </Link>
+
       <div className="grid gap-4">
         {methods.map((method) => {
           const isExpanded = expanded === method.provider
@@ -184,9 +191,7 @@ export default function AdminCourierMethodsPage() {
                         <AdminStatusBadge status={method.enabled ? "Active" : "Disabled"} />
                         <AdminStatusBadge status={method.mode} />
                         {method.isDefault && (
-                          <span className="text-[10px] font-black uppercase tracking-[0.12em] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                            Default
-                          </span>
+                          <AdminStatusBadge status="Default" />
                         )}
                       </CardTitle>
                     </div>

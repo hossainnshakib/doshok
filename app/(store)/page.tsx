@@ -23,7 +23,7 @@ type HomeCategory = {
 }
 
 async function getHomepageData() {
-  const [categories, latestProducts, saleProducts, featuredConfig] = await Promise.all([
+  const [categories, latestProducts, saleProducts, homepageConfig] = await Promise.all([
     prisma.category.findMany({
       where: { parentId: null },
       orderBy: { name: "asc" },
@@ -43,13 +43,12 @@ async function getHomepageData() {
     }),
     prisma.homepageConfig.findUnique({
       where: { id: "homepage" },
-      select: { featuredIds: true },
     }),
   ])
 
   let featuredIds: string[] = []
   try {
-    const parsed = JSON.parse(featuredConfig?.featuredIds ?? "[]")
+    const parsed = JSON.parse(homepageConfig?.featuredIds ?? "[]")
     if (Array.isArray(parsed)) featuredIds = parsed
   } catch {}
 
@@ -63,7 +62,17 @@ async function getHomepageData() {
     featuredProducts = products.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999))
   }
 
-  return { categories, latestProducts, saleProducts, featuredProducts }
+  return {
+    categories,
+    latestProducts,
+    saleProducts,
+    featuredProducts,
+    heroImage: homepageConfig?.heroImage ?? null,
+    promoBannerText: homepageConfig?.promoBannerText ?? "",
+    promoBannerImage: homepageConfig?.promoBannerImage ?? null,
+    promoBannerLink: homepageConfig?.promoBannerLink ?? "",
+    promoBannerEnabled: homepageConfig?.promoBannerEnabled ?? false,
+  }
 }
 
 function CategoryCard({ category, index }: { category: HomeCategory; index: number }) {
@@ -81,7 +90,7 @@ function CategoryCard({ category, index }: { category: HomeCategory; index: numb
 }
 
 export default async function HomePage() {
-  const { categories, latestProducts, saleProducts, featuredProducts } = await getHomepageData()
+  const { categories, latestProducts, saleProducts, featuredProducts, heroImage, promoBannerText, promoBannerImage, promoBannerLink, promoBannerEnabled } = await getHomepageData()
   const newArrivals = latestProducts.slice(0, 8)
   const discountedProducts = saleProducts.length > 0 ? saleProducts.slice(0, 4) : []
   const heroProducts = [...latestProducts, ...featuredProducts].filter((product, index, list) => (
@@ -93,13 +102,37 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className={styles.hero}>
+      {heroImage && (
+        <section className={styles.heroWithImage} style={{ backgroundImage: `url(${heroImage})` }}>
+          <div className={styles.heroOverlay} />
+          <div className={styles.heroLeft}>
+            <div className={styles.heroTag}>
+              <span className={styles.hash}>D</span>Style That Speaks
+            </div>
+            <h1 className={styles.heroTitle}>
+              Fashion with<br /><em>Purpose.</em>
+            </h1>
+            <p className={styles.sub}>
+              Thoughtful silhouettes, clean essentials, and occasion-ready pieces — made for your wardrobe.
+            </p>
+            <div className={styles.ctaRow}>
+              <Link href="/products" className={styles.btnPrimary}>
+                Shop Collection
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              </Link>
+              <Link href="/about" className={styles.btnGhost}>About Us</Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className={styles.hero} style={heroImage ? { display: 'none' } : {}}>
         <div className={styles.heroLeft}>
           <div className={styles.heroTag}>
             <span className={styles.hash}>D</span>Style That Speaks
           </div>
           <h1 className={styles.heroTitle}>
-            Premium Bangladeshi<br />Fashion, <em>Curated.</em>
+            Fashion with<br /><em>Purpose.</em>
           </h1>
           <p className={styles.sub}>
             Thoughtful silhouettes, clean essentials, and occasion-ready pieces — made for your wardrobe.
@@ -109,7 +142,7 @@ export default async function HomePage() {
               Shop Collection
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
             </Link>
-            <Link href="/about" className={styles.btnGhost}>About Doshok</Link>
+            <Link href="/about" className={styles.btnGhost}>About Us</Link>
           </div>
         </div>
         <div className={styles.heroRight}>
@@ -127,9 +160,9 @@ export default async function HomePage() {
             </div>
           ) : (
             <div className={styles.emptyHero}>
-              <PackageCheck className="h-10 w-10 text-[#999] mb-3" />
-              <span className="text-sm font-semibold">Premium collections arriving soon</span>
-              <span className="text-xs text-[#999] mt-1">Be the first to know when we launch</span>
+              <ShoppingBag className="h-10 w-10 text-[#999] mb-3" />
+              <span className="text-sm font-semibold">Explore our collection</span>
+              <span className="text-xs text-[#999] mt-1">New arrivals coming soon</span>
             </div>
           )}
         </div>
@@ -141,8 +174,8 @@ export default async function HomePage() {
       {!hasProducts && (
         <section className={styles.emptyState}>
           <div className={styles.emptyStateInner}>
-            <h2>Welcome to Doshok</h2>
-            <p>We are curating a collection of premium Bangladeshi fashion. Our first collection is coming soon.</p>
+            <h2>New collection arriving soon</h2>
+            <p>Check back for fresh arrivals. In the meantime, explore our categories.</p>
             <div className={styles.emptyStateFeatures}>
               <div className={styles.emptyFeature}>
                 <Shirt size={24} />
@@ -234,12 +267,12 @@ export default async function HomePage() {
                       <img src={promoProduct.images[0]} alt={promoProduct.name} />
                     </Link>
                   ) : (
-                    <div className={styles.imageEmpty}>Image coming soon</div>
+                    <div className={styles.imageEmpty} />
                   )}
                 </div>
                 <div>
                   <div className={styles.pbTitle}>Doshok <em>Picks</em></div>
-                  <div className={styles.pbSub}>Curated sets for daily elegance<br />from real product data.</div>
+                  <div className={styles.pbSub}>Curated sets for daily elegance<br />and effortless style.</div>
                 </div>
               </div>
               <div className={styles.bssGrid}>
@@ -272,6 +305,25 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {promoBannerEnabled && promoBannerText && (
+        <section className={styles.promoBanner}>
+          {promoBannerImage && (
+            <>
+              <div className={styles.promoBannerImage} style={{ backgroundImage: `url(${promoBannerImage})` }} />
+              <div className={styles.promoBannerOverlay} />
+            </>
+          )}
+          <div className={styles.promoBannerContent}>
+            <p className={styles.promoBannerText}>{promoBannerText}</p>
+            {promoBannerLink && (
+              <Link href={promoBannerLink} className={styles.promoBannerLink}>
+                Shop Now
+              </Link>
+            )}
           </div>
         </section>
       )}

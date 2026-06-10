@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, ArrowLeft } from "lucide-react"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 
 export default async function AdminLandingPagesPage() {
@@ -14,6 +14,11 @@ export default async function AdminLandingPagesPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader eyebrow="CMS" title="Landing Pages" description={`${landingProducts.length} landing page${landingProducts.length === 1 ? "" : "s"} for campaign traffic.`} action={{ label: "New Landing Page", href: "/admin/products/new" }} />
+
+      <Link href="/admin/cms" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        Back to CMS Hub
+      </Link>
 
       {landingProducts.length === 0 ? (
         <AdminEmptyState title="No landing pages yet" description="Create a product with page type set to Landing to use it for ad traffic." action={{ label: "Create Landing Page", href: "/admin/products/new" }} />

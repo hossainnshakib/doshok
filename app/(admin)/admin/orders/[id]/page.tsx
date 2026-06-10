@@ -36,6 +36,7 @@ export default async function AdminOrderDetailPage({
         eyebrow="Sales"
         title={`Order ${order.orderNumber}`}
         description={`Placed on ${order.createdAt.toLocaleString()}. Review customer details, fulfillment status, and order totals.`}
+        backHref="/admin/orders"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -80,6 +80,12 @@ export type CartItem = {
 
 export type DeliveryZone = "chatto" | "dhaka" | "outside"
 
+export type DeliveryZoneMeta = {
+  zone: DeliveryZone
+  label: string
+  fee: number
+}
+
 export type CourierProvider = "PATHAO" | "STEADFAST" | "REDX"
 
 export type CourierMode = "SANDBOX" | "LIVE"

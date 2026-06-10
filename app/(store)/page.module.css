@@ -66,7 +66,8 @@
 .bssPromo{background:#ededed;border-radius:14px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;min-height:380px}
 .promoImage{flex:1;display:grid;place-items:center;margin:8px 0}
 .promoImage a,.promoImage div{width:170px;height:200px;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 30px 50px -25px rgba(0,0,0,.45)}
-.promoImage img{width:100%;height:100%;object-fit:cover;display:block}
+.promoImage img,.promoImage .imageEmpty{width:100%;height:100%;object-fit:cover;display:block;background:#e5e5e5}
+.imageEmpty{width:170px;height:200px;border-radius:8px;background:#e5e5e5}
 .pbTitle{font-weight:800;font-size:20px;text-align:center;letter-spacing:-.4px}
 .pbTitle em{font-style:italic;color:#364152}
 .pbSub{font-size:12.5px;color:#555;text-align:center;line-height:1.5;margin-top:6px}
@@ -84,6 +85,29 @@
 .storeImg img{width:100%;height:100%;object-fit:cover;display:block}
 .storePrice{font-weight:700;font-size:11.5px;color:#111}
 
+.heroWithImage{
+  width:min(calc(100% - 48px),1440px);
+  margin:24px auto 0;
+  border-radius:14px;
+  min-height:300px;
+  position:relative;
+  overflow:hidden;
+  background-size:cover;
+  background-position:center;
+}
+.heroOverlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(255,255,255,0.97) 0%,rgba(255,255,255,0.85) 50%,rgba(255,255,255,0.3) 100%);z-index:1}
+.heroWithImage .heroLeft{z-index:2;position:relative}
+.heroWithImage .heroTitle{color:#0a0a0a}
+.heroWithImage .sub{color:#555}
+
+.promoBanner{width:min(calc(100% - 48px),1440px);margin:0 auto 24px;position:relative;border-radius:14px;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center}
+.promoBannerImage{position:absolute;inset:0;background-size:cover;background-position:center}
+.promoBannerOverlay{position:absolute;inset:0;background:rgba(0,0,0,0.4)}
+.promoBannerContent{z-index:1;position:relative;text-align:center;padding:32px}
+.promoBannerText{font-size:28px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.3)}
+.promoBannerLink{display:inline-flex;margin-top:16px;background:#fff;color:#111;padding:10px 24px;border-radius:10px;font-weight:700;font-size:13px;transition:all .2s}
+.promoBannerLink:hover{background:#f5f5f5}
+
 .quote{width:min(calc(100% - 48px),1440px);margin:0 auto 0;background:#364152;border-radius:14px;height:170px;display:grid;place-items:center;position:relative;overflow:hidden}
 .quote::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 20% 90%,rgba(255,255,255,.06),transparent 50%),repeating-linear-gradient(90deg,transparent 0 32px,rgba(255,255,255,.03) 32px 33px);opacity:.7}
 .hangers{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 100%,rgba(0,0,0,.4),transparent 60%)}
@@ -96,6 +120,8 @@
   .sub{max-width:100%}
   .heroRight{padding:0 20px 26px}
   .heroDots{left:24px;bottom:16px}
+  .heroWithImage{width:calc(100% - 32px);margin:16px auto 0;min-height:250px}
+  .heroWithImage .heroTitle{font-size:32px}
   .emptyState{width:calc(100% - 32px)}
   .emptyStateInner{padding:40px 24px}
   .emptyStateInner h2{font-size:24px}
@@ -106,6 +132,8 @@
   .row{grid-template-columns:repeat(2,1fr)}
   .bss{grid-template-columns:1fr}
   .bssGrid{grid-template-columns:1fr}
+  .promoBanner{width:calc(100% - 32px);min-height:140px}
+  .promoBannerText{font-size:22px}
   .quote{width:calc(100% - 32px)}
   .quote h2{font-size:28px}
 }

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import type { DeliveryZone } from "@/types"
+import { autoDetectDeliveryZone } from "@/lib/delivery"
 
 const ZONE_MAP: Record<DeliveryZone, string> = {
   chatto: "Inside Chattogram",
@@ -14,13 +15,22 @@ export const dynamic = "force-dynamic"
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const zone = searchParams.get("zone") as DeliveryZone | null
+    const districtId = searchParams.get("districtId")
+    const zoneParam = searchParams.get("zone") as DeliveryZone | null
 
-    if (zone && ZONE_MAP[zone]) {
+    if (districtId) {
+      const zone = autoDetectDeliveryZone(districtId)
       const deliveryZone = await prisma.deliveryZone.findUnique({
         where: { name: ZONE_MAP[zone] },
       })
       return success({ zone, fee: deliveryZone?.fee ?? 100 })
+    }
+
+    if (zoneParam && ZONE_MAP[zoneParam]) {
+      const deliveryZone = await prisma.deliveryZone.findUnique({
+        where: { name: ZONE_MAP[zoneParam] },
+      })
+      return success({ zone: zoneParam, fee: deliveryZone?.fee ?? 100 })
     }
 
     const allZones = await prisma.deliveryZone.findMany()
