@@ -20,6 +20,22 @@ import {
   Headphones,
   Menu,
   X,
+  Tag,
+  Grid3x3,
+  AlertTriangle,
+  TrendingUp,
+  Star,
+  BriefcaseMedical,
+  Home,
+  Link2,
+  FileText,
+  BookOpen,
+  CreditCard,
+  PackageSearch,
+  MessageSquare,
+  Ticket,
+  ClipboardList,
+  MapPin,
 } from "lucide-react"
 
 const STORAGE_KEY = "doshok_admin_sidebar_pinned"
@@ -45,7 +61,18 @@ const navGroups: NavGroup[] = [
   {
     label: "Commerce",
     items: [
-      { href: "/admin/commerce", label: "Commerce Hub", icon: Package },
+      { href: "/admin/products", label: "Products", icon: Package },
+      { href: "/admin/categories", label: "Categories", icon: Grid3x3 },
+      { href: "/admin/coupons", label: "Coupons", icon: Tag },
+      { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { href: "/admin/inventory", label: "Stock Overview", icon: PackageSearch },
+      { href: "/admin/inventory/movements", label: "Stock Movements", icon: ClipboardList },
+      { href: "/admin/inventory/low-stock", label: "Low Stock Alerts", icon: AlertTriangle },
     ],
   },
   {
@@ -58,31 +85,50 @@ const navGroups: NavGroup[] = [
   {
     label: "Customers",
     items: [
-      { href: "/admin/customers", label: "Customers Hub", icon: Users },
+      { href: "/admin/customers/list", label: "Customer List", icon: Users },
+    ],
+  },
+  {
+    label: "Reviews",
+    items: [
+      { href: "/admin/reviews", label: "Product Reviews", icon: Star },
+    ],
+  },
+  {
+    label: "Careers",
+    items: [
+      { href: "/admin/careers", label: "Career Posts", icon: BriefcaseMedical },
     ],
   },
   {
     label: "CMS",
     items: [
-      { href: "/admin/cms", label: "CMS Hub", icon: Briefcase },
+      { href: "/admin/homepage", label: "Homepage", icon: Home },
+      { href: "/admin/cms/footer", label: "Footer", icon: Link2 },
+      { href: "/admin/cms/menus", label: "Menus", icon: Menu },
+      { href: "/admin/cms/pages", label: "Pages", icon: FileText },
+      { href: "/admin/cms/stories", label: "Stories", icon: BookOpen },
     ],
   },
   {
     label: "Operations",
     items: [
-      { href: "/admin/operations", label: "Operations Hub", icon: Truck },
+      { href: "/admin/payment-methods", label: "Payment Methods", icon: CreditCard },
+      { href: "/admin/courier-methods", label: "Courier Methods", icon: Truck },
+      { href: "/admin/delivery-zones", label: "Delivery Zones", icon: MapPin },
     ],
   },
   {
     label: "Support",
     items: [
-      { href: "/admin/support", label: "Support Hub", icon: Headphones },
+      { href: "/admin/support/messages", label: "Contact Messages", icon: MessageSquare },
+      { href: "/admin/support/tickets", label: "Support Tickets", icon: Ticket },
     ],
   },
   {
     label: "Settings",
     items: [
-      { href: "/admin/settings", label: "Settings Hub", icon: Settings },
+      { href: "/admin/site-settings", label: "Site Settings", icon: Settings },
     ],
   },
 ]
