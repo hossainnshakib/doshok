@@ -1,6 +1,5 @@
-import { InfoPage } from "@/components/store/info-page"
-import { shippingPage } from "@/lib/info-pages"
+import { permanentRedirect } from "next/navigation"
 
-export default function ShippingPage() {
-  return <InfoPage page={shippingPage} />
+export default function ShippingRedirect() {
+  permanentRedirect("/delivery")
 }

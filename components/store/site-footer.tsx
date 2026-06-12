@@ -30,7 +30,7 @@ const DEFAULT_HELP_LINKS = [
 const DEFAULT_POLICY_LINKS = [
   ["Privacy Policy", "/privacy"],
   ["Terms & Conditions", "/terms"],
-  ["Return Policy", "/return-policy"],
+  ["Return Policy", "/returns"],
   ["Delivery", "/delivery"],
 ]
 

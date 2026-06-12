@@ -1,12 +1,5 @@
-import type { Metadata } from "next"
-import { InfoPage } from "@/components/store/info-page"
-import { returnsPage } from "@/lib/info-pages"
+import { permanentRedirect } from "next/navigation"
 
-export const metadata: Metadata = {
-  title: "Return Policy — Doshok",
-  description: "Easy exchanges, clear rules. Doshok supports practical returns and exchanges for eligible items within 7 days of delivery.",
-}
-
-export default function ReturnPolicyPage() {
-  return <InfoPage page={returnsPage} />
+export default function ReturnPolicyRedirect() {
+  permanentRedirect("/returns")
 }

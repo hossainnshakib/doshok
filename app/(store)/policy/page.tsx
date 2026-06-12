@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 }
 
 const policies = [
-  { title: "Privacy Policy", href: "/privacy-policy", description: "How we collect, use, and protect your personal data.", icon: FileText },
-  { title: "Return Policy", href: "/return-policy", description: "Our 7-day return and exchange window, conditions, and process.", icon: RefreshCcw },
+  { title: "Privacy Policy", href: "/privacy", description: "How we collect, use, and protect your personal data.", icon: FileText },
+  { title: "Return Policy", href: "/returns", description: "Our 7-day return and exchange window, conditions, and process.", icon: RefreshCcw },
   { title: "Terms & Conditions", href: "/terms", description: "Site usage, orders, pricing, delivery, and legal terms.", icon: Scale },
   { title: "Delivery Policy", href: "/delivery", description: "Delivery zones, timelines, fees, and packaging information.", icon: Truck },
   { title: "Cookie Policy", href: "/cookies", description: "How cookies and similar storage are used on Doshok.", icon: Cookie },

@@ -65,7 +65,6 @@ function getLabelFromHref(href: string): string {
     "/terms": "Terms",
     "/return-policy": "Return Policy",
     "/delivery": "Delivery",
-    "/shipping": "Shipping",
     "/cookies": "Cookies",
     "/help": "Help",
     "/policy": "Policy",
