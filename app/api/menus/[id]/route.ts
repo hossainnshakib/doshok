@@ -49,6 +49,12 @@ export async function DELETE(
     if (!session?.user) return error("Unauthorized", 401)
 
     const { id } = await context.params
+
+    const children = await prisma.menuItem.count({ where: { parentId: id } })
+    if (children > 0) {
+      return error("Cannot delete menu item with children. Remove or reassign children first.", 400)
+    }
+
     await prisma.menuItem.delete({ where: { id } })
     return success({ deleted: true })
   } catch {
