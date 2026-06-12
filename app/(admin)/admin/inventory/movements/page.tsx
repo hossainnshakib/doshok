@@ -11,7 +11,9 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   manual_adjustment: "Manual Adjustment",
   order_reserved: "Order Reserved",
   order_reservation_released: "Reservation Released",
+  order_confirmed_deducted: "Confirmed Deduction",
   order_delivered_deducted: "Delivered Deduction",
+  order_cancelled_restored: "Cancelled Restore",
   order_returned_restored: "Returned Restore",
   stock_correction: "Stock Correction",
 }
@@ -20,7 +22,9 @@ const MOVEMENT_TYPE_TONES: Record<string, string> = {
   manual_adjustment: "neutral",
   order_reserved: "warning",
   order_reservation_released: "success",
+  order_confirmed_deducted: "default",
   order_delivered_deducted: "default",
+  order_cancelled_restored: "success",
   order_returned_restored: "success",
   stock_correction: "neutral",
 }

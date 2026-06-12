@@ -4,7 +4,12 @@ import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
 import { sendOrderStatusEmail } from "@/lib/mailer"
 import { ORDER_STATUSES } from "@/types"
-import { releaseStockForOrder, finalizeStockDeductionForDeliveredOrder } from "@/lib/services/inventory.service"
+import {
+  releaseStockForOrder,
+  finalizeStockDeductionForConfirmedOrder,
+  finalizeStockDeductionForDeliveredOrder,
+  restoreStockForCancelledOrder,
+} from "@/lib/services/inventory.service"
 
 export async function GET(
   request: NextRequest,
@@ -100,9 +105,15 @@ export async function PATCH(
       }
       sendOrderStatusEmail(emailData, filtered.orderStatus as string).catch(() => {})
 
+      if (filtered.orderStatus === "confirmed" || filtered.orderStatus === "processing") {
+        finalizeStockDeductionForConfirmedOrder(id).catch((err) => {
+          console.error("Failed to deduct stock on confirmation:", err)
+        })
+      }
+
       if (filtered.orderStatus === "cancelled") {
-        releaseStockForOrder(id, "Order cancelled by admin").catch((err) => {
-          console.error("Failed to release stock on cancellation:", err)
+        restoreStockForCancelledOrder(id).catch((err) => {
+          console.error("Failed to restore stock on cancellation:", err)
         })
       }
 

@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  ShoppingBag,
   Settings,
   Truck,
   Pin,
@@ -79,7 +78,6 @@ const navGroups: NavGroup[] = [
     label: "Sales",
     items: [
       { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-      { href: "/admin/abandoned", label: "Abandoned", icon: ShoppingBag },
     ],
   },
   {

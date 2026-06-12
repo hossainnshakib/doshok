@@ -2,16 +2,16 @@ import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { AdminPageHeader, AdminSectionCard, AdminStatCard, AdminTableShell, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertTriangle, DollarSign, Package, ShoppingBag, ShoppingCart, Timer, Users, ArrowRight, Plus, ClipboardList } from "lucide-react"
+import { AlertTriangle, DollarSign, Package, ShoppingCart, Timer, Users, ArrowRight, Plus, ClipboardList } from "lucide-react"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 import { getInventoryStats, getLowStockItems } from "@/lib/services/inventory.service"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 
 export default async function AdminDashboardPage() {
   const [
     productCount,
     orderCount,
     pendingOrders,
-    abandonedCount,
     recentOrders,
     totalRevenueResult,
     customerCount,
@@ -23,7 +23,6 @@ export default async function AdminDashboardPage() {
     prisma.product.count(),
     prisma.order.count(),
     prisma.order.count({ where: { orderStatus: "pending" } }),
-    prisma.abandonedCheckout.count(),
     prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { items: true } }),
     prisma.order.aggregate({
       _sum: { total: true },
@@ -93,7 +92,7 @@ export default async function AdminDashboardPage() {
                           </TableCell>
                           <TableCell>
                             <p className="text-xs font-medium text-slate-800">{order.customerName}</p>
-                            <p className="text-[10px] text-slate-400">{order.customerPhone}</p>
+                            <p className="text-[10px] text-slate-400">{getPhoneDisplayE164(order.customerPhone)}</p>
                           </TableCell>
                           <TableCell className="text-right text-xs font-semibold tabular-nums text-slate-800">৳{order.total.toLocaleString()}</TableCell>
                           <TableCell>

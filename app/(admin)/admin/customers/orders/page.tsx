@@ -2,6 +2,7 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 
 export default async function AdminCustomerOrdersPage() {
   const orders = await prisma.order.findMany({
@@ -41,7 +42,7 @@ export default async function AdminCustomerOrdersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="text-xs font-semibold text-slate-800">{order.customerName}</div>
-                    <div className="text-[10px] text-slate-400">{order.customerPhone}</div>
+                    <div className="text-[10px] text-slate-400">{getPhoneDisplayE164(order.customerPhone)}</div>
                   </TableCell>
                   <TableCell className="text-right text-xs font-semibold tabular-nums text-slate-800">৳{order.total.toLocaleString()}</TableCell>
                   <TableCell>

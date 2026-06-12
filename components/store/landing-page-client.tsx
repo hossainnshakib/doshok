@@ -12,10 +12,7 @@ import type { DeliveryZone } from "@/types"
 import { DELIVERY_ZONE_NAMES } from "@/types"
 import { CheckCircle, Truck, Shield, Tag, CreditCard, Minus, Plus, ChevronLeft, ChevronRight, Smartphone, User, LogIn, UserPlus } from "lucide-react"
 import Link from "next/link"
-import { saveLandingDraft, loadLandingDraft, clearLandingDraft, clearBuyNowContext, clearAllLandingData, saveAbandonedCheckout, getDraftToken, maskEmail, maskPhone, formatRelativeTime } from "@/lib/checkout-draft"
-import { stripCountryCode, toE164 } from "@/lib/utils"
-import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
-import type { ConfirmationResult } from "@/lib/firebase-client"
+import { getPhoneInputValue, getPhoneDisplayE164 } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
 
@@ -63,7 +60,6 @@ const STEPS = [
   { index: 1, label: "Contact" },
   { index: 2, label: "Delivery" },
   { index: 3, label: "Payment" },
-  { index: 4, label: "Verify" },
 ]
 
 export function LandingPageClient({ product, slug }: LandingPageClientProps) {
@@ -78,13 +74,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true)
   const [phone, setPhone] = useState("")
   const [loading, setLoading] = useState(false)
-  const [phoneOtpSent, setPhoneOtpSent] = useState(false)
-  const [phoneOtpCode, setPhoneOtpCode] = useState("")
-  const [phoneOtpVerified, setPhoneOtpVerified] = useState(false)
-  const [phoneOtpError, setPhoneOtpError] = useState("")
-  const [phoneVerifiedToken, setPhoneVerifiedToken] = useState("")
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
   const [couponCode, setCouponCode] = useState("")
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponApplied, setCouponApplied] = useState(false)
@@ -120,64 +109,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
     setDivisions(getDivisions())
   }, [])
 
-  // Restore draft on mount
-  useEffect(() => {
-    if (restored.current) return
-    restored.current = true
-
-    const saved = loadLandingDraft(slug)
-    if (saved) {
-      restoredDraft.current = saved as unknown as Record<string, unknown>
-      if (saved.selectedSize) setSelectedSize(saved.selectedSize)
-      if (saved.selectedColor) setSelectedColor(saved.selectedColor)
-      if (saved.quantity) setQuantity(saved.quantity)
-      if (saved.name) setName(saved.name)
-      if (saved.email) setEmail(saved.email)
-      if (saved.phone) setPhone(saved.phone)
-      if (saved.divisionId) {
-        setDivisionId(saved.divisionId)
-        setDivisionName(saved.divisionName || "")
-        setDistricts(getDistrictsByDivision(saved.divisionId))
-      }
-      if (saved.districtId) {
-        setDistrictId(saved.districtId)
-        setDistrictName(saved.districtName || "")
-        setUpazilas(getUpazilasByDistrict(saved.districtId))
-      }
-      if (saved.upazilaId) {
-        setUpazilaId(saved.upazilaId)
-        setUpazilaName(saved.upazilaName || "")
-      }
-      if (saved.fullAddress) setFullAddress(saved.fullAddress)
-      if (saved.note) setNote(saved.note)
-      if (saved.selectedDeliveryZone) setDeliveryZone(saved.selectedDeliveryZone as DeliveryZone)
-      if (saved.selectedPaymentMethod) setPaymentMethod(saved.selectedPaymentMethod)
-      if (saved.couponCode) setCouponCode(saved.couponCode)
-      if (saved.currentStep !== undefined) setStep(saved.currentStep)
-      setShowRestoreNotice(true)
-    }
-  }, [slug])
-
-  // Auto-save draft on field changes
-  const persistDraft = useCallback(() => {
-    saveLandingDraft(slug, {
-      selectedSize, selectedColor, quantity,
-      name, email, phone,
-      divisionId, divisionName, districtId, districtName, upazilaId, upazilaName,
-      fullAddress, note,
-      selectedDeliveryZone: deliveryZone,
-      selectedPaymentMethod: paymentMethod,
-      couponCode,
-      currentStep: step,
-    })
-  }, [slug, selectedSize, selectedColor, quantity, name, email, phone, divisionId, divisionName, districtId, districtName, upazilaId, upazilaName, fullAddress, note, deliveryZone, paymentMethod, couponCode, step])
-
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(persistDraft, 500)
-  }, [persistDraft])
-
   const sizes = [...new Set(product.variants.map((v) => v.size))]
   const colors = [...new Set(product.variants.map((v) => v.color))]
   const selectedVariant = product.variants.find(
@@ -187,39 +118,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
   const subtotal = product.price * quantity
   const discount = couponDiscount
   const total = subtotal + deliveryFee - discount
-
-  const lastAbandonedSave = useRef(0)
-  const abandonedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  useEffect(() => {
-    const now = Date.now()
-    if (now - lastAbandonedSave.current < 5000) return
-    if (!name && !email && !phone) return
-    lastAbandonedSave.current = now
-    if (abandonedTimerRef.current) clearTimeout(abandonedTimerRef.current)
-    abandonedTimerRef.current = setTimeout(() => {
-      saveAbandonedCheckout({
-        name: name || undefined,
-        email: email || undefined,
-        phone: phone || undefined,
-        productId: product.id,
-        variantId: selectedVariant?.id,
-        quantity,
-        size: selectedSize || undefined,
-        color: selectedColor || undefined,
-        address: fullAddress || undefined,
-        deliveryZone,
-        couponCode: couponApplied ? couponCode : undefined,
-        subtotal,
-        discount,
-        total,
-        step: `step_${step}`,
-        landingSlug: slug,
-        source: "landing",
-        data: JSON.stringify({ phoneVerified: phoneOtpVerified, userId: session?.user?.id || undefined }),
-      })
-    }, 2000)
-    return () => { if (abandonedTimerRef.current) clearTimeout(abandonedTimerRef.current) }
-  }, [name, email, phone, step, selectedSize, selectedColor, quantity, fullAddress, deliveryZone, couponApplied, couponCode, slug, selectedVariant, phoneOtpVerified, session])
 
   // Auto-apply coupon from URL or product default
   useEffect(() => {
@@ -305,10 +203,14 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
     const errors = validateCurrentStep()
     setValidationErrors(errors)
     if (errors.length === 0) {
-      setStep((s) => Math.min(s + 1, 4))
-      scrollToTop()
+      if (step === 3) {
+        placeOrder()
+      } else {
+        setStep((s) => Math.min(s + 1, 3))
+        scrollToTop()
+      }
     }
-  }, [validateCurrentStep, scrollToTop])
+  }, [validateCurrentStep, scrollToTop, step])
 
   const handleBack = useCallback(() => {
     setStep((s) => Math.max(s - 1, 0))
@@ -373,76 +275,8 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
     setCouponError("")
   }
 
-  async function handleSendPhoneOtp() {
-    if (!phone || phone.length !== 10 || !phone.startsWith("1")) {
-      toast.error("Enter a valid 10-digit Bangladesh mobile number (01XXXXXXXXX)")
-      return
-    }
-    const e164 = toE164(phone)
-    setLoading(true)
-    setPhoneOtpError("")
-    try {
-      const result = await sendPhoneOtp(e164, "landing-recaptcha-container")
-      if (!result) {
-        setPhoneOtpError("Phone verification is not configured. Please contact support.")
-        toast.error("Phone verification unavailable")
-        return
-      }
-      setConfirmationResult(result)
-      setPhoneOtpSent(true)
-      toast.success("Verification code sent to your phone")
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to send code"
-      setPhoneOtpError(message)
-      toast.error(message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleVerifyPhoneOtp() {
-    if (!phoneOtpCode || phoneOtpCode.length !== 6) {
-      toast.error("Please enter the 6-digit code")
-      return
-    }
-    if (!confirmationResult) {
-      toast.error("Please request a code first")
-      return
-    }
-    setLoading(true)
-    setPhoneOtpError("")
-    try {
-      const idTokenResult = await confirmOtpAndGetIdToken(confirmationResult, phoneOtpCode)
-      if (!idTokenResult) {
-        setPhoneOtpError("Invalid code. Please try again.")
-        toast.error("Invalid code")
-        return
-      }
-
-      const res = await fetch("/api/otp/verify-phone", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firebaseIdToken: idTokenResult.idToken, phone: toE164(phone) }),
-      })
-      const d = await res.json()
-      if (d.success) {
-        setPhoneVerifiedToken(d.data.phoneVerifiedToken)
-        setPhoneOtpVerified(true)
-        toast.success("Phone verified!")
-        await placeOrder()
-      } else {
-        setPhoneOtpError(d.error ?? "Verification failed")
-        toast.error(d.error ?? "Verification failed")
-      }
-    } catch {
-      setPhoneOtpError("Something went wrong")
-      toast.error("Something went wrong")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   async function placeOrder() {
+    const e164Phone = getPhoneDisplayE164(phone)
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -450,7 +284,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
         body: JSON.stringify({
           name,
           email,
-          phone,
+          phone: e164Phone,
           divisionId,
           divisionName,
           districtId,
@@ -461,7 +295,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
           note,
           paymentMethod,
           couponCode: couponApplied ? couponCode : undefined,
-          phoneVerifiedToken,
           items: [
             {
               productId: product.id,
@@ -473,9 +306,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
       })
       const data = await res.json()
       if (data.success) {
-        clearLandingDraft(slug)
-        clearBuyNowContext()
-
         const paymentInitData = data.data?.paymentInitData
         const order = data.data?.order
         const orderId = order?.id
@@ -561,103 +391,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
       </section>
 
       <div className="max-w-2xl mx-auto container-px py-8 md:py-12 space-y-8">
-        {/* Restore notice */}
-        {showRestoreNotice && (
-          <div className="rounded-2xl border border-primary/10 bg-primary/[0.03] shadow-sm">
-            <div className="p-5 md:p-6">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">Your previous checkout details are ready.</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Continue where you left off.</p>
-
-                  {restoredDraft.current && typeof restoredDraft.current === "object" && (
-                    <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                      {(restoredDraft.current as { updatedAt?: number }).updatedAt && (
-                        <span>Updated {formatRelativeTime((restoredDraft.current as { updatedAt: number }).updatedAt)}</span>
-                      )}
-                      <span>Step: {STEPS[step]?.label || `Step ${step + 1}`}</span>
-                      {(restoredDraft.current as { selectedSize?: string }).selectedSize && (
-                        <span>Size: {(restoredDraft.current as { selectedSize: string }).selectedSize}</span>
-                      )}
-                      {(restoredDraft.current as { selectedColor?: string }).selectedColor && (
-                        <span>Color: {(restoredDraft.current as { selectedColor: string }).selectedColor}</span>
-                      )}
-                      {(restoredDraft.current as { quantity?: number }).quantity && (
-                        <span>Qty: {(restoredDraft.current as { quantity: number }).quantity}</span>
-                      )}
-                      {(restoredDraft.current as { email?: string }).email && (
-                        <span className="truncate">Email: {maskEmail((restoredDraft.current as { email: string }).email)}</span>
-                      )}
-                      {(restoredDraft.current as { phone?: string }).phone && (
-                        <span className="truncate">Phone: {maskPhone((restoredDraft.current as { phone: string }).phone)}</span>
-                      )}
-                      {(restoredDraft.current as { selectedDeliveryZone?: string }).selectedDeliveryZone && (
-                        <span className="truncate">
-                          Delivery: {DELIVERY_ZONE_NAMES[(restoredDraft.current as { selectedDeliveryZone: string }).selectedDeliveryZone as DeliveryZone] || (restoredDraft.current as { selectedDeliveryZone: string }).selectedDeliveryZone}
-                        </span>
-                      )}
-                      {(restoredDraft.current as { selectedPaymentMethod?: string }).selectedPaymentMethod && (
-                        <span className="truncate">Payment: {(restoredDraft.current as { selectedPaymentMethod: string }).selectedPaymentMethod.toUpperCase()}</span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowRestoreNotice(false)}
-                      className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                    >
-                      Continue checkout
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        clearAllLandingData(slug)
-                        setShowRestoreNotice(false)
-                        setName("")
-                        setEmail("")
-                        setPhone("")
-                        setDivisionId("")
-                        setDivisionName("")
-                        setDistrictId("")
-                        setDistrictName("")
-                        setUpazilaId("")
-                        setUpazilaName("")
-                        setFullAddress("")
-                        setNote("")
-                        setDeliveryZone("dhaka")
-                        setPaymentMethod("cod")
-                        setCouponCode("")
-                        setCouponDiscount(0)
-                        setCouponApplied(false)
-                        setCouponError("")
-                        setSelectedSize("")
-                        setSelectedColor("")
-                        setQuantity(1)
-                        setPhoneOtpSent(false)
-                        setPhoneOtpCode("")
-                        setPhoneOtpVerified(false)
-                        setPhoneOtpError("")
-                        setPhoneVerifiedToken("")
-                        setConfirmationResult(null)
-                        setStep(0)
-                        setValidationErrors([])
-                      }}
-                      className="inline-flex h-9 items-center justify-center rounded-xl border border-input bg-background px-5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      Clear saved details
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Identity section */}
         <div>
           {isLoggedIn ? (
@@ -866,11 +599,9 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                   inputMode="tel"
                   value={phone}
                   onChange={(e) => {
-                    const stripped = stripCountryCode(e.target.value)
-                    setPhone(stripped.replace(/\D/g, ""))
+                    setPhone(getPhoneInputValue(e.target.value))
                   }}
                   placeholder="1XXXXXXXXX"
-                  disabled={phoneOtpVerified}
                   className="h-11 rounded-xl"
                 />
               </div>
@@ -1166,90 +897,6 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
               </Button>
             </div>
           </div>
-        )}
-
-        {/* Step 4: Verification */}
-        {step === 4 && (
-          <section className="space-y-6 max-w-sm mx-auto text-center">
-            <div className="bg-muted/20 rounded-2xl p-8 space-y-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-medium">Step 5</p>
-              <h2 className="text-xl font-semibold">Phone Verification</h2>
-
-              <div id="landing-recaptcha-container" ref={recaptchaContainerRef} />
-
-              {phoneOtpVerified ? (
-                <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-200 rounded-xl px-5 py-4">
-                  <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
-                  <span className="text-sm font-medium text-green-700">
-                    Phone {maskPhone(phone)} verified!
-                  </span>
-                </div>
-              ) : phoneOtpSent ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                    <Smartphone className="h-4 w-4" />
-                    A 6-digit code has been sent to <strong className="text-foreground">{maskPhone(phone)}</strong>
-                  </p>
-                  <Input
-                    value={phoneOtpCode}
-                    onChange={(e) => { setPhoneOtpCode(e.target.value); setPhoneOtpError("") }}
-                    placeholder="000000"
-                    maxLength={6}
-                    className="text-center text-2xl tracking-[0.5em] font-mono h-14 rounded-xl"
-                  />
-                  {phoneOtpError && (
-                    <p className="text-sm text-destructive">{phoneOtpError}</p>
-                  )}
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleBack}
-                      className="flex-1 h-12 rounded-xl"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" /> Back
-                    </Button>
-                    <Button
-                      type="button"
-                      className="flex-1 h-12 rounded-xl"
-                      onClick={handleVerifyPhoneOtp}
-                      disabled={loading || phoneOtpCode.length !== 6}
-                    >
-                      {loading ? "Verifying..." : "Verify & Place Order"}
-                    </Button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSendPhoneOtp}
-                    className="text-sm text-primary hover:underline"
-                    disabled={loading}
-                  >
-                    Resend code
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                    <Smartphone className="h-4 w-4" />
-                    We&apos;ll send a verification code to <strong className="text-foreground">{maskPhone(phone)}</strong>
-                  </p>
-                  <Button
-                    size="lg"
-                    className="w-full h-12 md:h-14 rounded-xl text-base font-medium"
-                    onClick={handleSendPhoneOtp}
-                    disabled={loading}
-                  >
-                    {loading ? "Sending OTP..." : "Send Verification Code"}
-                  </Button>
-                  <div>
-                    <Button type="button" variant="ghost" onClick={handleBack} className="gap-1.5">
-                      <ChevronLeft className="h-4 w-4" /> Back
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
         )}
 
         {/* Trust indicators */}

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 
 export default async function AdminCustomerAddressesPage() {
   const addresses = await prisma.userAddress.findMany({
@@ -37,13 +38,13 @@ export default async function AdminCustomerAddressesPage() {
                 <TableRow key={addr.id} className="border-slate-50 hover:bg-slate-50/60">
                   <TableCell>
                     <div className="text-xs font-semibold text-slate-800">{addr.user?.name || addr.user?.email || "—"}</div>
-                    <div className="text-[10px] text-slate-400">{addr.user?.phone || "—"}</div>
+                    <div className="text-[10px] text-slate-400">{addr.user?.phone ? getPhoneDisplayE164(addr.user.phone) : "—"}</div>
                   </TableCell>
                   <TableCell>
                     <AdminStatusBadge status={addr.label} />
                   </TableCell>
                   <TableCell className="text-xs font-semibold text-slate-700">{addr.recipientName}</TableCell>
-                  <TableCell className="font-mono text-[11px] text-slate-600">{addr.phone}</TableCell>
+                  <TableCell className="font-mono text-[11px] text-slate-600">{getPhoneDisplayE164(addr.phone)}</TableCell>
                   <TableCell className="text-xs text-slate-500 max-w-[180px] truncate">
                     {[addr.addressLine1, addr.city, addr.zone].filter(Boolean).join(", ") || "—"}
                   </TableCell>

@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import type { UserAddress, AddressLabel } from "@/types"
 import { ADDRESS_LABELS } from "@/types"
+import { getPhoneDisplayE164, getPhoneInputValue } from "@/lib/utils"
 
 const LABEL_ICONS: Record<AddressLabel, typeof Home> = {
   Home,
@@ -117,7 +118,7 @@ export default function AccountAddressesPage() {
     setForm({
       label: addr.label as AddressLabel,
       recipientName: addr.recipientName,
-      phone: addr.phone,
+      phone: getPhoneInputValue(addr.phone),
       addressLine1: addr.addressLine1,
       addressLine2: addr.addressLine2 || "",
       city: addr.city,
@@ -151,10 +152,15 @@ export default function AccountAddressesPage() {
         : "/api/account/addresses"
       const method = editingId ? "PUT" : "POST"
 
+      const payload = {
+        ...form,
+        phone: getPhoneInputValue(form.phone) || form.phone,
+      }
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const d = await res.json()
       if (d.success) {
@@ -318,7 +324,7 @@ export default function AccountAddressesPage() {
                     {addr.city}
                     {addr.postalCode ? ` - ${addr.postalCode}` : ""}
                   </p>
-                  <p className="text-muted-foreground">{addr.phone}</p>
+                  <p className="text-muted-foreground">{getPhoneDisplayE164(addr.phone)}</p>
                   {!addr.isDefault && (
                     <button
                       type="button"
@@ -385,8 +391,9 @@ export default function AccountAddressesPage() {
                 <Input
                   id="phone"
                   type="tel"
+                  inputMode="tel"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })}
                   placeholder="01XXXXXXXXX"
                   className="h-11 rounded-xl"
                 />

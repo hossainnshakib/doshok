@@ -17,11 +17,7 @@ import {
   CheckCircle, Shield, Tag, Truck, CreditCard, ArrowLeft, ChevronLeft, ChevronRight, Smartphone,
 } from "lucide-react"
 import Link from "next/link"
-import { type CheckoutDraft, maskEmail, maskPhone, formatRelativeTime, saveAbandonedCheckout } from "@/lib/checkout-draft"
-import { stripCountryCode, toE164 } from "@/lib/utils"
-import { useCheckoutDraft } from "@/hooks/use-checkout-draft"
-import { sendPhoneOtp, confirmOtpAndGetIdToken } from "@/lib/firebase-client"
-import type { ConfirmationResult } from "@/lib/firebase-client"
+import { getPhoneInputValue, getPhoneDisplayE164 } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import { User, LogIn, MapPin, Home, Briefcase, Users } from "lucide-react"
 import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
@@ -43,24 +39,64 @@ const STEPS = [
   { index: 0, label: "Contact", description: "Who & where to reach" },
   { index: 1, label: "Delivery", description: "Delivery address & zone" },
   { index: 2, label: "Offer & Payment", description: "Coupon & payment method" },
-  { index: 3, label: "Verification", description: "Verify your phone" },
-  { index: 4, label: "Confirm", description: "Review & place order" },
+  { index: 3, label: "Confirm", description: "Review & place order" },
 ]
 
 export function CheckoutForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isBuyNow = searchParams.has("productId")
-  const recoveryToken = searchParams.get("recoveryToken")
 
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user
 
-  const {
-    step, draft, restored, showRestoreNotice,
-    goNext, goBack, updateField, updateFields, resetDraft, clearSavedDetails,
-    dismissRestoreNotice, isFirstStep, isLastStep,
-  } = useCheckoutDraft(session?.user?.id)
+  const [step, setStep] = useState(0)
+  const [draft, setDraft] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    divisionId: "",
+    divisionName: "",
+    districtId: "",
+    districtName: "",
+    upazilaId: "",
+    upazilaName: "",
+    fullAddress: "",
+    note: "",
+    selectedDeliveryZone: "dhaka" as DeliveryZone,
+    couponCode: "",
+    selectedPaymentMethod: "cod",
+  })
+
+  const updateField = <K extends keyof typeof draft>(field: K, value: (typeof draft)[K]) => {
+    setDraft((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const updateFields = (partial: Partial<typeof draft>) => {
+    setDraft((prev) => ({ ...prev, ...partial }))
+  }
+
+  const goNext = () => { if (step < 3) setStep(step + 1) }
+  const goBack = () => { if (step > 0) setStep(step - 1) }
+  const resetDraft = () => {
+    setDraft({
+      name: "",
+      phone: "",
+      email: "",
+      divisionId: "",
+      divisionName: "",
+      districtId: "",
+      districtName: "",
+      upazilaId: "",
+      upazilaName: "",
+      fullAddress: "",
+      note: "",
+      selectedDeliveryZone: "dhaka",
+      couponCode: "",
+      selectedPaymentMethod: "cod",
+    })
+    setStep(0)
+  }
 
   const [items, setItems] = useState<(CartItem & { productName?: string })[]>([])
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZone>("dhaka")
@@ -75,15 +111,6 @@ export function CheckoutForm() {
   const [couponApplied, setCouponApplied] = useState(false)
   const [couponError, setCouponError] = useState("")
   const [couponLoading, setCouponLoading] = useState(false)
-
-  const [phoneOtpSent, setPhoneOtpSent] = useState(false)
-  const [phoneOtpCode, setPhoneOtpCode] = useState("")
-  const [phoneOtpVerified, setPhoneOtpVerified] = useState(false)
-  const [phoneOtpLoading, setPhoneOtpLoading] = useState(false)
-  const [phoneOtpError, setPhoneOtpError] = useState("")
-  const [phoneVerifiedToken, setPhoneVerifiedToken] = useState("")
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
-  const recaptchaContainerRef = useRef<HTMLDivElement>(null)
 
   const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
@@ -111,27 +138,6 @@ export function CheckoutForm() {
       validateCoupon(couponCode)
     }
   }, [items])
-
-  useEffect(() => {
-    if (restored && couponCode && !couponApplied && !autoValidatedRef.current) {
-      autoValidatedRef.current = true
-      validateCoupon(couponCode)
-    }
-  }, [restored, couponCode])
-
-  const savedVerificationRef = useRef(false)
-  useEffect(() => {
-    if (!phoneOtpVerified || savedVerificationRef.current) return
-    savedVerificationRef.current = true
-    saveAbandonedCheckout({
-      name: draft.name || undefined,
-      email: draft.email || undefined,
-      phone: draft.phone || undefined,
-      step: `step_${step}`,
-      source: "checkout",
-      data: JSON.stringify({ phoneVerified: true, userId: session?.user?.id || undefined }),
-    })
-  }, [phoneOtpVerified])
 
   useEffect(() => {
     setDivisions(getDivisions())
@@ -174,63 +180,6 @@ export function CheckoutForm() {
       setItems(cart)
     }
   }, [isBuyNow, searchParams, router])
-
-  const recoveryPrefilled = useRef(false)
-
-  useEffect(() => {
-    if (!recoveryToken || recoveryPrefilled.current) return
-    recoveryPrefilled.current = true
-
-    fetch(`/api/recover-checkout?token=${encodeURIComponent(recoveryToken)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.success || !d.data) return
-
-        const rec = d.data
-        const updates: Partial<CheckoutDraft> = {}
-
-        if (rec.name) updates.name = rec.name
-        if (rec.email) updates.email = rec.email
-        if (rec.phone) updates.phone = rec.phone
-        if (rec.address) updates.fullAddress = rec.address
-        if (rec.deliveryZone) {
-          updates.selectedDeliveryZone = rec.deliveryZone
-          setDeliveryZone(rec.deliveryZone as DeliveryZone)
-        }
-        if (rec.couponCode) updates.couponCode = rec.couponCode
-
-        if (Object.keys(updates).length > 0) {
-          updateFields(updates)
-        }
-
-        if (rec.couponCode) {
-          setCouponCode(rec.couponCode)
-        }
-
-        if (rec.productId) {
-          const item: CartItem & { productName?: string } = {
-            productId: rec.productId,
-            variantId: rec.variantId || undefined,
-            name: "Restored Item",
-            price: rec.subtotal > 0 ? Math.round(rec.subtotal / (rec.quantity || 1)) : 0,
-            quantity: rec.quantity || 1,
-            size: rec.size || undefined,
-            color: rec.color || undefined,
-          }
-          fetch(`/api/products/${rec.productId}`)
-            .then((r) => r.json())
-            .then((pd) => {
-              if (pd.success) {
-                setItems([{ ...item, name: pd.data.name, productName: pd.data.name }])
-              } else {
-                setItems([item])
-              }
-            })
-            .catch(() => setItems([item]))
-        }
-      })
-      .catch(() => {})
-  }, [recoveryToken, updateFields])
 
   useEffect(() => {
     if (!draft.districtId) return
@@ -275,7 +224,7 @@ export function CheckoutForm() {
       .then((d) => {
         if (!d.success || !d.data) return
         const profile = d.data as { firstName?: string; lastName?: string; email?: string; phone?: string | null }
-        const updates: Partial<CheckoutDraft> = {}
+        const updates: Partial<typeof draft> = {}
         if (profile.firstName || profile.lastName) {
           const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(" ")
           if (fullName && !draft.name) updates.name = fullName
@@ -312,7 +261,7 @@ export function CheckoutForm() {
   function applyAddressToDraft(addr: UserAddress) {
     updateFields({
       name: addr.recipientName,
-      phone: addr.phone,
+      phone: getPhoneInputValue(addr.phone),
       divisionId: "",
       divisionName: addr.city,
       districtId: "",
@@ -320,7 +269,7 @@ export function CheckoutForm() {
       upazilaId: "",
       upazilaName: addr.city,
       fullAddress: addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ""),
-      selectedDeliveryZone: addr.zone,
+      selectedDeliveryZone: addr.zone as DeliveryZone,
     })
     setDeliveryZone(addr.zone as DeliveryZone)
     setDistricts([])
@@ -354,15 +303,9 @@ export function CheckoutForm() {
         }
         break
       }
-      case 3: {
-        if (!phoneOtpVerified) {
-          errors.push("Please verify your phone before placing the order")
-        }
-        break
-      }
     }
     return errors
-  }, [step, draft, couponCode, couponApplied, phoneOtpVerified])
+  }, [step, draft, couponCode, couponApplied])
 
   const handleNext = useCallback(() => {
     const errors = validateCurrentStep()
@@ -423,93 +366,13 @@ export function CheckoutForm() {
     updateField("couponCode", "")
   }
 
-  async function handleSendPhoneOtp() {
-    const localNumber = draft.phone
-    if (!localNumber || localNumber.length !== 10 || !localNumber.startsWith("1")) {
-      toast.error("Enter a valid 10-digit Bangladesh mobile number (01XXXXXXXXX)")
-      return
-    }
-    const e164 = toE164(localNumber)
-    setPhoneOtpLoading(true)
-    setPhoneOtpError("")
-    try {
-      const result = await sendPhoneOtp(e164, "recaptcha-container")
-      if (!result) {
-        setPhoneOtpError("Phone verification is not configured. Please contact support.")
-        toast.error("Phone verification unavailable")
-        return
-      }
-      setConfirmationResult(result)
-      setPhoneOtpSent(true)
-      toast.success("Verification code sent to your phone")
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to send code"
-      setPhoneOtpError(message)
-      toast.error(message)
-    } finally {
-      setPhoneOtpLoading(false)
-    }
-  }
-
-  async function handleVerifyPhoneOtp() {
-    if (!phoneOtpCode || phoneOtpCode.length !== 6) {
-      toast.error("Please enter the 6-digit code")
-      return
-    }
-    if (!confirmationResult) {
-      toast.error("Please request a code first")
-      return
-    }
-    setPhoneOtpLoading(true)
-    setPhoneOtpError("")
-    try {
-      const idTokenResult = await confirmOtpAndGetIdToken(confirmationResult, phoneOtpCode)
-      if (!idTokenResult) {
-        setPhoneOtpError("Invalid code. Please try again.")
-        toast.error("Invalid code")
-        return
-      }
-
-      const res = await fetch("/api/otp/verify-phone", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firebaseIdToken: idTokenResult.idToken, phone: toE164(draft.phone) }),
-      })
-      const d = await res.json()
-      if (d.success) {
-        setPhoneVerifiedToken(d.data.phoneVerifiedToken)
-        setPhoneOtpVerified(true)
-        toast.success("Phone verified!")
-      } else {
-        setPhoneOtpError(d.error ?? "Verification failed")
-        toast.error(d.error ?? "Verification failed")
-      }
-    } catch {
-      setPhoneOtpError("Something went wrong")
-      toast.error("Something went wrong")
-    } finally {
-      setPhoneOtpLoading(false)
-    }
-  }
-
-  function handleResendPhoneOtp() {
-    setConfirmationResult(null)
-    setPhoneOtpSent(false)
-    setPhoneOtpCode("")
-    setPhoneOtpError("")
-    setTimeout(() => handleSendPhoneOtp(), 300)
-  }
-
   async function handlePlaceOrder() {
-    if (!phoneOtpVerified || !phoneVerifiedToken) {
-      toast.error("Please verify your phone before placing the order")
-      return
-    }
-    if (!draft.phone || draft.phone.length < 11) {
-      toast.error("Please enter a valid phone number")
+    if (!draft.phone || !/^1[3-9]\d{8}$/.test(draft.phone)) {
+      toast.error("Enter a valid Bangladesh mobile number (01XXXXXXXXX)")
       return
     }
 
+    const e164Phone = getPhoneDisplayE164(draft.phone)
     setLoading(true)
     try {
       const res = await fetch("/api/checkout", {
@@ -518,7 +381,7 @@ export function CheckoutForm() {
         body: JSON.stringify({
           name: draft.name,
           email: draft.email,
-          phone: draft.phone,
+          phone: e164Phone,
           divisionId: draft.divisionId,
           divisionName: draft.divisionName,
           districtId: draft.districtId,
@@ -529,8 +392,6 @@ export function CheckoutForm() {
           note: draft.note,
           paymentMethod,
           couponCode: couponApplied ? couponCode : undefined,
-          recoveryToken: recoveryToken || undefined,
-          phoneVerifiedToken,
           items: items.map((item) => ({
             productId: item.productId,
             variantId: item.variantId,
@@ -547,7 +408,7 @@ export function CheckoutForm() {
             body: JSON.stringify({
               label: "Home",
               recipientName: draft.name,
-              phone: draft.phone,
+              phone: e164Phone,
               addressLine1: draft.fullAddress,
               addressLine2: "",
               city: draft.districtName || draft.divisionName,
@@ -590,74 +451,6 @@ export function CheckoutForm() {
 
   return (
     <div className="container mx-auto container-px py-8 md:py-12 max-w-6xl" ref={formRef}>
-      {showRestoreNotice && (
-        <div className="mb-6 rounded-2xl border border-primary/10 bg-primary/[0.03] shadow-sm">
-          <div className="p-5 md:p-6">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <CheckCircle className="h-5 w-5 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">We restored your checkout details.</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Continue where you left off.</p>
-
-                {draft.updatedAt > 0 && (
-                  <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                    <span>Updated {formatRelativeTime(draft.updatedAt)}</span>
-                    <span>Step: {STEPS[step]?.label || `Step ${step + 1}`}</span>
-                    {draft.email && <span className="truncate">Email: {maskEmail(draft.email)}</span>}
-                    {draft.phone && <span className="truncate">Phone: {maskPhone(draft.phone)}</span>}
-                    {draft.districtName && (
-                      <span className="truncate">{draft.upazilaName}, {draft.districtName}</span>
-                    )}
-                    {draft.selectedDeliveryZone && (
-                      <span className="truncate">
-                        {DELIVERY_ZONE_NAMES[draft.selectedDeliveryZone as keyof typeof DELIVERY_ZONE_NAMES] || draft.selectedDeliveryZone}
-                      </span>
-                    )}
-                    {draft.selectedPaymentMethod && (
-                      <span className="truncate">Payment: {draft.selectedPaymentMethod.toUpperCase()}</span>
-                    )}
-                  </div>
-                )}
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={dismissRestoreNotice}
-                    className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                  >
-                    Continue checkout
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearSavedDetails()
-                      setCouponCode("")
-                      setCouponDiscount(0)
-                      setCouponApplied(false)
-                      setCouponError("")
-                      setDeliveryZone("dhaka")
-                      setPaymentMethod("cod")
-                      setPhoneOtpSent(false)
-                      setPhoneOtpCode("")
-                      setPhoneOtpVerified(false)
-                      setPhoneOtpError("")
-                      setPhoneVerifiedToken("")
-                      setConfirmationResult(null)
-                      setValidationErrors([])
-                    }}
-                    className="inline-flex h-9 items-center justify-center rounded-xl border border-input bg-background px-5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    Clear saved details
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Identity section */}
       <div className="mb-6">
         {isLoggedIn ? (
@@ -801,11 +594,9 @@ export function CheckoutForm() {
                         inputMode="tel"
                         value={draft.phone}
                         onChange={(e) => {
-                          const stripped = stripCountryCode(e.target.value)
-                          updateField("phone", stripped.replace(/\D/g, ""))
+                          updateField("phone", getPhoneInputValue(e.target.value))
                         }}
                         placeholder="1XXXXXXXXX"
-                        disabled={phoneOtpVerified}
                         className="h-11 rounded-none border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                     </div>
@@ -856,7 +647,7 @@ export function CheckoutForm() {
                               </div>
                               <p className="text-xs text-muted-foreground truncate">{addr.addressLine1}</p>
                               <p className="text-xs text-muted-foreground">{addr.city}</p>
-                              <p className="text-xs text-muted-foreground">{addr.recipientName} — {addr.phone}</p>
+                              <p className="text-xs text-muted-foreground">{addr.recipientName} — {getPhoneDisplayE164(addr.phone)}</p>
                             </div>
                           </button>
                         )
@@ -1167,89 +958,13 @@ export function CheckoutForm() {
             </div>
           )}
 
-          {/* Step 3: Verification */}
+          {/* Step 3: Review & Place */}
           {step === 3 && (
-            <Card className="border-border/50 rounded-2xl shadow-sm">
-              <CardContent className="p-6 md:p-8 space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary text-primary-foreground text-sm font-bold">5</span>
-                  <div>
-                    <h2 className="text-lg font-semibold">Phone Verification</h2>
-                    <p className="text-xs text-muted-foreground">Verify your phone to place the order</p>
-                  </div>
-                </div>
-
-                <div id="recaptcha-container" ref={recaptchaContainerRef} />
-
-                {phoneOtpVerified ? (
-                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-5 py-4">
-                    <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
-                    <span className="text-sm font-medium text-green-700">
-                      Phone <strong>{maskPhone(draft.phone)}</strong> verified successfully
-                    </span>
-                  </div>
-                ) : phoneOtpSent ? (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Smartphone className="h-4 w-4" />
-                      A 6-digit code has been sent to <strong className="text-foreground">{maskPhone(draft.phone)}</strong>
-                    </p>
-                    <div className="flex gap-3">
-                      <Input
-                        value={phoneOtpCode}
-                        onChange={(e) => { setPhoneOtpCode(e.target.value); setPhoneOtpError("") }}
-                        placeholder="000000"
-                        maxLength={6}
-                        className="text-center text-lg tracking-[0.5em] w-40 font-mono h-12 rounded-xl"
-                      />
-                      <Button
-                        type="button"
-                        onClick={handleVerifyPhoneOtp}
-                        disabled={phoneOtpLoading || phoneOtpCode.length !== 6}
-                        className="h-12 rounded-xl"
-                      >
-                        {phoneOtpLoading ? "Verifying..." : "Verify"}
-                      </Button>
-                    </div>
-                    {phoneOtpError && (
-                      <p className="text-sm text-destructive">{phoneOtpError}</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleResendPhoneOtp}
-                      className="text-sm text-primary hover:underline"
-                      disabled={phoneOtpLoading}
-                    >
-                      Resend code
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Smartphone className="h-4 w-4" />
-                      We&apos;ll send a verification code to <strong className="text-foreground">{maskPhone(draft.phone)}</strong>
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={handleSendPhoneOtp}
-                      disabled={phoneOtpLoading || !draft.phone}
-                      className="h-12 rounded-xl"
-                    >
-                      {phoneOtpLoading ? "Sending..." : "Send Verification Code"}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 4: Review & Place */}
-          {step === 4 && (
             <div className="space-y-6">
               <Card className="border-border/50 rounded-2xl shadow-sm">
                 <CardContent className="p-6 md:p-8 space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary text-primary-foreground text-sm font-bold">6</span>
+                    <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary text-primary-foreground text-sm font-bold">4</span>
                     <div>
                       <h2 className="text-lg font-semibold">Review Your Order</h2>
                       <p className="text-xs text-muted-foreground">Please confirm everything is correct</p>
@@ -1261,7 +976,7 @@ export function CheckoutForm() {
                       <h3 className="text-sm font-medium text-muted-foreground">Contact</h3>
                       <p className="text-sm">{draft.name}</p>
                       <p className="text-sm">{draft.email}</p>
-                      <p className="text-sm">{draft.phone}</p>
+                      <p className="text-sm">{getPhoneDisplayE164(draft.phone)}</p>
                     </div>
                     <div className="space-y-2 pb-4 pt-4">
                       <h3 className="text-sm font-medium text-muted-foreground">Delivery</h3>
@@ -1306,10 +1021,10 @@ export function CheckoutForm() {
           )}
 
           {/* Navigation */}
-          {step < 4 && (
+          {step < 3 && (
             <div className="flex items-center justify-between gap-4 pt-2">
               <div>
-                {!isFirstStep ? (
+                {step > 0 ? (
                   <Button type="button" variant="ghost" onClick={handleBack} className="gap-1.5">
                     <ChevronLeft className="h-4 w-4" /> Back
                   </Button>

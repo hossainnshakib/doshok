@@ -16,7 +16,9 @@ export type MovementType =
   | "manual_adjustment"
   | "order_reserved"
   | "order_reservation_released"
+  | "order_confirmed_deducted"
   | "order_delivered_deducted"
+  | "order_cancelled_restored"
   | "order_returned_restored"
   | "stock_correction"
 
@@ -285,6 +287,182 @@ export async function finalizeStockDeductionForDeliveredOrder(
       })
     }
   })
+
+  return { success: true }
+}
+
+export async function finalizeStockDeductionForConfirmedOrder(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  const alreadyDeducted = await prisma.stockMovement.findFirst({
+    where: { orderId, type: "order_confirmed_deducted" },
+  })
+
+  if (alreadyDeducted) {
+    return { success: true }
+  }
+
+  const reservedMovements = await prisma.stockMovement.findMany({
+    where: { orderId, type: "order_reserved" },
+    select: { variantId: true, quantity: true, productId: true },
+  })
+
+  const variantDeductions = new Map<string, { productId: string; quantity: number }>()
+  for (const m of reservedMovements) {
+    if (!m.variantId) continue
+    const existing = variantDeductions.get(m.variantId)
+    if (existing) {
+      existing.quantity += m.quantity
+    } else {
+      variantDeductions.set(m.variantId, { productId: m.productId, quantity: m.quantity })
+    }
+  }
+
+  if (variantDeductions.size === 0) {
+    const orderItems = await prisma.orderItem.findMany({
+      where: { orderId, variantId: { not: null } },
+      select: { variantId: true, quantity: true, productId: true },
+    })
+
+    if (orderItems.length === 0) return { success: true }
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of orderItems) {
+        if (!item.variantId) continue
+
+        const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
+        if (!variant) continue
+
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: { decrement: item.quantity } },
+        })
+
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            variantId: item.variantId,
+            orderId,
+            type: "order_confirmed_deducted",
+            quantity: item.quantity,
+            beforeStock: variant.stock,
+            afterStock: variant.stock - item.quantity,
+            beforeReserved: variant.reservedStock,
+            afterReserved: variant.reservedStock,
+            reason: "Order confirmed",
+          },
+        })
+      }
+    })
+
+    return { success: true }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const [variantId, deduction] of variantDeductions) {
+      const variant = await tx.productVariant.findUnique({ where: { id: variantId } })
+      if (!variant) continue
+
+      const newStock = variant.stock - deduction.quantity
+      const newReserved = Math.max(0, variant.reservedStock - deduction.quantity)
+
+      await tx.productVariant.update({
+        where: { id: variantId },
+        data: {
+          stock: newStock,
+          reservedStock: newReserved,
+        },
+      })
+
+      await tx.stockMovement.create({
+        data: {
+          productId: deduction.productId,
+          variantId,
+          orderId,
+          type: "order_confirmed_deducted",
+          quantity: deduction.quantity,
+          beforeStock: variant.stock,
+          afterStock: newStock,
+          beforeReserved: variant.reservedStock,
+          afterReserved: newReserved,
+          reason: "Order confirmed",
+        },
+      })
+    }
+  })
+
+  return { success: true }
+}
+
+export async function restoreStockForCancelledOrder(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  const confirmedDeduction = await prisma.stockMovement.findFirst({
+    where: { orderId, type: "order_confirmed_deducted" },
+  })
+
+  const reservedMovements = await prisma.stockMovement.findMany({
+    where: { orderId, type: "order_reserved" },
+    select: { variantId: true, quantity: true, productId: true },
+  })
+
+  if (confirmedDeduction || reservedMovements.length > 0) {
+    const deductedMovements = confirmedDeduction
+      ? await prisma.stockMovement.findMany({
+          where: { orderId, type: "order_confirmed_deducted" },
+          select: { variantId: true, quantity: true, productId: true },
+        })
+      : []
+
+    const restoredVariants = new Map<string, { productId: string; quantity: number }>()
+
+    for (const m of deductedMovements) {
+      if (!m.variantId) continue
+      const existing = restoredVariants.get(m.variantId)
+      if (existing) {
+        existing.quantity += m.quantity
+      } else {
+        restoredVariants.set(m.variantId, { productId: m.productId, quantity: m.quantity })
+      }
+    }
+
+    for (const m of reservedMovements) {
+      if (!m.variantId) continue
+      const existing = restoredVariants.get(m.variantId)
+      if (existing) {
+        existing.quantity += m.quantity
+      } else {
+        restoredVariants.set(m.variantId, { productId: m.productId, quantity: m.quantity })
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const [variantId, restore] of restoredVariants) {
+        const variant = await tx.productVariant.findUnique({ where: { id: variantId } })
+        if (!variant) continue
+
+        await tx.productVariant.update({
+          where: { id: variantId },
+          data: { stock: { increment: restore.quantity } },
+        })
+
+        await tx.stockMovement.create({
+          data: {
+            productId: restore.productId,
+            variantId,
+            orderId,
+            type: "order_cancelled_restored",
+            quantity: restore.quantity,
+            beforeStock: variant.stock,
+            afterStock: variant.stock + restore.quantity,
+            beforeReserved: variant.reservedStock,
+            afterReserved: variant.reservedStock,
+            reason: "Order cancelled",
+          },
+        })
+      }
+    })
+  }
 
   return { success: true }
 }

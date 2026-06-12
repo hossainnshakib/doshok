@@ -4,15 +4,15 @@ import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
 import { generateOrderNumber } from "@/lib/order-number"
 import { getDeliveryFeeByDistrict } from "@/lib/delivery"
-import { checkoutSchemaWithRecovery } from "@/lib/validations"
+import { checkoutSchema } from "@/lib/validations"
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/mailer"
-import { verifyPhoneVerifiedToken } from "@/lib/phone-verify-token"
 import { isBkashEnabled, createBkashPayment } from "@/lib/payment/bkash"
 import {
   getDivisionById,
   getDistrictById,
   getUpazilaById,
 } from "@/lib/bangladesh-address"
+import { getPhoneServerValue } from "@/lib/utils"
 
 const ONLINE_PROVIDERS = ["bkash", "nagad", "rocket", "upay", "sslcommerz", "aamarpay"]
 const PAYMENT_EXPIRY_HOURS = 2
@@ -20,26 +20,14 @@ const PAYMENT_EXPIRY_HOURS = 2
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const parsed = checkoutSchemaWithRecovery.safeParse(body)
+    const parsed = checkoutSchema.safeParse(body)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
-    const { items, paymentMethod, couponCode, phoneVerifiedToken, recoveryToken, ...customer } = parsed.data
+    const { items, paymentMethod, couponCode, ...customer } = parsed.data
 
+    const customerPhone = getPhoneServerValue(customer.phone)
     const session = await auth()
     const userId = session?.user?.id ?? null
-
-    if (!phoneVerifiedToken) {
-      return error("Phone verification is required before placing an order")
-    }
-
-    const tokenResult = verifyPhoneVerifiedToken(phoneVerifiedToken)
-    if (!tokenResult.success) {
-      return error("Phone verification expired or invalid. Please verify again.")
-    }
-
-    if (tokenResult.phone !== customer.phone) {
-      return error("Phone number does not match verification")
-    }
 
     const division = getDivisionById(customer.divisionId)
     if (!division) return error("Invalid division selected")
@@ -60,7 +48,7 @@ export async function POST(request: NextRequest) {
       await prisma.user.update({
         where: { id: userId },
         data: {
-          phone: customer.phone,
+          phone: customerPhone,
           phoneVerifiedAt: new Date(),
         },
       })
@@ -153,26 +141,13 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      if (recoveryToken) {
-        const existingToken = await tx.recoveryCheckoutToken.findUnique({
-          where: { token: recoveryToken },
-        })
-        if (!existingToken || existingToken.usedAt || existingToken.expiresAt < new Date()) {
-          throw new Error("Recovery link is invalid, expired, or already used")
-        }
-        await tx.recoveryCheckoutToken.update({
-          where: { token: recoveryToken },
-          data: { usedAt: new Date() },
-        })
-      }
-
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
           userId,
           customerName: customer.name,
           customerEmail: customer.email || "",
-          customerPhone: customer.phone,
+          customerPhone: customerPhone,
           subtotal,
           deliveryFee,
           discount,
@@ -188,7 +163,7 @@ export async function POST(request: NextRequest) {
               district: customer.districtName,
               thana: customer.upazilaName,
               fullAddress: customer.fullAddress,
-              phone: customer.phone,
+              phone: customerPhone,
             },
           },
           items: {

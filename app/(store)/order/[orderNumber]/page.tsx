@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle, Package, MapPin, CreditCard, Truck, UserPlus, AlertTriangle, Clock } from "lucide-react"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 import type { Metadata } from "next"
 
 const COURIER_NAMES: Record<string, string> = {
@@ -244,7 +245,7 @@ export default async function OrderConfirmationPage({
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
           <p className="font-medium">{order.customerName}</p>
-          <p className="text-muted-foreground">{order.customerPhone}</p>
+          <p className="text-muted-foreground">{getPhoneDisplayE164(order.customerPhone)}</p>
           {order.address && (
             <>
               <p>{order.address.fullAddress}</p>

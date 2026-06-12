@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { User, Loader2, BadgeCheck, AlertTriangle, Mail, Phone } from "lucide-react"
+import { getPhoneInputValue } from "@/lib/utils"
 
 type ProfileData = {
   firstName: string
@@ -39,7 +40,7 @@ export default function AccountProfilePage() {
           const p = d.data as ProfileData
           setFirstName(p.firstName || "")
           setLastName(p.lastName || "")
-          setPhone(p.phone || "")
+          setPhone(getPhoneInputValue(p.phone || ""))
           setDateOfBirth(p.dateOfBirth || "")
           setGender(p.gender || "")
         }

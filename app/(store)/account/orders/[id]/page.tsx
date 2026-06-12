@@ -11,6 +11,7 @@ import { ArrowLeft, Package, MapPin, CreditCard, ShoppingCart, RotateCcw, AlertT
 import { toast } from "sonner"
 import { addToCart } from "@/lib/cart"
 import { OrderTimeline } from "@/components/store/order-timeline"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 
 type Order = {
   id: string
@@ -355,7 +356,7 @@ export default function AccountOrderDetailPage() {
             </CardHeader>
             <CardContent className="text-sm space-y-0.5">
               <p className="font-medium">{order.customerName}</p>
-              <p className="text-muted-foreground">{order.customerPhone}</p>
+              <p className="text-muted-foreground">{getPhoneDisplayE164(order.customerPhone)}</p>
               <p>{order.address.fullAddress}</p>
               <p className="text-muted-foreground">
                 {order.address.thana}, {order.address.district}, {order.address.division}

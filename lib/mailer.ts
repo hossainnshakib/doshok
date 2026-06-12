@@ -1,4 +1,5 @@
 import { Resend } from "resend"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const adminEmail = process.env.ADMIN_EMAIL || "admin@doshok.com"
@@ -113,7 +114,7 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
             <p style="display:flex;justify-content:space-between;margin:4px 0;"><span>Delivery Fee</span><span>৳${order.deliveryFee.toLocaleString()}</span></p>
             <p style="display:flex;justify-content:space-between;margin:4px 0;font-size:18px;font-weight:bold;"><span>Total</span><span>৳${order.total.toLocaleString()}</span></p>
           </div>
-          <p style="color:#888;margin-top:24px;font-size:14px;">We will contact you at ${order.customerPhone} for delivery confirmation.</p>
+          <p style="color:#888;margin-top:24px;font-size:14px;">We will contact you at ${getPhoneDisplayE164(order.customerPhone)} for delivery confirmation.</p>
         </div>
       `,
     })
@@ -268,7 +269,7 @@ export async function sendAdminNewOrderEmail(order: OrderData): Promise<void> {
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
           <h2 style="color:#111;">New Order: ${order.orderNumber}</h2>
-          <p><strong>Customer:</strong> ${order.customerName} (${order.customerPhone})</p>
+          <p><strong>Customer:</strong> ${order.customerName} (${getPhoneDisplayE164(order.customerPhone)})</p>
           <p><strong>Payment:</strong> ${order.paymentMethod}</p>
           <pre style="background:#f5f5f5;padding:12px;border-radius:4px;font-size:13px;">${itemsText}</pre>
           <p style="font-size:18px;font-weight:bold;">Total: ৳${order.total.toLocaleString()}</p>

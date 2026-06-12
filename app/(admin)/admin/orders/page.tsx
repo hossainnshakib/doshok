@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
@@ -123,7 +124,7 @@ export default function AdminOrdersPage() {
                     <TableCell className="font-mono text-[11px] font-semibold text-slate-700">{order.orderNumber}</TableCell>
                     <TableCell>
                       <div className="text-xs font-semibold text-slate-800">{order.customerName}</div>
-                      <div className="text-[10px] text-slate-400">{order.customerPhone}</div>
+                      <div className="text-[10px] text-slate-400">{getPhoneDisplayE164(order.customerPhone)}</div>
                     </TableCell>
                     <TableCell className="text-center text-xs tabular-nums text-slate-600">{order.items.reduce((s, i) => s + i.quantity, 0)}</TableCell>
                     <TableCell className="text-right text-xs font-semibold tabular-nums text-slate-800">৳{order.total.toLocaleString()}</TableCell>

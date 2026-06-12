@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
+import { getPhoneDisplayE164, getPhoneServerValue } from "@/lib/utils"
 
 type ShipmentInfo = {
   courierProvider: string
@@ -103,7 +104,8 @@ export default function TrackOrderPage() {
     setLoading(true)
     setSearched(true)
     try {
-      const response = await fetch(`/api/orders/number/${encodeURIComponent(orderNumber)}?phone=${encodeURIComponent(phone)}`)
+      const e164Phone = getPhoneServerValue(phone)
+      const response = await fetch(`/api/orders/number/${encodeURIComponent(orderNumber)}?phone=${encodeURIComponent(e164Phone)}`)
       const data = await response.json()
       if (data.success) {
         setOrder(data.data)
@@ -254,7 +256,7 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
                     id="phone"
                     type="tel"
                     value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
+                    onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))}
                     placeholder="01XXXXXXXXX"
                     required
                     className="h-12 rounded-2xl"
@@ -382,7 +384,7 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
                 </h3>
                 <div className="mt-4 text-sm leading-6">
                   <p className="font-bold">{order.customerName}</p>
-                  <p className="text-neutral-500">{order.customerPhone}</p>
+                  <p className="text-neutral-500">{getPhoneDisplayE164(order.customerPhone)}</p>
                   {order.address && (
                     <>
                       <p className="mt-2">{order.address.fullAddress}</p>

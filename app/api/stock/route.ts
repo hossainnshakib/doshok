@@ -24,44 +24,66 @@ export async function GET(request: NextRequest) {
     if (variantId) {
       const variant = await prisma.productVariant.findUnique({
         where: { id: variantId },
-        select: { id: true, stock: true, size: true, color: true },
+        select: { id: true, stock: true, reservedStock: true, size: true, color: true },
       })
 
       if (!variant) return error("Variant not found")
-      if (variant.stock === 0) {
-        return error("This variant is out of stock")
+
+      const availableStock = Math.max(0, variant.stock - variant.reservedStock)
+      const canFulfill = availableStock >= requestedQty
+
+      if (!canFulfill) {
+        return error(
+          availableStock === 0
+            ? "This variant is out of stock"
+            : `Only ${availableStock} available, requested ${requestedQty}`
+        )
       }
 
-      const cappedQty = Math.min(requestedQty, variant.stock)
+      const cappedQty = Math.min(requestedQty, availableStock)
       return success({
-        available: variant.stock,
-        requested: requestedQty,
+        stock: variant.stock,
+        reservedStock: variant.reservedStock,
+        availableStock,
+        requestedQuantity: requestedQty,
+        canFulfill,
         capped: cappedQty,
         cappedMessage:
           cappedQty < requestedQty
-            ? `Only ${variant.stock} available. Added ${cappedQty} to cart.`
+            ? `Only ${availableStock} available. Added ${cappedQty} to cart.`
             : null,
       })
     }
 
     const variants = await prisma.productVariant.findMany({
       where: { productId },
-      select: { stock: true },
+      select: { id: true, stock: true, reservedStock: true },
     })
-    const totalStock = variants.reduce((sum, v) => sum + v.stock, 0)
 
-    if (totalStock === 0) {
+    const totalStock = variants.reduce((sum, v) => sum + v.stock, 0)
+    const totalReserved = variants.reduce((sum, v) => sum + v.reservedStock, 0)
+    const totalAvailable = Math.max(0, totalStock - totalReserved)
+
+    if (totalAvailable === 0) {
       return error("This product is out of stock")
     }
 
-    const cappedQty = Math.min(requestedQty, totalStock)
+    const canFulfill = totalAvailable >= requestedQty
+    if (!canFulfill) {
+      return error(`Only ${totalAvailable} available, requested ${requestedQty}`)
+    }
+
+    const cappedQty = Math.min(requestedQty, totalAvailable)
     return success({
-      available: totalStock,
-      requested: requestedQty,
+      stock: totalStock,
+      reservedStock: totalReserved,
+      availableStock: totalAvailable,
+      requestedQuantity: requestedQty,
+      canFulfill,
       capped: cappedQty,
       cappedMessage:
         cappedQty < requestedQty
-          ? `Only ${totalStock} available. Added ${cappedQty} to cart.`
+          ? `Only ${totalAvailable} available. Added ${cappedQty} to cart.`
           : null,
     })
   } catch {

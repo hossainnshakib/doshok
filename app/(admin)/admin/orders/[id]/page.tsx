@@ -6,6 +6,7 @@ import { UpdateOrderStatus } from "@/components/admin/update-order-status"
 import { OrderShipment } from "@/components/admin/order-shipment"
 import { AdminPageHeader, AdminSectionCard, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getPhoneDisplayE164 } from "@/lib/utils"
 
 export default async function AdminOrderDetailPage({
   params,
@@ -50,7 +51,7 @@ export default async function AdminOrderDetailPage({
             </div>
             <div className="rounded-lg bg-slate-50/60 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Phone</p>
-              <p className="font-mono font-semibold text-slate-800">{order.customerPhone}</p>
+              <p className="font-mono font-semibold text-slate-800">{getPhoneDisplayE164(order.customerPhone)}</p>
             </div>
           </div>
         </AdminSectionCard>

@@ -84,7 +84,7 @@ export const addressSchema = z.object({
 export const checkoutSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().min(11),
+  phone: z.string().regex(/^\+8801[3-9]\d{8}$/, "Phone must be in E.164 format (+8801XXXXXXXXX)"),
   divisionId: z.string().min(1),
   divisionName: z.string().min(1),
   districtId: z.string().min(1),
@@ -175,69 +175,6 @@ export const siteSettingsSchema = z.object({
 export const otpSchema = z.object({
   phone: z.string().min(11),
   code: z.string().length(6),
-})
-
-export const phoneVerifySchema = z.object({
-  firebaseIdToken: z.string().min(1, "Firebase ID token is required"),
-  phone: z.string().regex(/^\+8801[3-9]\d{8}$/, "Phone must be in E.164 format (+8801XXXXXXXXX)"),
-})
-
-export const abandonedPublicUpdateSchema = z.object({
-  draftToken: z.string().min(1, "draftToken is required"),
-  name: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  cartData: z.any().optional(),
-  productId: z.string().optional(),
-  step: z.string().optional(),
-  couponCode: z.string().optional(),
-  subtotal: z.number().optional(),
-  discount: z.number().optional(),
-  total: z.number().optional(),
-  selectedVariant: z.any().optional(),
-  size: z.string().optional(),
-  color: z.string().optional(),
-  quantity: z.number().int().optional(),
-  deliveryZone: z.string().optional(),
-  address: z.string().optional(),
-  data: z.any().optional(),
-  lastSeenAt: z.string().optional(),
-})
-
-export const abandonedCreateSchema = z.object({
-  draftToken: z.string().min(1, "draftToken is required"),
-  source: z.enum(["checkout", "landing"]).optional(),
-  name: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  landingSlug: z.string().optional(),
-  productId: z.string().optional(),
-  variantId: z.string().optional(),
-  quantity: z.number().int().optional(),
-  size: z.string().optional(),
-  color: z.string().optional(),
-  deliveryZone: z.string().optional(),
-  address: z.string().optional(),
-  step: z.string().optional(),
-  couponCode: z.string().optional(),
-  subtotal: z.number().optional(),
-  discount: z.number().optional(),
-  total: z.number().optional(),
-  data: z.any().optional(),
-  lastSeenAt: z.string().optional(),
-})
-
-export const abandonedAdminUpdateSchema = z.object({
-  contacted: z.boolean().optional(),
-  notes: z.string().optional(),
-})
-
-export const recoveryTokenSchema = z.object({
-  token: z.string().min(1, "Token is required"),
-})
-
-export const checkoutSchemaWithRecovery = checkoutSchema.extend({
-  recoveryToken: z.string().optional(),
 })
 
 export const paymentProvider = z.enum([

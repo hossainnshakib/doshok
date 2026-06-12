@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
+import { phonesEqual, getPhoneInputValue } from "@/lib/utils"
 
 export async function GET(
   request: NextRequest,
@@ -42,7 +43,8 @@ export async function GET(
 
   if (!order) return error("Not found", 404)
 
-  if (order.customerPhone !== phone) {
+  const normalizedPhone = getPhoneInputValue(phone)
+  if (!phonesEqual(order.customerPhone, normalizedPhone)) {
     return error("Not found", 404)
   }
 

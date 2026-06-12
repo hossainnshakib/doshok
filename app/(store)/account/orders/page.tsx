@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Package, RotateCcw, ShoppingBag, BadgeCheck, Truck, Home, X } from "lucide-react"
 import { toast } from "sonner"
 import { addToCart } from "@/lib/cart"
+import { getPhoneServerValue } from "@/lib/utils"
 
 type Order = {
   id: string
@@ -135,7 +136,7 @@ export default function AccountOrdersPage() {
             const StatusIcon = cfg.icon
             return (
               <div key={order.id} className="group relative">
-                <Link href={`/account/orders/${order.orderNumber}?phone=${encodeURIComponent(order.customerPhone)}`}>
+                <Link href={`/account/orders/${order.orderNumber}?phone=${encodeURIComponent(getPhoneServerValue(order.customerPhone))}`}>
                   <Card className="border-border/50 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <CardContent className="flex items-center justify-between p-4 md:p-5">
                       <div className="min-w-0 flex items-center gap-3 md:gap-4">
