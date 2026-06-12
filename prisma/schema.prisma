@@ -599,3 +599,26 @@ model Story {
   @@index([slug])
   @@index([status])
 }
+
+model CareerPost {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  department      String
+  location        String
+  employmentType  String
+  salaryRange     String?
+  deadline        DateTime?
+  excerpt         String?
+  description     String
+  responsibilities String?
+  requirements    String?
+  benefits        String?
+  status          String    @default("Draft")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([createdAt])
+}
