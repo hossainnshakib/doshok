@@ -33,6 +33,7 @@ export const productSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.string().optional(),
+  shortDescription: z.string().optional(),
   price: z.number().positive(),
   oldPrice: z.number().positive().optional(),
   images: z.array(z.string()).default([]),
@@ -45,6 +46,16 @@ export const productSchema = z.object({
   landingSubheadline: z.string().optional(),
   landingCopy: z.string().optional(),
   landingHeroImage: z.string().optional(),
+  material: z.string().optional(),
+  careInstructions: z.string().optional(),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
+  seoKeywords: z.string().optional(),
+  seoImage: z.string().optional(),
+  specifications: z.array(z.object({
+    label: z.string().min(1),
+    value: z.string().min(1),
+  })).optional(),
   variants: z.array(z.object({
     size: z.string().min(1),
     color: z.string().min(1),
@@ -52,6 +63,7 @@ export const productSchema = z.object({
     stock: z.number().int().nonnegative().default(0),
     sku: z.string().optional(),
   })).optional(),
+  sizeChartIds: z.array(z.string()).optional(),
 })
 
 export const variantSchema = z.object({
@@ -339,4 +351,27 @@ export const paymentMethodUpdateSchema = z.object({
   supportsCodDeliveryCharge: z.boolean(),
   instructions: z.string().optional().default(""),
   credentials: z.record(z.string(), z.any()).optional().default({}),
+})
+
+export const sizeChartSchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  description: z.string().optional(),
+  rows: z.array(z.object({
+    label: z.string().min(1),
+    position: z.number().int().default(0),
+    measurements: z.record(z.string(), z.number()),
+  })).optional(),
+})
+
+export const sizeChartUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  description: z.string().optional(),
+  rows: z.array(z.object({
+    id: z.string().optional(),
+    label: z.string().min(1),
+    position: z.number().int().default(0),
+    measurements: z.record(z.string(), z.number()),
+  })).optional(),
 })

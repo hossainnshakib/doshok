@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { AdminBackLink, AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
-import { AlertTriangle, Archive, EyeOff, Layers, Save, SendHorizonal } from "lucide-react"
+import { AlertTriangle, Archive, EyeOff, Layers, Plus, Ruler, Save, SendHorizonal, Trash2 } from "lucide-react"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 import { slugifyName } from "@/lib/slug"
 
@@ -23,11 +23,17 @@ type VariantInput = {
   lowStockThreshold: number
 }
 
+type SpecInput = {
+  label: string
+  value: string
+}
+
 export default function NewProductPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [variants, setVariants] = useState<VariantInput[]>([])
+  const [specifications, setSpecifications] = useState<SpecInput[]>([])
   const [pageType, setPageType] = useState("NORMAL")
   const [productImages, setProductImages] = useState<string[]>([])
   const [landingHeroImage, setLandingHeroImage] = useState("")
@@ -37,6 +43,7 @@ export default function NewProductPage() {
   const [categoryId, setCategoryId] = useState("")
   const [status, setStatus] = useState("Draft")
   const [description, setDescription] = useState("")
+  const [shortDescription, setShortDescription] = useState("")
   const [oldPrice, setOldPrice] = useState("")
   const [featured, setFeatured] = useState(false)
   const [defaultCouponCode, setDefaultCouponCode] = useState("")
@@ -44,11 +51,25 @@ export default function NewProductPage() {
   const [landingSubheadline, setLandingSubheadline] = useState("")
   const [landingCopy, setLandingCopy] = useState("")
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
+  const [material, setMaterial] = useState("")
+  const [careInstructions, setCareInstructions] = useState("")
+  const [seoTitle, setSeoTitle] = useState("")
+  const [seoDescription, setSeoDescription] = useState("")
+  const [seoKeywords, setSeoKeywords] = useState("")
+  const [seoImage, setSeoImage] = useState("")
+  const [showSeo, setShowSeo] = useState(false)
+  const [sizeChartIds, setSizeChartIds] = useState<string[]>([])
+  const [allSizeCharts, setAllSizeCharts] = useState<{ id: string; name: string }[]>([])
+  const [chartSearch, setChartSearch] = useState("")
 
   useEffect(() => {
     fetch("/api/categories")
       .then((r) => r.json())
       .then((d) => { if (d.success) setCategories(d.data) })
+      .catch(() => {})
+    fetch("/api/size-charts")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setAllSizeCharts(d.data.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }))) })
       .catch(() => {})
   }, [])
 
@@ -61,6 +82,20 @@ export default function NewProductPage() {
 
   function addVariant() {
     setVariants([...variants, { size: "", color: "", colorHex: "", stock: 0, sku: "", lowStockThreshold: 5 }])
+  }
+
+  function addSpec() {
+    setSpecifications([...specifications, { label: "", value: "" }])
+  }
+
+  function updateSpec(i: number, field: keyof SpecInput, value: string) {
+    const next = [...specifications]
+    next[i] = { ...next[i], [field]: value }
+    setSpecifications(next)
+  }
+
+  function removeSpec(i: number) {
+    setSpecifications(specifications.filter((_, idx) => idx !== i))
   }
 
   function handleNameChange(value: string) {
@@ -93,6 +128,7 @@ export default function NewProductPage() {
       name,
       slug,
       description: description || undefined,
+      shortDescription: shortDescription || undefined,
       price: Number(price),
       oldPrice: oldPrice ? Number(oldPrice) : undefined,
       images: productImages,
@@ -102,6 +138,14 @@ export default function NewProductPage() {
       pageType,
       defaultCouponCode: defaultCouponCode?.toUpperCase() || undefined,
       variants: variants.filter((v) => v.size && v.color),
+      material: material || undefined,
+      careInstructions: careInstructions || undefined,
+      seoTitle: seoTitle || undefined,
+      seoDescription: seoDescription || undefined,
+      seoKeywords: seoKeywords || undefined,
+      seoImage: seoImage || undefined,
+      specifications: specifications.filter((s) => s.label && s.value),
+      sizeChartIds,
     }
 
     if (pageType === "LANDING") {
@@ -179,6 +223,119 @@ export default function NewProductPage() {
                   </Select>
                 </div>
               </div>
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="Product Summary">
+            <div className="space-y-1.5">
+              <Label htmlFor="shortDescription">Short Description</Label>
+              <Textarea
+                id="shortDescription"
+                rows={2}
+                value={shortDescription}
+                onChange={(e) => setShortDescription(e.target.value)}
+                placeholder="Brief summary shown near product title on storefront."
+              />
+              <p className="text-[10px] text-slate-400">Optional. A concise tagline or highlight for the product detail page.</p>
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="Product Details">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="material">Material</Label>
+                <Input id="material" value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="e.g. 100% Cotton" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="careInstructions">Care Instructions</Label>
+                <Input id="careInstructions" value={careInstructions} onChange={(e) => setCareInstructions(e.target.value)} placeholder="e.g. Machine wash cold" />
+              </div>
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="Specifications">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-500">Add product specifications like dimensions, weight, or features.</p>
+                <Button type="button" variant="outline" size="sm" onClick={addSpec} className="rounded-lg h-8 text-xs">
+                  + Add spec
+                </Button>
+              </div>
+              {specifications.length === 0 && (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
+                  <p className="text-xs text-slate-500">No specifications yet. Click "Add spec" to add rows.</p>
+                </div>
+              )}
+              {specifications.map((spec, i) => (
+                <div key={i} className="grid gap-2 rounded-lg border border-slate-200/60 p-3 md:grid-cols-[1fr_1fr_auto] md:items-center">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Label</Label>
+                    <Input value={spec.label} onChange={(e) => updateSpec(i, "label", e.target.value)} className="h-8 text-xs" placeholder="e.g. Fabric" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Value</Label>
+                    <Input value={spec.value} onChange={(e) => updateSpec(i, "value", e.target.value)} className="h-8 text-xs" placeholder="e.g. 100% Cotton" />
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 text-red-400 hover:text-red-600 mt-4 md:mt-0" onClick={() => removeSpec(i)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="Size Charts">
+            <div className="space-y-4">
+              <p className="text-xs text-slate-500">Attach size charts to this product. Customers can view sizing information on the product page.</p>
+              {allSizeCharts.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
+                  <Ruler className="mx-auto mb-2 h-5 w-5 text-slate-300" />
+                  <p className="text-xs text-slate-500">No size charts available. <a href="/admin/size-charts/new" target="_blank" className="text-blue-600 hover:underline">Create one first.</a></p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={chartSearch}
+                      onChange={(e) => setChartSearch(e.target.value)}
+                      placeholder="Search size charts..."
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {allSizeCharts
+                      .filter((c) => c.name.toLowerCase().includes(chartSearch.toLowerCase()))
+                      .map((chart) => (
+                        <label
+                          key={chart.id}
+                          className={`flex items-center gap-2 rounded-lg border p-2 cursor-pointer transition-colors text-xs ${
+                            sizeChartIds.includes(chart.id)
+                              ? "border-blue-300 bg-blue-50"
+                              : "border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={sizeChartIds.includes(chart.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSizeChartIds([...sizeChartIds, chart.id])
+                              } else {
+                                setSizeChartIds(sizeChartIds.filter((id) => id !== chart.id))
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-slate-300"
+                          />
+                          <Ruler className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span className="font-medium text-slate-700">{chart.name}</span>
+                        </label>
+                      ))}
+                  </div>
+                  {sizeChartIds.length > 0 && (
+                    <p className="text-[11px] text-blue-600 font-medium">{sizeChartIds.length} chart(s) selected</p>
+                  )}
+                </div>
+              )}
             </div>
           </AdminSectionCard>
 
@@ -331,6 +488,45 @@ export default function NewProductPage() {
                 <Label htmlFor="defaultCouponCode">Default coupon code <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
                 <Input id="defaultCouponCode" value={defaultCouponCode} onChange={(e) => setDefaultCouponCode(e.target.value)} placeholder="WELCOME10" className="uppercase max-w-xs text-xs" />
               </div>
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="SEO">
+            <div className="space-y-4">
+              <button type="button" onClick={() => setShowSeo(!showSeo)} className="text-xs text-slate-500 hover:text-slate-700">
+                {showSeo ? "Hide SEO fields" : "Show SEO fields"}
+              </button>
+              {showSeo && (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-500">Override default metadata. If empty, storefront will use product name and description.</p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="seoTitle">SEO Title</Label>
+                    <Input id="seoTitle" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Custom page title for search engines" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="seoDescription">SEO Description</Label>
+                    <Textarea id="seoDescription" rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="Custom meta description for search engines" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="seoKeywords">SEO Keywords</Label>
+                    <Input id="seoKeywords" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="keyword1, keyword2, keyword3" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>SEO Image</Label>
+                    <ImageUploader
+                      images={seoImage ? [seoImage] : []}
+                      onChange={(imgs) => setSeoImage(imgs[0] || "")}
+                      single
+                      label=""
+                      helperText="Custom Open Graph image."
+                      folder="seo"
+                    />
+                  </div>
+                </div>
+              )}
+              {!showSeo && (
+                <p className="text-xs text-slate-400">Click "Show SEO fields" to configure custom meta tags.</p>
+              )}
             </div>
           </AdminSectionCard>
         </div>

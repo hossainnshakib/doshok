@@ -12,7 +12,7 @@ export async function GET(
 
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { variants: true, category: true },
+    include: { variants: true, category: true, specifications: { orderBy: { position: "asc" } }, sizeCharts: { include: { sizeChart: true } } },
   })
 
   if (!product) return error("Not found", 404)
@@ -31,7 +31,7 @@ export async function PATCH(
 
     const body = await request.json()
 
-    const { variants, ...productData } = body
+    const { variants, specifications, sizeChartIds, ...productData } = body
 
     if (variants && Array.isArray(variants)) {
       const existingVariants = await prisma.productVariant.findMany({
@@ -80,10 +80,36 @@ export async function PATCH(
       }
     }
 
+    if (specifications !== undefined) {
+      await prisma.productSpecification.deleteMany({ where: { productId: id } })
+      if (specifications && specifications.length > 0) {
+        await prisma.productSpecification.createMany({
+          data: specifications.map((spec: { label: string; value: string }, index: number) => ({
+            productId: id,
+            label: spec.label,
+            value: spec.value,
+            position: index,
+          })),
+        })
+      }
+    }
+
+    if (sizeChartIds !== undefined) {
+      await prisma.productSizeChart.deleteMany({ where: { productId: id } })
+      if (sizeChartIds && sizeChartIds.length > 0) {
+        await prisma.productSizeChart.createMany({
+          data: sizeChartIds.map((sizeChartId: string) => ({
+            productId: id,
+            sizeChartId,
+          })),
+        })
+      }
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: productData,
-      include: { variants: true, category: true },
+      include: { variants: true, category: true, specifications: { orderBy: { position: "asc" } }, sizeCharts: { include: { sizeChart: true } } },
     })
     return success(product)
   } catch {

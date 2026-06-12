@@ -35,6 +35,7 @@ import {
   Ticket,
   ClipboardList,
   MapPin,
+  Ruler,
 } from "lucide-react"
 
 const STORAGE_KEY = "doshok_admin_sidebar_pinned"
@@ -62,6 +63,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/products", label: "Products", icon: Package },
       { href: "/admin/categories", label: "Categories", icon: Grid3x3 },
+      { href: "/admin/size-charts", label: "Size Charts", icon: Ruler },
       { href: "/admin/coupons", label: "Coupons", icon: Tag },
       { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp },
     ],

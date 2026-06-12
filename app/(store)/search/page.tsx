@@ -20,6 +20,8 @@ export default async function SearchPage({
             { name: { contains: q, mode: "insensitive" } },
             { slug: { contains: q, mode: "insensitive" } },
             { description: { contains: q, mode: "insensitive" } },
+            { shortDescription: { contains: q, mode: "insensitive" } },
+            { seoKeywords: { contains: q, mode: "insensitive" } },
             { category: { name: { contains: q, mode: "insensitive" } } },
             { variants: { some: { sku: { contains: q, mode: "insensitive" } } } },
           ],
@@ -56,6 +58,14 @@ export default async function SearchPage({
         const bHasCat = b.category.name.toLowerCase().includes(qLower)
         if (aHasCat && !bHasCat) return -1
         if (bHasCat && !aHasCat) return 1
+        const aHasShortDesc = (a.shortDescription ?? "").toLowerCase().includes(qLower)
+        const bHasShortDesc = (b.shortDescription ?? "").toLowerCase().includes(qLower)
+        if (aHasShortDesc && !bHasShortDesc) return 1
+        if (bHasShortDesc && !aHasShortDesc) return -1
+        const aHasSeoKw = (a.seoKeywords ?? "").toLowerCase().includes(qLower)
+        const bHasSeoKw = (b.seoKeywords ?? "").toLowerCase().includes(qLower)
+        if (aHasSeoKw && !bHasSeoKw) return 1
+        if (bHasSeoKw && !aHasSeoKw) return -1
         const aHasDesc = (a.description ?? "").toLowerCase().includes(qLower)
         const bHasDesc = (b.description ?? "").toLowerCase().includes(qLower)
         if (aHasDesc && !bHasDesc) return 1

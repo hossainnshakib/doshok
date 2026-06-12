@@ -30,6 +30,7 @@ type ProductWithVariants = {
   name: string
   slug: string
   description: string | null
+  shortDescription: string | null
   price: number
   oldPrice: number | null
   images: string[]
@@ -40,8 +41,29 @@ type ProductWithVariants = {
     colorHex: string | null
     stock: number
   }[]
+  specifications?: {
+    id: string
+    label: string
+    value: string
+    position: number
+  }[]
+  material?: string | null
+  careInstructions?: string | null
   category: { name: string; slug: string }
   defaultCouponCode?: string | null
+  sizeCharts?: {
+    sizeChart: {
+      id: string
+      name: string
+      description?: string | null
+      rows: {
+        id: string
+        label: string
+        position: number
+        measurements: Record<string, number> | null
+      }[]
+    }
+  }[]
 }
 
 type ProductSummary = {
@@ -54,9 +76,6 @@ type ProductSummary = {
   category?: { name: string; slug: string }
   variants: { stock: number }[]
 }
-
-const INFO_TABS = ["Description", "Delivery & Return", "Size Guide"] as const
-type InfoTab = (typeof INFO_TABS)[number]
 
 export function ProductDetailClient({
   product,
@@ -72,7 +91,11 @@ export function ProductDetailClient({
   const [selectedColor, setSelectedColor] = useState(firstAvailableVariant?.color ?? "")
   const [quantity, setQuantity] = useState(1)
   const [addedToCart, setAddedToCart] = useState(false)
-  const [infoTab, setInfoTab] = useState<InfoTab>("Description")
+  const [infoTab, setInfoTab] = useState<string>("Description")
+
+  const hasSizeCharts = product.sizeCharts && product.sizeCharts.length > 0
+  const INFO_TABS = ["Description", "Specifications", "Delivery & Return"]
+  const ALL_TABS = hasSizeCharts ? [...INFO_TABS, "Size Guide"] : INFO_TABS
 
   useEffect(() => {
     trackRecentlyViewed({
@@ -251,6 +274,9 @@ export function ProductDetailClient({
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{product.category.name}</p>
             <h1 className="text-2xl font-black leading-tight tracking-[-0.03em] md:text-3xl">{product.name}</h1>
+            {product.shortDescription && (
+              <p className="mt-2 text-sm text-muted-foreground">{product.shortDescription}</p>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className={cn("font-bold", isSoldOut ? "text-red-500" : "text-foreground")}>
                 {isSoldOut ? "Out of stock" : `${totalStock} in stock`}
@@ -411,7 +437,7 @@ export function ProductDetailClient({
       {/* Info Tabs */}
       <section className="mt-5 rounded-[1.5rem] border border-border/70 bg-background shadow-sm overflow-hidden">
         <div className="flex border-b border-border/50 overflow-x-auto">
-          {INFO_TABS.map((tab) => (
+          {ALL_TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setInfoTab(tab)}
@@ -435,12 +461,37 @@ export function ProductDetailClient({
               ) : (
                 <p className="text-sm text-muted-foreground">No description available for this product.</p>
               )}
+              {(product.material || product.careInstructions) && (
+                <div className="pt-4 border-t border-border/50">
+                  <div className="grid gap-3 text-sm">
+                    {product.material && (
+                      <DetailRow label="Material" value={product.material} />
+                    )}
+                    {product.careInstructions && (
+                      <DetailRow label="Care" value={product.careInstructions} />
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="pt-4 border-t border-border/50">
                 <div className="grid gap-3 text-sm sm:grid-cols-2">
                   <DetailRow label="Category" value={product.category.name} />
                   <DetailRow label="Stock Available" value={`${totalStock} pcs`} />
                 </div>
               </div>
+            </div>
+          )}
+          {infoTab === "Specifications" && (
+            <div className="space-y-4">
+              {product.specifications && product.specifications.length > 0 ? (
+                <div className="grid gap-3 text-sm">
+                  {product.specifications.map((spec) => (
+                    <DetailRow key={spec.id} label={spec.label} value={spec.value} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No specifications available for this product.</p>
+              )}
             </div>
           )}
           {infoTab === "Delivery & Return" && (
@@ -474,54 +525,59 @@ export function ProductDetailClient({
               </div>
             </div>
           )}
-          {infoTab === "Size Guide" && (
-            <div className="space-y-4 text-sm">
-              <p className="text-muted-foreground">Use the size guide below to find your best fit. Measurements are in inches.</p>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="py-2 px-3 text-left font-bold">Size</th>
-                      <th className="py-2 px-3 text-left font-bold">Chest</th>
-                      <th className="py-2 px-3 text-left font-bold">Length</th>
-                      <th className="py-2 px-3 text-left font-bold">Fit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-muted-foreground">
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 px-3 font-bold">S</td>
-                      <td className="py-2 px-3">36-38</td>
-                      <td className="py-2 px-3">26</td>
-                      <td className="py-2 px-3">Regular</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 px-3 font-bold">M</td>
-                      <td className="py-2 px-3">38-40</td>
-                      <td className="py-2 px-3">27</td>
-                      <td className="py-2 px-3">Regular</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 px-3 font-bold">L</td>
-                      <td className="py-2 px-3">40-42</td>
-                      <td className="py-2 px-3">28</td>
-                      <td className="py-2 px-3">Relaxed</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 px-3 font-bold">XL</td>
-                      <td className="py-2 px-3">42-44</td>
-                      <td className="py-2 px-3">29</td>
-                      <td className="py-2 px-3">Relaxed</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 px-3 font-bold">XXL</td>
-                      <td className="py-2 px-3">44-46</td>
-                      <td className="py-2 px-3">30</td>
-                      <td className="py-2 px-3">Relaxed</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-xs text-muted-foreground">Not sure of your size? Check our detailed <Link href="/size-guide" className="text-primary underline">size guide</Link> or contact us for help.</p>
+          {infoTab === "Size Guide" && hasSizeCharts && (
+            <div className="space-y-6">
+              {product.sizeCharts!.map((sc) => {
+                const allMeasurementKeys = new Set<string>()
+                sc.sizeChart.rows.forEach((row) => {
+                  if (row.measurements) {
+                    Object.keys(row.measurements).forEach((k) => allMeasurementKeys.add(k))
+                  }
+                })
+                const measurementKeys = Array.from(allMeasurementKeys)
+                return (
+                  <div key={sc.sizeChart.id}>
+                    <h3 className="text-base font-bold mb-1">{sc.sizeChart.name}</h3>
+                    {sc.sizeChart.description && (
+                      <p className="text-xs text-muted-foreground mb-3">{sc.sizeChart.description}</p>
+                    )}
+                    {measurementKeys.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="py-2 px-3 text-left font-bold">Size</th>
+                              {measurementKeys.map((key) => (
+                                <th key={key} className="py-2 px-3 text-left font-bold">{key}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="text-muted-foreground">
+                            {sc.sizeChart.rows
+                              .filter((row) => row.label.trim())
+                              .sort((a, b) => a.position - b.position)
+                              .map((row) => (
+                                <tr key={row.id} className="border-b border-border/50">
+                                  <td className="py-2 px-3 font-bold">{row.label}</td>
+                                  {measurementKeys.map((key) => (
+                                    <td key={key} className="py-2 px-3">{row.measurements?.[key] ?? "—"}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No measurements available.</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {infoTab === "Size Guide" && !hasSizeCharts && (
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <p>This product does not have a size guide attached. Contact us for sizing help.</p>
             </div>
           )}
         </div>

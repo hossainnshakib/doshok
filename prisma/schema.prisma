@@ -111,14 +111,17 @@ model Product {
   name               String
   slug               String           @unique
   description        String?
+  shortDescription   String?
   price              Int
   oldPrice           Int?
   images             String[]
   categoryId         String
   category           Category         @relation(fields: [categoryId], references: [id])
   variants           ProductVariant[]
+  specifications     ProductSpecification[]
   orderItems         OrderItem[]
   stockMovements     StockMovement[]
+  sizeCharts         ProductSizeChart[]
   featured           Boolean          @default(false)
   status             String           @default("Draft")
   pageType           String           @default("NORMAL")
@@ -127,8 +130,27 @@ model Product {
   landingSubheadline String?
   landingCopy        String?
   landingHeroImage   String?
+  material           String?
+  careInstructions   String?
+  seoTitle           String?
+  seoDescription     String?
+  seoKeywords        String?
+  seoImage           String?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
+}
+
+model ProductSpecification {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String
+  value     String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
 }
 
 model ProductVariant {
@@ -453,4 +475,43 @@ model RecoveryCheckoutToken {
   createdAt           DateTime @default(now())
   createdByAdminId    String?
   createdByAdmin      User?    @relation("CreatedRecoveryTokens", fields: [createdByAdminId], references: [id])
+}
+
+model SizeChart {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  description String?
+  rows        SizeChartRow[]
+  products    ProductSizeChart[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([slug])
+}
+
+model SizeChartRow {
+  id           String   @id @default(cuid())
+  sizeChartId  String
+  sizeChart    SizeChart @relation(fields: [sizeChartId], references: [id], onDelete: Cascade)
+  label        String
+  position     Int      @default(0)
+  measurements Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([sizeChartId])
+}
+
+model ProductSizeChart {
+  id         String    @id @default(cuid())
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sizeChartId String
+  sizeChart   SizeChart @relation(fields: [sizeChartId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@unique([productId, sizeChartId])
+  @@index([productId])
+  @@index([sizeChartId])
 }

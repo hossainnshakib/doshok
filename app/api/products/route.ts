@@ -34,11 +34,18 @@ export async function POST(request: NextRequest) {
     const parsed = productSchema.safeParse(body)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
-    const { variants, ...productData } = parsed.data
+    const { variants, specifications, sizeChartIds, ...productData } = parsed.data
 
     const product = await prisma.product.create({
       data: {
         ...productData,
+        specifications: specifications ? {
+          create: specifications.map((spec, index) => ({
+            label: spec.label,
+            value: spec.value,
+            position: index,
+          })),
+        } : undefined,
         variants: {
           create: variants?.map((v) => ({
             size: v.size,
@@ -48,8 +55,11 @@ export async function POST(request: NextRequest) {
             sku: v.sku,
           })) ?? [],
         },
+        sizeCharts: sizeChartIds ? {
+          create: sizeChartIds.map((sizeChartId) => ({ sizeChartId })),
+        } : undefined,
       },
-      include: { variants: true, category: true },
+      include: { variants: true, category: true, specifications: true, sizeCharts: { include: { sizeChart: true } } },
     })
 
     return success(product, 201)
