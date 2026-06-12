@@ -117,43 +117,6 @@ export const careGuidePage: InfoPageData = {
   ],
 }
 
-export const careersPage: InfoPageData = {
-  eyebrow: "Careers",
-  title: "Build the next Doshok chapter.",
-  description:
-    "We are building a thoughtful fashion house across product, content, operations, customer care, and storefront engineering.",
-  actions: [{ label: "Email Your CV", href: "mailto:careers@doshok.com" }],
-  stats: [
-    { value: "6", label: "Open roles" },
-    { value: "Dhaka", label: "Hybrid base" },
-    { value: "Growth", label: "Learning culture" },
-  ],
-  sections: [
-    {
-      id: "roles",
-      title: "Open Role Examples",
-      cards: [
-        { title: "Senior Pattern Maker", body: "Guide fit, structure, grading, and sample refinement." },
-        { title: "Brand Photographer", body: "Create editorial visuals for products, campaigns, and stories." },
-        { title: "Customer Care Lead", body: "Own customer response quality, returns, exchanges, and order support." },
-        { title: "Warehouse Associate", body: "Support inventory accuracy, packing, and dispatch readiness." },
-        { title: "Frontend Engineer", body: "Improve the ecommerce experience with premium, fast UI." },
-        { title: "Content Writer", body: "Shape product copy, buying guides, and brand storytelling." },
-      ],
-    },
-    {
-      id: "process",
-      title: "Hiring Process",
-      bullets: [
-        "Portfolio or CV review.",
-        "Short practical discussion or assignment.",
-        "Team interview focused on craft and communication.",
-        "Offer, onboarding, and clear first-month goals.",
-      ],
-    },
-  ],
-}
-
 export const cookiesPage: InfoPageData = {
   eyebrow: "Cookies",
   title: "Small files, clearer shopping.",
@@ -231,34 +194,6 @@ export const faqPage: InfoPageData = {
       faqs: [
         { question: "Can I exchange a size?", answer: "Yes, if the item is unworn, unwashed, tagged, and requested within the policy window." },
         { question: "What if the product is wrong or damaged?", answer: "Contact support quickly with photos and order details so we can verify and resolve it." },
-      ],
-    },
-  ],
-}
-
-export const giftCardsPage: InfoPageData = {
-  eyebrow: "Gift Cards",
-  title: "A thoughtful Doshok gift.",
-  description:
-    "Give someone the freedom to choose their own wardrobe refresh, from everyday essentials to polished statement pieces.",
-  actions: [{ label: "Contact to Purchase", href: "/contact" }],
-  sections: [
-    {
-      id: "amounts",
-      title: "Pick an Amount",
-      cards: [
-        { title: "৳1,000", body: "A small style treat for accessories or essentials." },
-        { title: "৳2,500", body: "A flexible amount for new arrivals and daily pieces." },
-        { title: "৳5,000", body: "A generous wardrobe refresh for premium selections." },
-      ],
-    },
-    {
-      id: "redeem",
-      title: "How to Redeem",
-      bullets: [
-        "Share the gift card code at checkout or with support.",
-        "Use the balance toward eligible Doshok products.",
-        "Gift cards are not exchangeable for cash.",
       ],
     },
   ],
@@ -427,39 +362,6 @@ export const sizeGuidePage: InfoPageData = {
         "Waist: measure the natural waistline.",
         "Hip: measure around the fullest part of the hip.",
         "Compare with product-specific fit notes before checkout.",
-      ],
-    },
-  ],
-}
-
-export const storeLocatorPage: InfoPageData = {
-  eyebrow: "Stores",
-  title: "Doshok locations and service points.",
-  description:
-    "Store pages are ready for a premium single-vendor experience. Confirm live opening hours before visiting.",
-  actions: [{ label: "Contact Before Visit", href: "/contact" }],
-  stats: [
-    { value: "3", label: "Store locations" },
-    { value: "2", label: "Service cities" },
-    { value: "BD", label: "Nationwide delivery" },
-  ],
-  sections: [
-    {
-      id: "locations",
-      title: "Locations",
-      cards: [
-        { title: "Doshok Tejgaon — Flagship", body: "Primary brand experience, fittings, and customer support appointments.", meta: "Dhaka" },
-        { title: "Doshok Gulshan", body: "Premium shopping point for curated seasonal collections.", meta: "Dhaka" },
-        { title: "Doshok Chattogram", body: "Local support point for inside Chattogram delivery and order help.", meta: "Chattogram" },
-      ],
-    },
-    {
-      id: "soon",
-      title: "Coming Soon",
-      bullets: [
-        "Sylhet service point.",
-        "Khulna service point.",
-        "More appointment-based try-on options.",
       ],
     },
   ],

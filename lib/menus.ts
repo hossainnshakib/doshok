@@ -20,9 +20,6 @@ function getLabelFromHref(href: string): string {
     "/help": "Help",
     "/policy": "Policy",
     "/stories": "Stories",
-    "/store-locator": "Store Locator",
-    "/gift-cards": "Gift Cards",
-    "/careers": "Careers",
   }
   return map[href] || href.replace("/", "").replace(/-/g, " ")
 }
