@@ -17,7 +17,7 @@ type Review = {
   status: string
   isVerifiedBuyer: boolean
   createdAt: string
-  product: { name: string; slug: string; images: string[] }
+  product: { id: string; name: string; slug: string; images: string[] }
   user: { name: string | null; email: string | null; firstName: string | null; lastName: string | null }
   order: { orderNumber: string }
 }
@@ -180,7 +180,7 @@ export default function AdminReviewsPage() {
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/products/${review.product.slug}`} className="font-medium hover:underline line-clamp-1 max-w-[200px]">
+                      <Link href={`/admin/products/${review.product.id}`} className="font-medium hover:underline line-clamp-1 max-w-[200px]">
                         {review.product.name}
                       </Link>
                     </td>

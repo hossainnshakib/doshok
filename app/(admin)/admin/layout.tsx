@@ -32,7 +32,6 @@ import {
   CreditCard,
   PackageSearch,
   MessageSquare,
-  Ticket,
   ClipboardList,
   MapPin,
   Ruler,
@@ -122,7 +121,6 @@ const navGroups: NavGroup[] = [
     label: "Support",
     items: [
       { href: "/admin/support/messages", label: "Contact Messages", icon: MessageSquare },
-      { href: "/admin/support/tickets", label: "Support Tickets", icon: Ticket },
     ],
   },
   {

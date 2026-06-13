@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       prisma.productReview.findMany({
         where,
         include: {
-          product: { select: { name: true, slug: true, images: true } },
+          product: { select: { id: true, name: true, slug: true, images: true } },
           user: { select: { name: true, email: true, firstName: true, lastName: true } },
           order: { select: { orderNumber: true } },
         },
