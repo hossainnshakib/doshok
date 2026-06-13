@@ -8,6 +8,27 @@ import { AdminPageHeader, AdminSectionCard, AdminStatusBadge, AdminTableShell } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getPhoneDisplayE164 } from "@/lib/utils"
 
+const PAYMENT_RULE_LABELS: Record<string, string> = {
+  cod_only: "Cash on Delivery Only",
+  full: "Full Payment",
+  partial_percent: "Partial (% of total)",
+  fixed_advance: "Fixed Advance (BDT)",
+  delivery_charge_only: "Delivery Charge Only",
+}
+
+const PAYMENT_RULE_SOURCE_LABELS: Record<string, string> = {
+  landing: "Landing Page",
+  product: "Product",
+  global: "Global",
+}
+
+function formatRuleValue(rule: string | null, value: number | null): string {
+  if (value == null) return "—"
+  if (rule === "partial_percent") return `${value}%`
+  if (rule === "fixed_advance") return `৳${value.toLocaleString()}`
+  return value.toLocaleString()
+}
+
 export default async function AdminOrderDetailPage({
   params,
 }: {
@@ -174,6 +195,79 @@ export default async function AdminOrderDetailPage({
           </div>
         </AdminSectionCard>
       </div>
+
+      <AdminSectionCard
+        title="Checkout V2 Payment Breakdown"
+        description="Payment rule engine fields stored on this order. Use this to verify the payNow / dueAmount split and the rule source."
+      >
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Payment Method</p>
+            <p className="font-mono font-semibold text-slate-800 uppercase">{order.paymentMethod || "—"}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Payment Status</p>
+            <div>
+              <AdminStatusBadge
+                status={
+                  order.paymentStatus === "paid"
+                    ? "Paid"
+                    : order.paymentStatus === "failed"
+                      ? "Failed"
+                      : order.paymentStatus === "refunded"
+                        ? "Refunded"
+                        : order.paymentStatus === "unpaid"
+                          ? "Unpaid"
+                          : "Pending"
+                }
+                type="payment"
+              />
+            </div>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Total</p>
+            <p className="font-bold tabular-nums text-slate-800">৳{order.total.toLocaleString()}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Pay Now</p>
+            <p className="font-bold tabular-nums text-slate-800">৳{order.payNow.toLocaleString()}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Paid Amount</p>
+            <p className="font-medium tabular-nums text-slate-700">৳{order.paidAmount.toLocaleString()}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Due Amount</p>
+            <p className="font-bold tabular-nums text-amber-700">৳{order.dueAmount.toLocaleString()}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Payment Rule</p>
+            <p className="font-medium text-slate-700">
+              {order.paymentRule ? (PAYMENT_RULE_LABELS[order.paymentRule] ?? order.paymentRule) : "—"}
+            </p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Payment Rule Value</p>
+            <p className="font-mono tabular-nums text-slate-700">{formatRuleValue(order.paymentRule, order.paymentRuleValue)}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Payment Rule Source</p>
+            <p className="font-medium text-slate-700">
+              {order.paymentRuleSource
+                ? (PAYMENT_RULE_SOURCE_LABELS[order.paymentRuleSource] ?? order.paymentRuleSource)
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Reservation Expires At</p>
+            <p className="text-[11px] text-slate-700">{order.reservationExpiresAt ? order.reservationExpiresAt.toLocaleString() : "—"}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50/60 p-3 col-span-2 sm:col-span-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Payment Expires At</p>
+            <p className="text-[11px] text-slate-700">{order.paymentExpiresAt ? order.paymentExpiresAt.toLocaleString() : "—"}</p>
+          </div>
+        </div>
+      </AdminSectionCard>
 
       <OrderShipment orderId={order.id} initialShipment={order.shipment} />
 
