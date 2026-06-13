@@ -16,6 +16,7 @@ export async function GET(
       category: true,
       specifications: { orderBy: { position: "asc" } },
       sizeCharts: { include: { sizeChart: true } },
+      landingPageSetting: true,
       relatedProducts: {
         include: {
           relatedProduct: {
@@ -80,7 +81,7 @@ export async function PATCH(
 
     const body = await request.json()
 
-    const { variants, specifications, sizeChartIds, relatedProductIds, crossSellProductIds, upsellProductIds, ...productData } = body
+    const { variants, specifications, sizeChartIds, relatedProductIds, crossSellProductIds, upsellProductIds, landingPageSetting, ...productData } = body
 
     if (variants && Array.isArray(variants)) {
       const existingVariants = await prisma.productVariant.findMany({
@@ -194,6 +195,18 @@ export async function PATCH(
       }
     }
 
+    if (landingPageSetting !== undefined) {
+      if (landingPageSetting && typeof landingPageSetting === "object" && Object.keys(landingPageSetting).length > 0) {
+        await prisma.landingPageSetting.upsert({
+          where: { productId: id },
+          update: landingPageSetting,
+          create: { productId: id, ...landingPageSetting },
+        })
+      } else {
+        await prisma.landingPageSetting.deleteMany({ where: { productId: id } })
+      }
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: productData,
@@ -202,6 +215,7 @@ export async function PATCH(
         category: true,
         specifications: { orderBy: { position: "asc" } },
         sizeCharts: { include: { sizeChart: true } },
+        landingPageSetting: true,
         relatedProducts: {
           include: {
             relatedProduct: {

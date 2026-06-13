@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { AdminBackLink, AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
@@ -51,6 +52,24 @@ export default function NewProductPage() {
   const [landingSubheadline, setLandingSubheadline] = useState("")
   const [landingCopy, setLandingCopy] = useState("")
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
+
+  const [paymentRuleOverride, setPaymentRuleOverride] = useState("")
+  const [paymentRuleValueOverride, setPaymentRuleValueOverride] = useState("")
+  const [lpPaymentOverrideEnabled, setLpPaymentOverrideEnabled] = useState(false)
+  const [lpPaymentRuleOverride, setLpPaymentRuleOverride] = useState("")
+  const [lpPaymentRuleValueOverride, setLpPaymentRuleValueOverride] = useState("")
+  const [lpOtpOverrideEnabled, setLpOtpOverrideEnabled] = useState(false)
+  const [lpOtpOverride, setLpOtpOverride] = useState(false)
+  const [lpCouponOverrideEnabled, setLpCouponOverrideEnabled] = useState(false)
+  const [lpAutoCouponCode, setLpAutoCouponCode] = useState("")
+  const [lpDeliveryOverrideEnabled, setLpDeliveryOverrideEnabled] = useState(false)
+  const [lpDeliveryFeeOverride, setLpDeliveryFeeOverride] = useState("")
+  const [lpQuantityLimit, setLpQuantityLimit] = useState("")
+  const [lpCustomCta, setLpCustomCta] = useState("")
+  const [lpCustomThankYouMessage, setLpCustomThankYouMessage] = useState("")
+  const [lpCustomQuestionField, setLpCustomQuestionField] = useState("")
+  const [lpUrgencyCounterEnabled, setLpUrgencyCounterEnabled] = useState(false)
+  const [lpHideNormalNavigation, setLpHideNormalNavigation] = useState(false)
   const [material, setMaterial] = useState("")
   const [careInstructions, setCareInstructions] = useState("")
   const [seoTitle, setSeoTitle] = useState("")
@@ -153,6 +172,29 @@ export default function NewProductPage() {
       body.landingSubheadline = landingSubheadline || undefined
       body.landingCopy = landingCopy || undefined
       body.landingHeroImage = landingHeroImage || undefined
+    }
+
+    body.paymentRuleOverride = paymentRuleOverride || null
+    body.paymentRuleValueOverride = paymentRuleValueOverride ? parseInt(paymentRuleValueOverride) : null
+
+    if (pageType === "LANDING") {
+      body.landingPageSetting = {
+        paymentOverrideEnabled: lpPaymentOverrideEnabled,
+        paymentRuleOverride: lpPaymentOverrideEnabled ? (lpPaymentRuleOverride || null) : null,
+        paymentRuleValueOverride: lpPaymentOverrideEnabled && lpPaymentRuleValueOverride ? parseInt(lpPaymentRuleValueOverride) : null,
+        otpOverrideEnabled: lpOtpOverrideEnabled,
+        otpOverride: lpOtpOverrideEnabled ? lpOtpOverride : null,
+        couponOverrideEnabled: lpCouponOverrideEnabled,
+        autoCouponCode: lpCouponOverrideEnabled ? (lpAutoCouponCode.toUpperCase() || null) : null,
+        deliveryOverrideEnabled: lpDeliveryOverrideEnabled,
+        deliveryFeeOverride: lpDeliveryOverrideEnabled && lpDeliveryFeeOverride ? parseInt(lpDeliveryFeeOverride) : null,
+        quantityLimit: lpQuantityLimit ? parseInt(lpQuantityLimit) : null,
+        customCta: lpCustomCta || null,
+        customThankYouMessage: lpCustomThankYouMessage || null,
+        customQuestionField: lpCustomQuestionField || null,
+        urgencyCounterEnabled: lpUrgencyCounterEnabled,
+        hideNormalNavigation: lpHideNormalNavigation,
+      }
     }
 
     const res = await fetch("/api/products", {
@@ -439,6 +481,28 @@ export default function NewProductPage() {
             </div>
           </AdminSectionCard>
 
+          <AdminSectionCard title="Checkout &amp; Payment Settings">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Payment Rule Override</Label>
+                <Select value={paymentRuleOverride} onValueChange={(value) => value != null && setPaymentRuleOverride(value)}>
+                  <SelectTrigger><SelectValue placeholder="Default" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cod_only">COD Only</SelectItem>
+                    <SelectItem value="full">Full</SelectItem>
+                    <SelectItem value="partial_percent">Partial Percent</SelectItem>
+                    <SelectItem value="fixed_advance">Fixed Advance</SelectItem>
+                    <SelectItem value="delivery_charge_only">Delivery Charge Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Payment Rule Value</Label>
+                <Input type="number" min={0} value={paymentRuleValueOverride} onChange={(e) => setPaymentRuleValueOverride(e.target.value)} />
+              </div>
+            </div>
+          </AdminSectionCard>
+
           {pageType === "LANDING" && (
             <AdminSectionCard title="Landing Campaign">
               <div className="space-y-4">
@@ -470,6 +534,105 @@ export default function NewProductPage() {
                     helperText="Recommended size: 1200x800px."
                     folder="landing"
                   />
+                </div>
+              </div>
+
+              <div className="mt-8 border-t pt-6 space-y-4">
+                <h4 className="text-sm font-semibold text-slate-700">Payment Override</h4>
+                <div className="space-y-1.5">
+                  <Label>Enable Payment Override</Label>
+                  <Switch checked={lpPaymentOverrideEnabled} onCheckedChange={setLpPaymentOverrideEnabled} />
+                </div>
+                {lpPaymentOverrideEnabled && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label>Payment Rule</Label>
+                      <Select value={lpPaymentRuleOverride} onValueChange={(value) => value != null && setLpPaymentRuleOverride(value)}>
+                        <SelectTrigger><SelectValue placeholder="Select rule" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cod_only">COD Only</SelectItem>
+                          <SelectItem value="full">Full</SelectItem>
+                          <SelectItem value="partial_percent">Partial Percent</SelectItem>
+                          <SelectItem value="fixed_advance">Fixed Advance</SelectItem>
+                          <SelectItem value="delivery_charge_only">Delivery Charge Only</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Payment Value</Label>
+                      <Input type="number" min={0} value={lpPaymentRuleValueOverride} onChange={(e) => setLpPaymentRuleValueOverride(e.target.value)} />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-4 border-t pt-4 space-y-4">
+                <h4 className="text-sm font-semibold text-slate-700">OTP Override</h4>
+                <div className="space-y-1.5">
+                  <Label>Enable OTP Override</Label>
+                  <Switch checked={lpOtpOverrideEnabled} onCheckedChange={setLpOtpOverrideEnabled} />
+                </div>
+                {lpOtpOverrideEnabled && (
+                  <div className="space-y-1.5">
+                    <Label>Require OTP</Label>
+                    <Switch checked={lpOtpOverride} onCheckedChange={setLpOtpOverride} />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 border-t pt-4 space-y-4">
+                <h4 className="text-sm font-semibold text-slate-700">Coupon Override</h4>
+                <div className="space-y-1.5">
+                  <Label>Enable Coupon Override</Label>
+                  <Switch checked={lpCouponOverrideEnabled} onCheckedChange={setLpCouponOverrideEnabled} />
+                </div>
+                {lpCouponOverrideEnabled && (
+                  <div className="space-y-1.5">
+                    <Label>Auto-Apply Coupon</Label>
+                    <Input value={lpAutoCouponCode} onChange={(e) => setLpAutoCouponCode(e.target.value)} placeholder="e.g. SUMMER20" className="uppercase" />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 border-t pt-4 space-y-4">
+                <h4 className="text-sm font-semibold text-slate-700">Delivery Override</h4>
+                <div className="space-y-1.5">
+                  <Label>Enable Delivery Override</Label>
+                  <Switch checked={lpDeliveryOverrideEnabled} onCheckedChange={setLpDeliveryOverrideEnabled} />
+                </div>
+                {lpDeliveryOverrideEnabled && (
+                  <div className="space-y-1.5">
+                    <Label>Delivery Fee Override</Label>
+                    <Input type="number" min={0} value={lpDeliveryFeeOverride} onChange={(e) => setLpDeliveryFeeOverride(e.target.value)} />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 border-t pt-4 space-y-4">
+                <h4 className="text-sm font-semibold text-slate-700">Campaign Settings</h4>
+                <div className="space-y-1.5">
+                  <Label>Quantity Limit</Label>
+                  <Input type="number" min={0} value={lpQuantityLimit} onChange={(e) => setLpQuantityLimit(e.target.value)} placeholder="Max per order" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Custom CTA</Label>
+                  <Input value={lpCustomCta} onChange={(e) => setLpCustomCta(e.target.value)} placeholder="e.g. Get Yours Now" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Custom Thank You Message</Label>
+                  <Textarea value={lpCustomThankYouMessage} onChange={(e) => setLpCustomThankYouMessage(e.target.value)} placeholder="Post-purchase message" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Custom Question Field</Label>
+                  <Input value={lpCustomQuestionField} onChange={(e) => setLpCustomQuestionField(e.target.value)} placeholder="e.g. What colour do you prefer?" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Urgency Counter</Label>
+                  <Switch checked={lpUrgencyCounterEnabled} onCheckedChange={setLpUrgencyCounterEnabled} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Hide Normal Navigation</Label>
+                  <Switch checked={lpHideNormalNavigation} onCheckedChange={setLpHideNormalNavigation} />
                 </div>
               </div>
             </AdminSectionCard>

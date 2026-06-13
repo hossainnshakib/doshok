@@ -89,16 +89,21 @@ export async function POST(request: NextRequest) {
     if (!session?.user) return error("Unauthorized", 401)
 
     const body = await request.json()
-    const { relatedProductIds, crossSellProductIds, upsellProductIds, ...restBody } = body
+    const { relatedProductIds, crossSellProductIds, upsellProductIds, landingPageSetting, ...restBody } = body
 
     const parsed = productSchema.safeParse(restBody)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
     const { variants, specifications, sizeChartIds, ...productData } = parsed.data
 
+    const extraFields: Record<string, unknown> = {}
+    if (body.paymentRuleOverride !== undefined) extraFields.paymentRuleOverride = body.paymentRuleOverride
+    if (body.paymentRuleValueOverride !== undefined) extraFields.paymentRuleValueOverride = body.paymentRuleValueOverride
+
     const product = await prisma.product.create({
       data: {
         ...productData,
+        ...extraFields,
         specifications: specifications ? {
           create: specifications.map((spec, index) => ({
             label: spec.label,
@@ -121,6 +126,12 @@ export async function POST(request: NextRequest) {
       },
       include: { variants: true, category: true, specifications: true, sizeCharts: { include: { sizeChart: true } } },
     })
+
+    if (landingPageSetting && typeof landingPageSetting === "object" && Object.keys(landingPageSetting).length > 0) {
+      await prisma.landingPageSetting.create({
+        data: { productId: product.id, ...landingPageSetting },
+      })
+    }
 
     const relationsToCreate: { relatedProductId: string; type: string; position: number }[] = []
 
