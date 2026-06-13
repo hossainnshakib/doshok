@@ -8,6 +8,7 @@ import {
   expirePendingPayment,
   restoreStockForPaymentFailure,
 } from "@/lib/payment/bkash"
+import { resolvePaymentAmount } from "@/lib/payment/payment-amount"
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,10 +32,11 @@ export async function GET(request: NextRequest) {
       return redirectToFailed(request.url, orderId, "payment_not_success")
     }
 
+    const paymentAmount = resolvePaymentAmount(order)
     const validation = await validateOrderForPayment(
       orderId,
       order.orderNumber,
-      order.total
+      paymentAmount
     )
     if (!validation.valid) {
       if (validation.reason === "expired") {
@@ -71,7 +73,7 @@ export async function GET(request: NextRequest) {
     }
 
     const verifiedAmount = parseFloat(verified.amount)
-    if (verifiedAmount !== order.total) {
+    if (verifiedAmount !== paymentAmount) {
       await restoreStockForPaymentFailure(orderId)
       return redirectToFailed(request.url, orderId, "amount_mismatch")
     }
@@ -80,7 +82,7 @@ export async function GET(request: NextRequest) {
     const result = await processSuccessfulPayment(
       orderId,
       trxID,
-      order.total,
+      paymentAmount,
       providerResponse
     )
 

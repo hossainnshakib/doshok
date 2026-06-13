@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import { generateOrderNumber } from "@/lib/order-number"
 import { getDeliveryFeeByDistrict } from "@/lib/delivery"
 import { checkoutSchema } from "@/lib/validations"
@@ -23,6 +24,9 @@ const PAYMENT_EXPIRY_HOURS = 2
 
 export async function POST(request: NextRequest) {
   try {
+    const { limited } = rateLimitByIp(request, 10, 60 * 1000)
+    if (limited) return error("Too many requests. Please try again later.", 429)
+
     const body = await request.json()
     const parsed = checkoutSchema.safeParse(body)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")

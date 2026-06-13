@@ -1,10 +1,15 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
+import { rateLimitByIp } from "@/lib/rate-limit"
 import { validateOrderForPayment, createBkashPayment } from "@/lib/payment/bkash"
+import { resolvePaymentAmount } from "@/lib/payment/payment-amount"
 
 export async function POST(request: NextRequest) {
   try {
+    const { limited } = rateLimitByIp(request, 5, 60 * 1000)
+    if (limited) return error("Too many requests. Please try again later.", 429)
+
     const body = await request.json()
     const { orderId } = body
 
@@ -14,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, orderNumber: true, total: true, paymentMethod: true, paymentStatus: true },
+      select: { id: true, orderNumber: true, total: true, payNow: true, paymentMethod: true, paymentStatus: true },
     })
 
     if (!order) {
@@ -25,7 +30,8 @@ export async function POST(request: NextRequest) {
       return error("Order is not a bKash payment")
     }
 
-    const validation = await validateOrderForPayment(order.id, order.orderNumber, order.total)
+    const paymentAmount = resolvePaymentAmount(order)
+    const validation = await validateOrderForPayment(order.id, order.orderNumber, paymentAmount)
     if (!validation.valid) {
       const messages: Record<string, string> = {
         already_paid: "Order is already paid",
@@ -40,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const callbackBase = process.env.NEXTAUTH_URL || "http://localhost:3000"
-    const bkashResult = await createBkashPayment(order.id, order.orderNumber, order.total, callbackBase)
+    const bkashResult = await createBkashPayment(order.id, order.orderNumber, paymentAmount, callbackBase)
 
     if ("error" in bkashResult) {
       return error(bkashResult.error)

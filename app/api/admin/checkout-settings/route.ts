@@ -20,6 +20,14 @@ const updateSchema = z.object({
 
 export async function GET() {
   try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+    }
+
     let settings = await prisma.checkoutSetting.findUnique({
       where: { id: "checkout" },
     })
@@ -37,6 +45,9 @@ export async function PATCH(request: Request) {
     const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
     }
 
     const body = await request.json()

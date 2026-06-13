@@ -2,9 +2,13 @@ import { NextRequest } from "next/server"
 import { resetPasswordSchema } from "@/lib/validations"
 import { success, error } from "@/lib/api-response"
 import { resetPassword } from "@/lib/password-reset"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    const { limited } = rateLimitByIp(request, 5, 15 * 60 * 1000)
+    if (limited) return error("Too many requests. Please try again later.", 429)
+
     const body = await request.json()
     const parsed = resetPasswordSchema.safeParse(body)
 

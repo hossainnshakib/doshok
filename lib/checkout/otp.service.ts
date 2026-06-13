@@ -7,7 +7,7 @@ import { getOtpProvider } from "./otp-provider"
 const HASH_ROUNDS = 10
 
 function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000))
+  return String(crypto.randomInt(100000, 1000000))
 }
 
 function maskPhone(phone: string): string {

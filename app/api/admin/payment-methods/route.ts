@@ -19,6 +19,7 @@ export async function GET() {
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const methods = await prisma.paymentMethodSetting.findMany({
       orderBy: { createdAt: "asc" },
@@ -61,6 +62,7 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const body = await request.json()
     const parsed = paymentMethodUpdateSchema.safeParse(body)

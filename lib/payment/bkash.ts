@@ -206,7 +206,8 @@ export async function validateOrderForPayment(
 
   if (order.orderNumber !== orderNumber) return { valid: false, reason: "not_found" }
 
-  if (order.total !== expectedTotal) return { valid: false, reason: "amount_mismatch" }
+  const payableAmount = order.payNow > 0 ? order.payNow : order.total
+  if (payableAmount !== expectedTotal) return { valid: false, reason: "amount_mismatch" }
 
   if (order.paymentStatus === "paid") return { valid: false, reason: "already_paid" }
 
@@ -238,7 +239,7 @@ export async function checkIdempotency(
     return { isNew: false, transaction: existing }
   }
 
-  return { isNew: false, transaction: null as never }
+  return { isNew: true, transaction: null as never }
 }
 
 export async function initiatePaymentTransaction(

@@ -16,6 +16,7 @@ export async function GET(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const { id } = await params
 
@@ -36,6 +37,7 @@ export async function POST(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const { id } = await params
     const body = await request.json()
@@ -221,6 +223,7 @@ export async function PATCH(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const { id } = await params
     const body = await request.json()

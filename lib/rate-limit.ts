@@ -23,6 +23,16 @@ export function rateLimitByIp(
   const ip = forwarded?.split(",")[0]?.trim() ?? "127.0.0.1"
   const key = `rl:ip:${ip}`
 
+  return rateLimitByKey(key, maxRequests, windowMs)
+}
+
+export function rateLimitByKey(
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+): { limited: boolean; remaining: number } {
+  cleanup()
+
   const now = Date.now()
   const entry = store.get(key)
 

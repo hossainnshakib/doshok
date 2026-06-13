@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server"
 import { contactSchema } from "@/lib/validations"
 import { sendContactEmail } from "@/lib/mailer"
+import { rateLimitByIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
+    const { limited } = rateLimitByIp(request, 3, 60 * 1000)
+    if (limited) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please try again later." },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const parsed = contactSchema.safeParse(body)
     if (!parsed.success) {
