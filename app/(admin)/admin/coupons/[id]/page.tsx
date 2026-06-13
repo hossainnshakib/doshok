@@ -16,6 +16,7 @@ type Coupon = {
   code: string
   discount: number
   type: string
+  scope: string
   minOrder: number
   maxUses: number | null
   usedCount: number
@@ -31,6 +32,7 @@ export default function EditCouponPage() {
   const [code, setCode] = useState("")
   const [discount, setDiscount] = useState("")
   const [type, setType] = useState("flat")
+  const [scope, setScope] = useState("product")
   const [minOrder, setMinOrder] = useState("0")
   const [maxUses, setMaxUses] = useState("")
   const [expiresAt, setExpiresAt] = useState("")
@@ -47,6 +49,7 @@ export default function EditCouponPage() {
           setCode(c.code)
           setDiscount(String(c.discount))
           setType(c.type)
+          setScope(c.scope)
           setMinOrder(String(c.minOrder))
           setMaxUses(c.maxUses ? String(c.maxUses) : "")
           setExpiresAt(c.expiresAt ? c.expiresAt.split("T")[0] : "")
@@ -67,6 +70,7 @@ export default function EditCouponPage() {
         code,
         discount: Number(discount),
         type,
+        scope,
         minOrder: Number(minOrder),
         maxUses: maxUses ? Number(maxUses) : null,
         expiresAt: expiresAt || null,
@@ -113,6 +117,17 @@ export default function EditCouponPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="scope">Scope</Label>
+              <Select value={scope} onValueChange={(v) => v && setScope(v)}>
+                <SelectTrigger id="scope"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="product">Product Coupon</SelectItem>
+                  <SelectItem value="delivery">Delivery Coupon</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">

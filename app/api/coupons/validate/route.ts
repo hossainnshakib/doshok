@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { couponValidateSchema } from "@/lib/validations"
 import { auth } from "@/lib/auth"
+import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
     const parsed = couponValidateSchema.safeParse(body)
     if (!parsed.success) return error("Invalid input")
 
-    const { code, subtotal, userId, email } = body
+    const { code, subtotal, deliveryFee = 0, userId, email } = parsed.data
 
     const coupon = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() } })
     if (!coupon) return error("Coupon not found")
@@ -34,18 +35,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let discount = 0
-    if (coupon.type === "percent") {
-      discount = Math.round(subtotal * coupon.discount / 100)
-    } else {
-      discount = Math.min(coupon.discount, subtotal)
-    }
+    const result = applyScopedCoupon({
+      coupon,
+      productSubtotal: subtotal,
+      deliveryFee,
+      couponCode: coupon.code,
+    })
 
     return success({
       code: coupon.code,
-      discount,
+      discount: result.totalDiscount,
       type: coupon.type,
       discountAmount: coupon.discount,
+      couponScope: result.couponScope,
+      productDiscount: result.productDiscount,
+      deliveryDiscount: result.deliveryDiscount,
+      discountedProductTotal: result.discountedProductTotal,
+      finalDeliveryFee: result.finalDeliveryFee,
+      grandTotal: result.grandTotal,
     })
   } catch {
     return error("Failed to validate coupon")

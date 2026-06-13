@@ -13,6 +13,7 @@ type Coupon = {
   code: string
   discount: number
   type: string
+  scope: string
   minOrder: number
   maxUses: number | null
   usedCount: number
@@ -75,6 +76,7 @@ export default function AdminCouponsPage() {
             <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Code</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Discount</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Type</TableHead>
+            <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Scope</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Min Order</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold text-center">Used</TableHead>
             <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Expires</TableHead>
@@ -92,6 +94,15 @@ export default function AdminCouponsPage() {
                   {c.type === "percent" ? `${c.discount}%` : `৳${c.discount}`}
                 </TableCell>
                 <TableCell className="text-xs text-slate-500">{c.type}</TableCell>
+                <TableCell className="text-xs">
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                    c.scope === "delivery"
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-blue-50 text-blue-700"
+                  }`}>
+                    {c.scope === "delivery" ? "Delivery" : "Product"}
+                  </span>
+                </TableCell>
                 <TableCell className="text-xs tabular-nums text-slate-600">৳{c.minOrder.toLocaleString()}</TableCell>
                 <TableCell className="text-center text-xs tabular-nums text-slate-600">
                   {c.usedCount}{c.maxUses ? ` / ${c.maxUses}` : ""}

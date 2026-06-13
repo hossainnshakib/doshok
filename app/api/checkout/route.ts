@@ -13,6 +13,7 @@ import {
   getUpazilaById,
 } from "@/lib/bangladesh-address"
 import { getPhoneServerValue } from "@/lib/utils"
+import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
 
 const ONLINE_PROVIDERS = ["bkash", "nagad", "rocket", "upay", "sslcommerz", "aamarpay"]
 const PAYMENT_EXPIRY_HOURS = 2
@@ -82,6 +83,12 @@ export async function POST(request: NextRequest) {
     const subtotal = validatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
     let discount = 0
+    let couponScope: string | null = null
+    let productDiscount = 0
+    let deliveryDiscount = 0
+    let discountedProductTotal = subtotal
+    let finalDeliveryFeeCalc = deliveryFee
+
     if (couponCode) {
       const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
       if (!coupon) return error("Coupon not found")
@@ -107,14 +114,22 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      if (coupon.type === "percent") {
-        discount = Math.round(subtotal * coupon.discount / 100)
-      } else {
-        discount = Math.min(coupon.discount, subtotal)
-      }
+      const result = applyScopedCoupon({
+        coupon,
+        productSubtotal: subtotal,
+        deliveryFee,
+        couponCode: coupon.code,
+      })
+
+      discount = result.totalDiscount
+      couponScope = result.couponScope
+      productDiscount = result.productDiscount
+      deliveryDiscount = result.deliveryDiscount
+      discountedProductTotal = result.discountedProductTotal
+      finalDeliveryFeeCalc = result.finalDeliveryFee
     }
 
-    const total = subtotal + deliveryFee - discount
+    const total = discountedProductTotal + finalDeliveryFeeCalc
 
     const order = await prisma.$transaction(async (tx) => {
       for (const item of validatedItems) {
@@ -157,6 +172,12 @@ export async function POST(request: NextRequest) {
           paymentStatus: "pending",
           orderStatus: "pending",
           couponCode: couponCode || null,
+          couponType: couponScope,
+          productSubtotal: subtotal,
+          productDiscount,
+          deliveryDiscount,
+          discountedProductTotal,
+          finalDeliveryFee: finalDeliveryFeeCalc,
           notes: notes || null,
           address: {
             create: {

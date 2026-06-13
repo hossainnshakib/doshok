@@ -16,6 +16,7 @@ export default function NewCouponPage() {
   const [code, setCode] = useState("")
   const [discount, setDiscount] = useState("")
   const [type, setType] = useState("flat")
+  const [scope, setScope] = useState("product")
   const [minOrder, setMinOrder] = useState("0")
   const [maxUses, setMaxUses] = useState("")
   const [expiresAt, setExpiresAt] = useState("")
@@ -32,6 +33,7 @@ export default function NewCouponPage() {
         code,
         discount: Number(discount),
         type,
+        scope,
         minOrder: Number(minOrder),
         maxUses: maxUses ? Number(maxUses) : undefined,
         expiresAt: expiresAt || undefined,
@@ -61,7 +63,7 @@ export default function NewCouponPage() {
               <Input id="code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. SAVE20" className="font-mono uppercase" required />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor="discount">Discount value</Label>
                 <Input id="discount" type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="e.g. 20" required />
@@ -73,6 +75,16 @@ export default function NewCouponPage() {
                   <SelectContent>
                     <SelectItem value="flat">Flat (৳)</SelectItem>
                     <SelectItem value="percent">Percent (%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="scope">Scope</Label>
+                <Select value={scope} onValueChange={(v) => v && setScope(v)}>
+                  <SelectTrigger id="scope"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="product">Product Coupon</SelectItem>
+                    <SelectItem value="delivery">Delivery Coupon</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

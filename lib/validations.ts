@@ -117,6 +117,7 @@ export const checkoutSchema = z.object({
 export const couponValidateSchema = z.object({
   code: z.string().min(1),
   subtotal: z.number().positive(),
+  deliveryFee: z.number().nonnegative().optional(),
   userId: z.string().optional(),
   email: z.string().email().optional(),
 })
