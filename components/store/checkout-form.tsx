@@ -23,6 +23,7 @@ import { User, LogIn, MapPin, Home, Briefcase, Users } from "lucide-react"
 import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
 import { AddressCombobox } from "@/components/store/address-combobox"
 import { normalizePhoneToE164, isValidBdPhone } from "@/lib/checkout/phone"
+import { FirebaseOtpPanel } from "@/components/store/firebase-otp-panel"
 
 type PaymentMethodSetting = {
   provider: string
@@ -40,6 +41,7 @@ type CheckoutSettings = {
   otpCooldownSeconds: number
   otpTtlSeconds: number
   checkoutTokenTtlSeconds: number
+  otpProvider: "firebase" | "mock"
 }
 
 const ONLINE_PROVIDERS = ["BKASH", "NAGAD", "ROCKET", "UPAY", "SSLCOMMERZ", "AAMARPAY"]
@@ -158,6 +160,7 @@ export function CheckoutForm() {
 
   const isV2 = checkoutSettings?.checkoutV2Enabled ?? false
   const otpRequired = checkoutSettings?.otpRequired ?? true
+  const otpProvider = checkoutSettings?.otpProvider ?? "mock"
 
   useEffect(() => {
     const urlCoupon = searchParams.get("coupon")
@@ -823,103 +826,130 @@ export function CheckoutForm() {
                 {/* OTP Panel */}
                 {isV2 && otpRequired && (
                   <div className="border-t border-border/50 pt-5">
-                    {otpState === "verified" ? (
-                      <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="text-sm font-medium text-green-700">Phone Verified</p>
-                            <p className="text-xs text-green-600">{normalizePhoneToE164(draft.phone)}</p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOtpState("idle")
-                            setCheckoutVerificationToken(null)
-                            setVerifiedPhone(null)
-                          }}
-                          className="text-xs text-red-500 hover:text-red-700 font-medium"
-                        >
-                          Change
-                        </button>
-                      </div>
+                    {otpProvider === "firebase" ? (
+                      <FirebaseOtpPanel
+                        phone={draft.phone}
+                        disabled={loading}
+                        onVerified={(token) => {
+                          setOtpState("verified")
+                          setCheckoutVerificationToken(token)
+                          setVerifiedPhone(draft.phone)
+                          setOtpCode("")
+                          setOtpError("")
+                          if (cooldownRef.current) {
+                            clearInterval(cooldownRef.current)
+                            cooldownRef.current = null
+                          }
+                          setCooldownRemaining(0)
+                          toast.success("Phone verified successfully")
+                        }}
+                        onReset={() => {
+                          setOtpState("idle")
+                          setCheckoutVerificationToken(null)
+                          setVerifiedPhone(null)
+                        }}
+                      />
                     ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Smartphone className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">Phone Verification</span>
-                        </div>
+                      <>
+                        {otpState === "verified" ? (
+                          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-5 py-4">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                              <div>
+                                <p className="text-sm font-medium text-green-700">Phone Verified</p>
+                                <p className="text-xs text-green-600">{normalizePhoneToE164(draft.phone)}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOtpState("idle")
+                                setCheckoutVerificationToken(null)
+                                setVerifiedPhone(null)
+                              }}
+                              className="text-xs text-red-500 hover:text-red-700 font-medium"
+                            >
+                              Change
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                              <Smartphone className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">Phone Verification</span>
+                            </div>
 
-                        {otpState === "idle" && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleSendOtp}
-                            disabled={!draft.phone.trim() || !isValidBdPhone(draft.phone.trim())}
-                            className="h-11 rounded-xl"
-                          >
-                            <Smartphone className="h-4 w-4 mr-2" />
-                            Send OTP
-                          </Button>
-                        )}
-
-                        {otpState === "sending" && (
-                          <p className="text-sm text-muted-foreground animate-pulse">Sending OTP...</p>
-                        )}
-
-                        {(otpState === "sent" || otpState === "verifying" || otpState === "error") && (
-                          <div className="space-y-3">
-                            <p className="text-xs text-muted-foreground">
-                              Enter the 6-digit code sent to {normalizePhoneToE164(draft.phone)}
-                            </p>
-                            <div className="flex gap-2">
-                              <Input
-                                value={otpCode}
-                                onChange={(e) => {
-                                  setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                                  setOtpError("")
-                                }}
-                                placeholder="000000"
-                                className="h-11 rounded-xl w-40 text-center text-lg tracking-widest font-mono"
-                                disabled={otpState === "verifying"}
-                                maxLength={6}
-                              />
+                            {otpState === "idle" && (
                               <Button
                                 type="button"
-                                onClick={handleVerifyOtp}
-                                disabled={otpState === "verifying" || otpCode.length < 6}
+                                variant="outline"
+                                onClick={handleSendOtp}
+                                disabled={!draft.phone.trim() || !isValidBdPhone(draft.phone.trim())}
                                 className="h-11 rounded-xl"
                               >
-                                {otpState === "verifying" ? "Verifying..." : "Verify"}
+                                <Smartphone className="h-4 w-4 mr-2" />
+                                Send OTP
                               </Button>
-                            </div>
-
-                            {otpError && (
-                              <p className="text-sm text-destructive">{otpError}</p>
                             )}
 
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleSendOtp}
-                                disabled={cooldownRemaining > 0 || otpState === "verifying"}
-                                className="text-xs h-8"
-                              >
-                                Resend OTP
-                                {cooldownRemaining > 0 && (
-                                  <span className="ml-1 inline-flex items-center gap-1 text-muted-foreground">
-                                    <Clock className="h-3 w-3" />
-                                    {cooldownRemaining}s
-                                  </span>
+                            {otpState === "sending" && (
+                              <p className="text-sm text-muted-foreground animate-pulse">Sending OTP...</p>
+                            )}
+
+                            {(otpState === "sent" || otpState === "verifying" || otpState === "error") && (
+                              <div className="space-y-3">
+                                <p className="text-xs text-muted-foreground">
+                                  Enter the 6-digit code sent to {normalizePhoneToE164(draft.phone)}
+                                </p>
+                                <div className="flex gap-2">
+                                  <Input
+                                    value={otpCode}
+                                    onChange={(e) => {
+                                      setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                                      setOtpError("")
+                                    }}
+                                    placeholder="000000"
+                                    className="h-11 rounded-xl w-40 text-center text-lg tracking-widest font-mono"
+                                    disabled={otpState === "verifying"}
+                                    maxLength={6}
+                                  />
+                                  <Button
+                                    type="button"
+                                    onClick={handleVerifyOtp}
+                                    disabled={otpState === "verifying" || otpCode.length < 6}
+                                    className="h-11 rounded-xl"
+                                  >
+                                    {otpState === "verifying" ? "Verifying..." : "Verify"}
+                                  </Button>
+                                </div>
+
+                                {otpError && (
+                                  <p className="text-sm text-destructive">{otpError}</p>
                                 )}
-                              </Button>
-                            </div>
+
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleSendOtp}
+                                    disabled={cooldownRemaining > 0 || otpState === "verifying"}
+                                    className="text-xs h-8"
+                                  >
+                                    Resend OTP
+                                    {cooldownRemaining > 0 && (
+                                      <span className="ml-1 inline-flex items-center gap-1 text-muted-foreground">
+                                        <Clock className="h-3 w-3" />
+                                        {cooldownRemaining}s
+                                      </span>
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 )}

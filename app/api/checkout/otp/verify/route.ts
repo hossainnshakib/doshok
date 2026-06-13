@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server"
 import { success, error } from "@/lib/api-response"
 import { verifyCheckoutOtp } from "@/lib/checkout/otp.service"
+import { verifyFirebaseOtpAndIssueCheckoutToken } from "@/lib/checkout/firebase-otp.service"
 import { rateLimitByIp, rateLimitByKey } from "@/lib/rate-limit"
+
+const isFirebaseProvider = process.env.OTP_PROVIDER === "firebase"
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +14,34 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+
+    if (isFirebaseProvider) {
+      const { phone, firebaseIdToken } = body
+
+      if (!phone || typeof phone !== "string") {
+        return error("Phone number is required")
+      }
+
+      if (!firebaseIdToken || typeof firebaseIdToken !== "string") {
+        return error("Firebase ID token is required")
+      }
+
+      const phoneLimit = rateLimitByKey(
+        `otp:verify:phone:${phone}`,
+        5,
+        60_000
+      )
+      if (phoneLimit.limited) {
+        return error("Too many requests. Please try again later.", 429)
+      }
+
+      const result = await verifyFirebaseOtpAndIssueCheckoutToken({
+        firebaseIdToken,
+        phone,
+      })
+      return success(result)
+    }
+
     const { phone, code } = body
 
     if (!phone || typeof phone !== "string") {

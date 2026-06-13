@@ -16,6 +16,7 @@ export async function GET() {
         otpCooldownSeconds: 30,
         otpTtlSeconds: 300,
         checkoutTokenTtlSeconds: 900,
+        otpProvider: (process.env.OTP_PROVIDER ?? "mock") as "firebase" | "mock",
       })
     }
 
@@ -25,6 +26,7 @@ export async function GET() {
       otpCooldownSeconds: settings.otpCooldownSeconds,
       otpTtlSeconds: settings.otpTtlSeconds,
       checkoutTokenTtlSeconds: settings.checkoutTokenTtlSeconds,
+      otpProvider: (process.env.OTP_PROVIDER ?? "mock") as "firebase" | "mock",
     })
   } catch {
     return error("Failed to fetch checkout settings")
