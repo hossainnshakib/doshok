@@ -15,6 +15,8 @@ import {
 import { getPhoneServerValue } from "@/lib/utils"
 import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
 import { resolvePaymentRule } from "@/lib/checkout/payment-rule.service"
+import { isCheckoutVerificationTokenValid } from "@/lib/checkout/otp.service"
+import crypto from "crypto"
 
 const ONLINE_PROVIDERS = ["bkash", "nagad", "rocket", "upay", "sslcommerz", "aamarpay"]
 const PAYMENT_EXPIRY_HOURS = 2
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
     const parsed = checkoutSchema.safeParse(body)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
-    const { items, paymentMethod, couponCode, notes, ...customer } = parsed.data
+    const { items, paymentMethod, couponCode, notes, checkoutVerificationToken, idempotencyKey, ...customer } = parsed.data
 
     const customerPhone = getPhoneServerValue(customer.phone)
     const session = await auth()
@@ -173,7 +175,69 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const isV2 = checkoutSetting?.checkoutV2Enabled ?? false
+    const otpRequired = checkoutSetting?.otpRequired ?? true
+    const onlineReservationHours = checkoutSetting?.onlineReservationHours ?? 2
+    const codReservationHours = checkoutSetting?.codReservationHours ?? 24
+
+    let otpVerified = false
+    let otpVerifiedAtValue: Date | null = null
+
+    if (isV2 && otpRequired) {
+      if (!checkoutVerificationToken) {
+        return error("Verification token is required")
+      }
+      const tokenValid = await isCheckoutVerificationTokenValid(checkoutVerificationToken, customerPhone)
+      if (!tokenValid) {
+        return error("Invalid or expired verification token")
+      }
+    }
+
+    let resolvedIdempotencyKey: string | null = null
+
+    if (isV2) {
+      resolvedIdempotencyKey = idempotencyKey ?? request.headers.get("X-Checkout-Session-Id") ?? null
+      if (!resolvedIdempotencyKey) {
+        resolvedIdempotencyKey = crypto.randomUUID()
+        console.warn(`[checkout] No idempotencyKey provided. Generated server-side: ${resolvedIdempotencyKey}`)
+      }
+
+      const existingOrder = await prisma.order.findUnique({
+        where: { idempotencyKey: resolvedIdempotencyKey },
+        include: { items: true, address: true },
+      })
+      if (existingOrder) {
+        return success({ order: existingOrder, paymentInitData: null }, 200)
+      }
+    }
+
+    let reservationExpiresAt: Date | null = null
+
+    if (isV2) {
+      const hours = paymentResult.payNow > 0 ? onlineReservationHours : codReservationHours
+      reservationExpiresAt = new Date(Date.now() + hours * 60 * 60 * 1000)
+    }
+
     const order = await prisma.$transaction(async (tx) => {
+      if (isV2 && otpRequired) {
+        const record = await tx.phoneOtpVerification.findUnique({
+          where: { checkoutToken: checkoutVerificationToken },
+        })
+        if (!record) throw new Error("Invalid verification token.")
+        if (record.phone !== customerPhone) throw new Error("Verification token does not match the provided phone number.")
+        if (!record.checkoutTokenExpiresAt || new Date() > record.checkoutTokenExpiresAt) {
+          throw new Error("Verification token has expired.")
+        }
+        if (record.checkoutTokenUsedAt) throw new Error("Verification token has already been used.")
+
+        await tx.phoneOtpVerification.update({
+          where: { id: record.id },
+          data: { checkoutTokenUsedAt: new Date() },
+        })
+        otpVerified = true
+        otpVerifiedAtValue = new Date()
+      }
+
       for (const item of validatedItems) {
         if (item.variantId) {
           const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
@@ -226,6 +290,11 @@ export async function POST(request: NextRequest) {
           paymentRuleValue: paymentResult.paymentRuleValue,
           paymentRuleSource: paymentResult.source,
           notes: notes || null,
+          idempotencyKey: resolvedIdempotencyKey,
+          reservationExpiresAt,
+          otpVerified,
+          otpVerifiedAt: otpVerifiedAtValue,
+          ...(isV2 && paymentResult.payNow > 0 ? { paymentExpiresAt: reservationExpiresAt } : {}),
           address: {
             create: {
               division: customer.divisionName,
@@ -296,11 +365,16 @@ if (couponCode && discount > 0) {
     let paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
 
     const isOnlinePayment = ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())
-    if (isOnlinePayment && paymentMethod.toLowerCase() === "bkash") {
+    const shouldInitBkash = isV2
+      ? (paymentResult.payNow > 0 && isOnlinePayment && paymentMethod.toLowerCase() === "bkash")
+      : (isOnlinePayment && paymentMethod.toLowerCase() === "bkash")
+
+    if (shouldInitBkash) {
       const bkashEnabled = await isBkashEnabled()
       if (bkashEnabled) {
         const callbackBase = process.env.NEXTAUTH_URL || "http://localhost:3000"
-        const bkashResult = await createBkashPayment(order.id, order.orderNumber, order.total, callbackBase)
+        const paymentAmount = isV2 ? paymentResult.payNow : order.total
+        const bkashResult = await createBkashPayment(order.id, order.orderNumber, paymentAmount, callbackBase)
 
         if (!("error" in bkashResult)) {
           const mode = await prisma.paymentMethodSetting.findUnique({ where: { provider: "BKASH" } })
@@ -308,11 +382,13 @@ if (couponCode && discount > 0) {
             ? "https://checkout.pay.bka.sh/v1.2.0-beta"
             : "https://tokenized.sandbox.bka.sh/v1.2.0-beta"
 
-          const expiresAt = new Date(Date.now() + PAYMENT_EXPIRY_HOURS * 60 * 60 * 1000)
-          await prisma.order.update({
-            where: { id: order.id },
-            data: { paymentExpiresAt: expiresAt },
-          })
+          if (!isV2) {
+            const expiresAt = new Date(Date.now() + PAYMENT_EXPIRY_HOURS * 60 * 60 * 1000)
+            await prisma.order.update({
+              where: { id: order.id },
+              data: { paymentExpiresAt: expiresAt },
+            })
+          }
 
           if (bkashResult.paymentExecuteStatus === "success" && bkashResult.trxId) {
             paymentInitData = { paymentId: bkashResult.trxId }

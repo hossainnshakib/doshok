@@ -107,6 +107,8 @@ export const checkoutSchema = z.object({
   paymentMethod: z.string().min(1),
   couponCode: z.string().optional(),
   notes: z.string().optional(),
+  checkoutVerificationToken: z.string().optional(),
+  idempotencyKey: z.string().optional(),
   items: z.array(z.object({
     productId: z.string(),
     variantId: z.string().optional(),
