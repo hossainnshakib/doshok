@@ -57,6 +57,7 @@ export default function AdminPaymentMethodsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [savedCredentialKeys, setSavedCredentialKeys] = useState<Record<string, string[]>>({})
 
   function getDefaultMethod(provider: string): PaymentMethod {
     return {
@@ -83,7 +84,28 @@ export default function AdminPaymentMethodsPage() {
           const server = serverMethods.find((m: PaymentMethod) => m.provider === provider)
           return server ?? getDefaultMethod(provider)
         })
-        setMethods(merged)
+
+        const savedMap: Record<string, string[]> = {}
+        for (const sm of serverMethods) {
+          const keys: string[] = []
+          for (const [k, v] of Object.entries(sm.credentials)) {
+            if (v && v.startsWith("********")) {
+              keys.push(k)
+            }
+          }
+          savedMap[sm.provider] = keys
+        }
+        setSavedCredentialKeys(savedMap)
+
+        setMethods(merged.map((m) => {
+          const savedKeys = savedMap[m.provider]
+          if (!savedKeys || savedKeys.length === 0) return m
+          const clean = { ...m.credentials }
+          for (const key of savedKeys) {
+            clean[key] = ""
+          }
+          return { ...m, credentials: clean }
+        }))
       } else {
         toast.error("Failed to load payment methods")
       }
@@ -109,6 +131,12 @@ export default function AdminPaymentMethodsPage() {
     if (!method) return
     setSaving(provider)
     try {
+      const safeCredentials: Record<string, string> = {}
+      for (const [k, v] of Object.entries(method.credentials)) {
+        if (v && !v.startsWith("********")) {
+          safeCredentials[k] = v
+        }
+      }
       const res = await fetch("/api/admin/payment-methods", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -116,7 +144,7 @@ export default function AdminPaymentMethodsPage() {
           provider: method.provider, displayName: method.displayName, enabled: method.enabled, mode: method.mode,
           supportsFullPayment: method.supportsFullPayment, supportsPartialPayment: method.supportsPartialPayment,
           supportsCodDeliveryCharge: method.supportsCodDeliveryCharge, instructions: method.instructions,
-          credentials: method.credentials,
+          credentials: safeCredentials,
         }),
       })
       const d = await res.json()
@@ -221,12 +249,15 @@ export default function AdminPaymentMethodsPage() {
                         <p className="text-[10px] text-slate-400">Credentials are encrypted. Enter new text to replace saved values.</p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {fields.map((field) => (
-                          <div key={field.key} className="space-y-1">
-                            <Label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{field.label}</Label>
-                            <Input type={field.type || "text"} value={method.credentials[field.key] || ""} onChange={(e) => updateCredential(method.provider, field.key, e.target.value)} placeholder={field.type === "password" ? "Enter new value to replace" : ""} className="text-xs h-9" />
-                          </div>
-                        ))}
+                        {fields.map((field) => {
+                          const hasSaved = savedCredentialKeys[method.provider]?.includes(field.key)
+                          return (
+                            <div key={field.key} className="space-y-1">
+                              <Label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{field.label}</Label>
+                              <Input type={field.type || "text"} value={method.credentials[field.key] || ""} onChange={(e) => updateCredential(method.provider, field.key, e.target.value)} placeholder={hasSaved ? "Saved credential exists. Enter new value to replace." : ""} className="text-xs h-9" />
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   )}

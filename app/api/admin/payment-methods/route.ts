@@ -88,18 +88,28 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const hasNewValues = Object.values(parsedCreds).some((v) => v && !v.startsWith("********"))
-    if (hasNewValues) {
-      credentialsJson = encrypt(JSON.stringify(parsedCreds), "payment")
-    } else if (existing && existing.credentialsJson) {
-      const existingCreds = JSON.parse(decrypt(existing.credentialsJson, "payment"))
-      const merged = { ...existingCreds }
-      for (const [key, val] of Object.entries(parsedCreds)) {
-        if (val && !val.startsWith("********")) {
-          merged[key] = val
-        }
+    let mergedCreds: Record<string, string> = {}
+    if (existing?.credentialsJson) {
+      try {
+        const decrypted = decrypt(existing.credentialsJson, "payment")
+        mergedCreds = JSON.parse(decrypted)
+      } catch {
+        mergedCreds = {}
       }
-      credentialsJson = encrypt(JSON.stringify(merged), "payment")
+    }
+
+    for (const [key, val] of Object.entries(parsedCreds)) {
+      const trimmed = (val ?? "").trim()
+      if (trimmed && !trimmed.startsWith("********")) {
+        mergedCreds[key] = trimmed
+      }
+    }
+
+    const hasAnyRealValue = Object.values(mergedCreds).some((v) => v && v.trim() !== "")
+    if (hasAnyRealValue) {
+      credentialsJson = encrypt(JSON.stringify(mergedCreds), "payment")
+    } else {
+      credentialsJson = null
     }
 
     const method = await prisma.paymentMethodSetting.upsert({
