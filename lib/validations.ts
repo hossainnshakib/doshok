@@ -306,6 +306,7 @@ export const shipmentUpdateSchema = z.object({
   customerNote: z.string().optional(),
   adminNote: z.string().optional(),
   courierProvider: courierProvider.optional(),
+  courierResponseJson: z.string().optional(),
 })
 
 export const paymentMethodUpdateSchema = z.object({

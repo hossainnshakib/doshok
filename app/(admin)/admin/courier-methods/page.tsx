@@ -100,7 +100,11 @@ export default function AdminCourierMethodsPage() {
     return (
       <div className="space-y-5">
         <AdminPageHeader eyebrow="Operations" title="Courier Methods" description="Configure courier integrations." />
-        <p className="text-sm text-slate-400 py-8">Loading...</p>
+        <div className="grid gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 rounded-xl bg-slate-50 animate-pulse border border-slate-200/60" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -114,6 +118,9 @@ export default function AdminCourierMethodsPage() {
           const isExpanded = expanded === method.provider
           const fields = COURIER_CREDENTIAL_FIELDS[method.provider as CourierProvider] || []
 
+          const hasCredentials = Object.values(method.credentials).some(v => v && v.length > 0)
+          const isConfigured = method.id !== "" && hasCredentials
+
           return (
             <Card key={method.provider} className="overflow-hidden rounded-xl border-slate-200/60 bg-white shadow-sm">
               <CardHeader className="cursor-pointer select-none hover:bg-slate-50/80 transition-colors py-3 px-4" onClick={() => setExpanded(isExpanded ? null : method.provider)}>
@@ -124,6 +131,7 @@ export default function AdminCourierMethodsPage() {
                         {method.displayName}
                         <AdminStatusBadge status={method.enabled ? "Active" : "Disabled"} />
                         <AdminStatusBadge status={method.mode} />
+                        <AdminStatusBadge status={isConfigured ? "Configured" : "Not Configured"} />
                         {method.isDefault && <AdminStatusBadge status="Default" />}
                       </CardTitle>
                     </div>

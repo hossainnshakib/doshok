@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Package, Truck, Send, Ban, CheckCircle, XCircle, RotateCcw } from "lucide-react"
+import { Package, Truck, Send, Ban, CheckCircle, XCircle, RotateCcw, ExternalLink, RefreshCw, Clock } from "lucide-react"
 import { AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 import {
   COURIER_LABELS,
+  COURIER_TRACKING_URLS,
   SHIPMENT_STATUS_LABELS,
   type CourierProvider,
   type ShipmentStatus,
@@ -32,6 +33,7 @@ type Shipment = {
   customerNote: string | null
   adminNote: string | null
   collectionAmount: number
+  courierResponseJson: string | null
   createdAt: string | Date
   updatedAt: string | Date
 }
@@ -108,7 +110,12 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
         setAdminNote("")
         fetchShipment()
       } else {
-        toast.error(d.error ?? "Failed to create shipment")
+        if (res.status === 409) {
+          toast.error("Shipment already exists.")
+        } else {
+          toast.error(d.error ?? "Failed to create shipment")
+        }
+        fetchShipment()
       }
     } catch {
       toast.error("Something went wrong")
@@ -136,6 +143,53 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
       toast.error("Something went wrong")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleRetry() {
+    setLoading(true)
+    try {
+      const body: Record<string, string> = {
+        courierProvider: shipment!.courierProvider,
+        customerNote,
+        adminNote,
+      }
+      const res = await fetch(`/api/admin/orders/${orderId}/shipment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      const d = await res.json()
+      if (d.success) {
+        toast.success("Shipment retry successful")
+        setCustomerNote("")
+        setAdminNote("")
+        fetchShipment()
+      } else {
+        toast.error(d.error ?? "Retry failed")
+        fetchShipment()
+      }
+    } catch {
+      toast.error("Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function getTrackingUrl(s: Shipment): string | null {
+    const baseUrl = COURIER_TRACKING_URLS[s.courierProvider as CourierProvider]
+    if (!baseUrl || !s.trackingCode) return null
+    return baseUrl.replace("{trackingCode}", s.trackingCode)
+  }
+
+  function getShipmentError(s: Shipment): { error: string; detail?: string } | null {
+    if (s.status !== "FAILED") return null
+    if (s.consignmentId) return null
+    if (!s.courierResponseJson) return null
+    try {
+      return JSON.parse(s.courierResponseJson)
+    } catch {
+      return null
     }
   }
 
@@ -254,6 +308,12 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
             <div className="rounded-2xl bg-neutral-50 p-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-400">Tracking Code</p>
               <p className="mt-1 font-mono text-xs font-bold">{shipment.trackingCode}</p>
+              {getTrackingUrl(shipment) && (
+                <a href={getTrackingUrl(shipment)!} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800">
+                  <ExternalLink className="size-3" />
+                  Track Shipment
+                </a>
+              )}
             </div>
           )}
           {shipment.consignmentId && (
@@ -268,6 +328,24 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
               <p className="mt-1 text-base font-black text-amber-800">৳{shipment.collectionAmount.toLocaleString()}</p>
             </div>
           )}
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+              <Clock className="inline size-3 mr-1" />
+              Created
+            </p>
+            <p className="mt-1 text-xs font-medium text-slate-600">
+              {new Date(shipment.createdAt).toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+              <Clock className="inline size-3 mr-1" />
+              Last Updated
+            </p>
+            <p className="mt-1 text-xs font-medium text-slate-600">
+              {new Date(shipment.updatedAt).toLocaleString()}
+            </p>
+          </div>
         </div>
 
         {shipment.customerNote && (
@@ -302,6 +380,24 @@ export function OrderShipment({ orderId, initialShipment }: OrderShipmentProps) 
             )
           })}
         </div>
+
+        {(() => {
+          const error = getShipmentError(shipment)
+          if (error) {
+            return (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                <p className="text-xs font-bold text-red-700 mb-1">Shipment Creation Failed</p>
+                <p className="text-xs text-red-600">{error.error}</p>
+                {error.detail && <p className="text-xs text-red-500 mt-0.5">{error.detail}</p>}
+                <Button size="sm" variant="destructive" onClick={handleRetry} disabled={loading} className="mt-3">
+                  <RefreshCw className={`size-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`} />
+                  {loading ? "Retrying..." : "Retry Shipment"}
+                </Button>
+              </div>
+            )
+          }
+          return null
+        })()}
 
         {shipment.courierProvider === "PATHAO" ? (
             <p className="text-center text-xs text-muted-foreground">

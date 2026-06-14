@@ -46,27 +46,55 @@ export async function POST(
       return error(parsed.error.issues[0]?.message ?? "Invalid input")
     }
 
-    const existing = await prisma.orderShipment.findUnique({
-      where: { orderId: id },
-    })
-    if (existing) {
-      if (existing.consignmentId) {
-        return error("A parcel has already been created for this order. Create a new shipment instead.")
-      }
-      return error("Shipment record already exists for this order. Remove it first to create a new one.")
-    }
-
     const order = await prisma.order.findUnique({
       where: { id },
       include: { items: true, address: true },
     })
     if (!order) return error("Order not found", 404)
 
+    if (order.orderStatus === "cancelled") {
+      return error("Cannot create shipment for a cancelled order")
+    }
+    if (order.orderStatus === "returned") {
+      return error("Cannot create shipment for a returned order")
+    }
+    if (order.paymentStatus === "refunded") {
+      return error("Cannot create shipment for a refunded order")
+    }
+    if (!order.address) {
+      return error("Order has no delivery address. Please set an address first.")
+    }
+    if (!order.address.fullAddress || !order.address.division) {
+      return error("Order address is incomplete. Please update the delivery address.")
+    }
+    if (!order.customerPhone) {
+      return error("Customer phone number is missing. Please update the order.")
+    }
+
     const collectionAmount = order.dueAmount > 0 ? order.dueAmount : 0
 
-    const isPathao = parsed.data.courierProvider === "PATHAO"
+    const provider = parsed.data.courierProvider
 
-    if (isPathao) {
+    const setting = await prisma.courierProviderSetting.findUnique({
+      where: { provider },
+    })
+    if (!setting || !setting.enabled) {
+      return error(`${provider} is not enabled. Enable it in Courier Methods first.`)
+    }
+
+    const existing = await prisma.orderShipment.findUnique({
+      where: { orderId: id },
+    })
+    if (existing && existing.consignmentId) {
+      return error("Shipment already exists.", 409)
+    }
+
+    const notes = {
+      customerNote: parsed.data.customerNote || null,
+      adminNote: parsed.data.adminNote || null,
+    }
+
+    if (provider === "PATHAO") {
       const orderForParcel = {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -89,21 +117,53 @@ export async function POST(
       )
 
       if (!parcelResult.success) {
+        const errorJson = JSON.stringify({ error: parcelResult.reason, detail: parcelResult.detail })
+        await prisma.orderShipment.upsert({
+          where: { orderId: id },
+          create: {
+            orderId: id,
+            courierProvider: provider,
+            status: "FAILED",
+            collectionAmount,
+            courierResponseJson: errorJson,
+            ...notes,
+          },
+          update: {
+            status: "FAILED",
+            courierProvider: provider,
+            collectionAmount,
+            courierResponseJson: errorJson,
+            trackingCode: null,
+            consignmentId: null,
+            customerNote: notes.customerNote,
+            adminNote: notes.adminNote,
+          },
+        })
         return error(parcelResult.reason, 400)
       }
 
       const [shipment] = await prisma.$transaction([
-        prisma.orderShipment.create({
-          data: {
+        prisma.orderShipment.upsert({
+          where: { orderId: id },
+          create: {
             orderId: id,
             courierProvider: "PATHAO",
             status: "PENDING",
             trackingCode: parcelResult.trackingCode,
             consignmentId: parcelResult.consignmentId,
             courierResponseJson: JSON.stringify(parcelResult.response),
-            customerNote: parsed.data.customerNote || null,
-            adminNote: parsed.data.adminNote || null,
             collectionAmount,
+            ...notes,
+          },
+          update: {
+            status: "PENDING",
+            courierProvider: "PATHAO",
+            trackingCode: parcelResult.trackingCode,
+            consignmentId: parcelResult.consignmentId,
+            courierResponseJson: JSON.stringify(parcelResult.response),
+            collectionAmount,
+            customerNote: notes.customerNote,
+            adminNote: notes.adminNote,
           },
         }),
         prisma.order.update({
@@ -115,9 +175,7 @@ export async function POST(
       return success(shipment)
     }
 
-    const isSteadfast = parsed.data.courierProvider === "STEADFAST"
-
-    if (isSteadfast) {
+    if (provider === "STEADFAST") {
       const orderForSteadfast: OrderForSteadfast = {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -135,21 +193,53 @@ export async function POST(
       const parcelResult = await createSteadfastParcel(orderForSteadfast)
 
       if (!parcelResult.success) {
+        const errorJson = JSON.stringify({ error: parcelResult.reason, detail: parcelResult.detail })
+        await prisma.orderShipment.upsert({
+          where: { orderId: id },
+          create: {
+            orderId: id,
+            courierProvider: provider,
+            status: "FAILED",
+            collectionAmount,
+            courierResponseJson: errorJson,
+            ...notes,
+          },
+          update: {
+            status: "FAILED",
+            courierProvider: provider,
+            collectionAmount,
+            courierResponseJson: errorJson,
+            trackingCode: null,
+            consignmentId: null,
+            customerNote: notes.customerNote,
+            adminNote: notes.adminNote,
+          },
+        })
         return error(parcelResult.reason, 400)
       }
 
       const [shipment] = await prisma.$transaction([
-        prisma.orderShipment.create({
-          data: {
+        prisma.orderShipment.upsert({
+          where: { orderId: id },
+          create: {
             orderId: id,
             courierProvider: "STEADFAST",
             status: "PENDING",
             trackingCode: parcelResult.trackingCode,
             consignmentId: parcelResult.consignmentId,
             courierResponseJson: JSON.stringify(parcelResult.response),
-            customerNote: parsed.data.customerNote || null,
-            adminNote: parsed.data.adminNote || null,
             collectionAmount,
+            ...notes,
+          },
+          update: {
+            status: "PENDING",
+            courierProvider: "STEADFAST",
+            trackingCode: parcelResult.trackingCode,
+            consignmentId: parcelResult.consignmentId,
+            courierResponseJson: JSON.stringify(parcelResult.response),
+            collectionAmount,
+            customerNote: notes.customerNote,
+            adminNote: notes.adminNote,
           },
         }),
         prisma.order.update({
@@ -161,9 +251,7 @@ export async function POST(
       return success(shipment)
     }
 
-    const isRedx = parsed.data.courierProvider === "REDX"
-
-    if (isRedx) {
+    if (provider === "REDX") {
       const orderForRedx: OrderForRedx = {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -181,21 +269,53 @@ export async function POST(
       const parcelResult = await createRedxParcel(orderForRedx)
 
       if (!parcelResult.success) {
+        const errorJson = JSON.stringify({ error: parcelResult.reason, detail: parcelResult.detail })
+        await prisma.orderShipment.upsert({
+          where: { orderId: id },
+          create: {
+            orderId: id,
+            courierProvider: provider,
+            status: "FAILED",
+            collectionAmount,
+            courierResponseJson: errorJson,
+            ...notes,
+          },
+          update: {
+            status: "FAILED",
+            courierProvider: provider,
+            collectionAmount,
+            courierResponseJson: errorJson,
+            trackingCode: null,
+            consignmentId: null,
+            customerNote: notes.customerNote,
+            adminNote: notes.adminNote,
+          },
+        })
         return error(parcelResult.reason, 400)
       }
 
       const [shipment] = await prisma.$transaction([
-        prisma.orderShipment.create({
-          data: {
+        prisma.orderShipment.upsert({
+          where: { orderId: id },
+          create: {
             orderId: id,
             courierProvider: "REDX",
             status: "PENDING",
             trackingCode: parcelResult.trackingCode,
             consignmentId: parcelResult.consignmentId,
             courierResponseJson: JSON.stringify(parcelResult.response),
-            customerNote: parsed.data.customerNote || null,
-            adminNote: parsed.data.adminNote || null,
             collectionAmount,
+            ...notes,
+          },
+          update: {
+            status: "PENDING",
+            courierProvider: "REDX",
+            trackingCode: parcelResult.trackingCode,
+            consignmentId: parcelResult.consignmentId,
+            courierResponseJson: JSON.stringify(parcelResult.response),
+            collectionAmount,
+            customerNote: notes.customerNote,
+            adminNote: notes.adminNote,
           },
         }),
         prisma.order.update({
@@ -207,13 +327,21 @@ export async function POST(
       return success(shipment)
     }
 
-    const shipment = await prisma.orderShipment.create({
-      data: {
+    const shipment = await prisma.orderShipment.upsert({
+      where: { orderId: id },
+      create: {
         orderId: id,
-        courierProvider: parsed.data.courierProvider,
+        courierProvider: provider,
         status: "SETUP_READY",
-        customerNote: parsed.data.customerNote || null,
-        adminNote: parsed.data.adminNote || null,
+        collectionAmount,
+        ...notes,
+      },
+      update: {
+        courierProvider: provider,
+        status: "SETUP_READY",
+        collectionAmount,
+        customerNote: notes.customerNote,
+        adminNote: notes.adminNote,
       },
     })
 
@@ -251,6 +379,8 @@ export async function PATCH(
     if (parsed.data.consignmentId !== undefined) updateData.consignmentId = parsed.data.consignmentId
     if (parsed.data.customerNote !== undefined) updateData.customerNote = parsed.data.customerNote
     if (parsed.data.adminNote !== undefined) updateData.adminNote = parsed.data.adminNote
+    if (parsed.data.courierResponseJson !== undefined) updateData.courierResponseJson = parsed.data.courierResponseJson
+    if (parsed.data.courierProvider !== undefined) updateData.courierProvider = parsed.data.courierProvider
 
     const shipment = await prisma.orderShipment.update({
       where: { orderId: id },

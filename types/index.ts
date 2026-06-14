@@ -112,12 +112,6 @@ export const COURIER_LABELS: Record<CourierProvider, string> = {
   REDX: "RedX",
 }
 
-export const COURIER_LOGOS: Record<CourierProvider, string> = {
-  PATHAO: "P",
-  STEADFAST: "S",
-  REDX: "R",
-}
-
 export const COURIER_CREDENTIAL_FIELDS: Record<CourierProvider, { key: string; label: string; type?: string }[]> = {
   PATHAO: [
     { key: "clientId", label: "Client ID" },
@@ -137,6 +131,12 @@ export const COURIER_CREDENTIAL_FIELDS: Record<CourierProvider, { key: string; l
     { key: "baseUrl", label: "Base URL" },
     { key: "storeId", label: "Store ID" },
   ],
+}
+
+export const COURIER_TRACKING_URLS: Record<CourierProvider, string | null> = {
+  PATHAO: null,
+  STEADFAST: null,
+  REDX: null,
 }
 
 export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {

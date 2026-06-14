@@ -141,6 +141,8 @@ const STATUS_STYLES: Record<string, { variant: "default" | "secondary" | "destru
   subcategory: { variant: "secondary", className: "bg-slate-100 text-slate-600 hover:bg-slate-100" },
   parent: { variant: "secondary", className: "bg-indigo-100 text-indigo-700 hover:bg-indigo-100" },
   contacted: { variant: "default", className: "bg-emerald-500 text-white hover:bg-emerald-500" },
+  configured: { variant: "default", className: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10" },
+  "not configured": { variant: "outline", className: "text-slate-400 border-slate-200 hover:text-slate-400" },
 }
 
 export function AdminStatusBadge({
