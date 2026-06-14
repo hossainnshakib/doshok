@@ -64,8 +64,8 @@ export default function AdminPaymentMethodsPage() {
       id: "", provider,
       displayName: PROVIDER_LABELS[provider] || provider,
       enabled: provider === "COD",
-      mode: "SANDBOX",
-      supportsFullPayment: provider === "COD",
+      mode: provider === "COD" ? "SANDBOX" : "SANDBOX",
+      supportsFullPayment: provider !== "COD",
       supportsPartialPayment: provider !== "COD",
       supportsCodDeliveryCharge: false,
       instructions: provider === "COD" ? "Pay when you receive your order." : "",
@@ -137,14 +137,22 @@ export default function AdminPaymentMethodsPage() {
           safeCredentials[k] = v
         }
       }
+      const isCod = method.provider === "COD"
       const res = await fetch("/api/admin/payment-methods", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          provider: method.provider, displayName: method.displayName, enabled: method.enabled, mode: method.mode,
-          supportsFullPayment: method.supportsFullPayment, supportsPartialPayment: method.supportsPartialPayment,
-          supportsCodDeliveryCharge: method.supportsCodDeliveryCharge, instructions: method.instructions,
-          credentials: safeCredentials,
+          provider: method.provider,
+          displayName: method.displayName,
+          enabled: method.enabled,
+          ...(isCod ? {} : {
+            mode: method.mode,
+            supportsFullPayment: method.supportsFullPayment,
+            supportsPartialPayment: method.supportsPartialPayment,
+            supportsCodDeliveryCharge: method.supportsCodDeliveryCharge,
+          }),
+          instructions: method.instructions,
+          credentials: isCod ? {} : safeCredentials,
         }),
       })
       const d = await res.json()
@@ -188,7 +196,7 @@ export default function AdminPaymentMethodsPage() {
                       <CardTitle className="text-sm flex items-center gap-2">
                         {method.displayName}
                         <AdminStatusBadge status={method.enabled ? "Active" : "Disabled"} />
-                        <AdminStatusBadge status={method.mode} />
+                        {method.provider !== "COD" && <AdminStatusBadge status={method.mode} />}
                       </CardTitle>
                     </div>
                   </div>
@@ -201,46 +209,50 @@ export default function AdminPaymentMethodsPage() {
 
               {isExpanded && (
                 <CardContent className="border-t border-slate-100 pt-5 space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={method.provider === "COD" ? "space-y-1.5" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-slate-600">Display Name</Label>
                       <Input value={method.displayName} onChange={(e) => updateMethod(method.provider, "displayName", e.target.value)} className="text-xs h-9" />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-600">Mode</Label>
-                      <div className="flex gap-2">
-                        <Button type="button" variant={method.mode === "SANDBOX" ? "default" : "outline"} size="sm" onClick={() => updateMethod(method.provider, "mode", "SANDBOX")} className="flex-1 h-9 rounded-lg text-xs font-semibold">Sandbox</Button>
-                        <Button type="button" variant={method.mode === "LIVE" ? "default" : "outline"} size="sm" onClick={() => updateMethod(method.provider, "mode", "LIVE")} className="flex-1 h-9 rounded-lg text-xs font-semibold">Live</Button>
+                    {method.provider !== "COD" && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-slate-600">Mode</Label>
+                        <div className="flex gap-2">
+                          <Button type="button" variant={method.mode === "SANDBOX" ? "default" : "outline"} size="sm" onClick={() => updateMethod(method.provider, "mode", "SANDBOX")} className="flex-1 h-9 rounded-lg text-xs font-semibold">Sandbox</Button>
+                          <Button type="button" variant={method.mode === "LIVE" ? "default" : "outline"} size="sm" onClick={() => updateMethod(method.provider, "mode", "LIVE")} className="flex-1 h-9 rounded-lg text-xs font-semibold">Live</Button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold text-slate-600">Supported Flows</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 p-2.5 cursor-pointer has-checked:border-indigo-300 has-checked:bg-indigo-50/50">
-                        <Switch checked={method.supportsFullPayment} onCheckedChange={(checked) => updateMethod(method.provider, "supportsFullPayment", checked)} />
-                        <div className="text-xs">
-                          <span className="font-medium text-slate-700">Full Payment</span>
-                          <p className="text-[10px] text-slate-400">Pay 100% online</p>
-                        </div>
-                      </label>
-                      <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 p-2.5 cursor-pointer has-checked:border-indigo-300 has-checked:bg-indigo-50/50">
-                        <Switch checked={method.supportsPartialPayment} onCheckedChange={(checked) => updateMethod(method.provider, "supportsPartialPayment", checked)} />
-                        <div className="text-xs">
-                          <span className="font-medium text-slate-700">Partial Payment</span>
-                          <p className="text-[10px] text-slate-400">Pay deposit online</p>
-                        </div>
-                      </label>
-                      <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 p-2.5 cursor-pointer has-checked:border-indigo-300 has-checked:bg-indigo-50/50">
-                        <Switch checked={method.supportsCodDeliveryCharge} onCheckedChange={(checked) => updateMethod(method.provider, "supportsCodDeliveryCharge", checked)} />
-                        <div className="text-xs">
-                          <span className="font-medium text-slate-700">COD Delivery Charge</span>
-                          <p className="text-[10px] text-slate-400">Prepay delivery fee</p>
-                        </div>
-                      </label>
+                  {method.provider !== "COD" && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-slate-600">Supported Flows</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 p-2.5 cursor-pointer has-checked:border-indigo-300 has-checked:bg-indigo-50/50">
+                          <Switch checked={method.supportsFullPayment} onCheckedChange={(checked) => updateMethod(method.provider, "supportsFullPayment", checked)} />
+                          <div className="text-xs">
+                            <span className="font-medium text-slate-700">Full Payment</span>
+                            <p className="text-[10px] text-slate-400">Pay 100% online</p>
+                          </div>
+                        </label>
+                        <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 p-2.5 cursor-pointer has-checked:border-indigo-300 has-checked:bg-indigo-50/50">
+                          <Switch checked={method.supportsPartialPayment} onCheckedChange={(checked) => updateMethod(method.provider, "supportsPartialPayment", checked)} />
+                          <div className="text-xs">
+                            <span className="font-medium text-slate-700">Partial Payment</span>
+                            <p className="text-[10px] text-slate-400">Pay deposit online</p>
+                          </div>
+                        </label>
+                        <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 p-2.5 cursor-pointer has-checked:border-indigo-300 has-checked:bg-indigo-50/50">
+                          <Switch checked={method.supportsCodDeliveryCharge} onCheckedChange={(checked) => updateMethod(method.provider, "supportsCodDeliveryCharge", checked)} />
+                          <div className="text-xs">
+                            <span className="font-medium text-slate-700">COD Delivery Charge</span>
+                            <p className="text-[10px] text-slate-400">Prepay delivery fee</p>
+                          </div>
+                        </label>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {fields.length > 0 && (
                     <div className="space-y-3">

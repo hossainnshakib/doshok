@@ -70,3 +70,11 @@ export function stripCountryCode(input: string): string {
 export function normalizeLocalPhone(input: string): string {
   return getLocalDigits(input)
 }
+
+export function normalizePhoneToLocal(input: string): string {
+  const digits = input.replace(/\D/g, "")
+  if (digits.length === 13 && digits.startsWith("880")) return "0" + digits.slice(3)
+  if (digits.length === 11 && digits.startsWith("0")) return digits
+  if (digits.length === 10) return "0" + digits
+  return digits
+}

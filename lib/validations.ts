@@ -84,7 +84,7 @@ export const categorySchema = z.object({
 export const addressSchema = z.object({
   label: z.enum(["Home", "Office", "Family", "Other"]).default("Home"),
   recipientName: z.string().min(1, "Recipient name is required").max(100),
-  phone: z.string().min(11, "Valid phone number is required").max(20),
+  phone: z.string().regex(/^(\+?880)?01[3-9]\d{8}$/, "Enter a valid Bangladeshi phone number."),
   addressLine1: z.string().min(1, "Address is required").max(500),
   addressLine2: z.string().max(500).optional().or(z.literal("")),
   city: z.string().min(1, "City is required").max(100),
@@ -313,10 +313,10 @@ export const paymentMethodUpdateSchema = z.object({
   provider: paymentProvider,
   displayName: z.string().min(1),
   enabled: z.boolean(),
-  mode: paymentMode,
-  supportsFullPayment: z.boolean(),
-  supportsPartialPayment: z.boolean(),
-  supportsCodDeliveryCharge: z.boolean(),
+  mode: paymentMode.optional().default("SANDBOX"),
+  supportsFullPayment: z.boolean().optional().default(false),
+  supportsPartialPayment: z.boolean().optional().default(false),
+  supportsCodDeliveryCharge: z.boolean().optional().default(false),
   instructions: z.string().optional().default(""),
   credentials: z.record(z.string(), z.any()).optional().default({}),
 })

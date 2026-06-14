@@ -76,40 +76,46 @@ export async function PUT(request: NextRequest) {
     })
 
     let credentialsJson: string | null = existing?.credentialsJson ?? null
-
-    const credsSchema = providerCredentialsMap[provider]
     let parsedCreds: Record<string, string> = {}
-    if (credsSchema) {
-      const credResult = credsSchema.safeParse(credentials ?? {})
-      if (credResult.success) {
-        parsedCreds = credResult.data as Record<string, string>
+
+    // For COD, skip credentials processing — no gateway credentials to manage
+    if (provider !== "COD") {
+      const credsSchema = providerCredentialsMap[provider]
+      if (credsSchema) {
+        const credResult = credsSchema.safeParse(credentials ?? {})
+        if (credResult.success) {
+          parsedCreds = credResult.data as Record<string, string>
+        } else {
+          parsedCreds = (credentials ?? {}) as Record<string, string>
+        }
+      }
+
+      let mergedCreds: Record<string, string> = {}
+      if (existing?.credentialsJson) {
+        try {
+          const decrypted = decrypt(existing.credentialsJson, "payment")
+          mergedCreds = JSON.parse(decrypted)
+        } catch {
+          mergedCreds = {}
+        }
+      }
+
+      for (const [key, val] of Object.entries(parsedCreds)) {
+        const trimmed = typeof val === "string" ? val.trim() : String(val ?? "")
+        if (trimmed && !trimmed.startsWith("********")) {
+          mergedCreds[key] = trimmed
+        }
+      }
+
+      const hasAnyRealValue = Object.values(mergedCreds).some((v) => {
+        if (typeof v === "string") return v.trim() !== ""
+        return v !== null && v !== undefined && v !== false && v !== 0
+      })
+      if (hasAnyRealValue) {
+        credentialsJson = encrypt(JSON.stringify(mergedCreds), "payment")
       } else {
-        parsedCreds = (credentials ?? {}) as Record<string, string>
+        credentialsJson = null
       }
-    }
-
-    let mergedCreds: Record<string, string> = {}
-    if (existing?.credentialsJson) {
-      try {
-        const decrypted = decrypt(existing.credentialsJson, "payment")
-        mergedCreds = JSON.parse(decrypted)
-      } catch {
-        mergedCreds = {}
-      }
-    }
-
-    for (const [key, val] of Object.entries(parsedCreds)) {
-      const trimmed = (val ?? "").trim()
-      if (trimmed && !trimmed.startsWith("********")) {
-        mergedCreds[key] = trimmed
-      }
-    }
-
-    const hasAnyRealValue = Object.values(mergedCreds).some((v) => v && v.trim() !== "")
-    if (hasAnyRealValue) {
-      credentialsJson = encrypt(JSON.stringify(mergedCreds), "payment")
-    } else {
-      credentialsJson = null
     }
 
     const method = await prisma.paymentMethodSetting.upsert({

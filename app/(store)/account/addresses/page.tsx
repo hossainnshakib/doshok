@@ -33,7 +33,10 @@ import {
 } from "lucide-react"
 import type { UserAddress, AddressLabel } from "@/types"
 import { ADDRESS_LABELS } from "@/types"
-import { getPhoneDisplayE164, getPhoneInputValue } from "@/lib/utils"
+import { getPhoneDisplayE164, getPhoneInputValue, normalizePhoneToLocal } from "@/lib/utils"
+import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
+import type { Division, District, Upazila } from "@/lib/bangladesh-address"
+import { AddressCombobox } from "@/components/store/address-combobox"
 
 const LABEL_ICONS: Record<AddressLabel, typeof Home> = {
   Home,
@@ -65,6 +68,12 @@ type FormData = {
   city: string
   zone: string
   postalCode: string
+  divisionId: string
+  districtId: string
+  upazilaId: string
+  divisionName: string
+  districtName: string
+  upazilaName: string
   isDefault: boolean
 }
 
@@ -77,6 +86,12 @@ const emptyForm: FormData = {
   city: "",
   zone: "chatto",
   postalCode: "",
+  divisionId: "",
+  districtId: "",
+  upazilaId: "",
+  divisionName: "",
+  districtName: "",
+  upazilaName: "",
   isDefault: false,
 }
 
@@ -89,6 +104,9 @@ export default function AccountAddressesPage() {
   const [form, setForm] = useState<FormData>(emptyForm)
   const [errors, setErrors] = useState<string[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [districts, setDistricts] = useState<District[]>([])
+  const [upazilas, setUpazilas] = useState<Upazila[]>([])
+  const divisions = getDivisions()
 
   const fetchAddresses = useCallback(async () => {
     try {
@@ -109,6 +127,8 @@ export default function AccountAddressesPage() {
   function openAdd() {
     setEditingId(null)
     setForm(emptyForm)
+    setDistricts([])
+    setUpazilas([])
     setErrors([])
     setDialogOpen(true)
   }
@@ -124,8 +144,20 @@ export default function AccountAddressesPage() {
       city: addr.city,
       zone: addr.zone,
       postalCode: addr.postalCode || "",
+      divisionId: addr.divisionId || "",
+      districtId: addr.districtId || "",
+      upazilaId: addr.upazilaId || "",
+      divisionName: addr.divisionName || "",
+      districtName: addr.districtName || "",
+      upazilaName: addr.upazilaName || "",
       isDefault: addr.isDefault,
     })
+    if (addr.divisionId) {
+      setDistricts(getDistrictsByDivision(addr.divisionId))
+    }
+    if (addr.districtId) {
+      setUpazilas(getUpazilasByDistrict(addr.districtId))
+    }
     setErrors([])
     setDialogOpen(true)
   }
@@ -134,7 +166,7 @@ export default function AccountAddressesPage() {
     const errs: string[] = []
     if (!form.recipientName.trim()) errs.push("Recipient Name is required")
     if (!form.phone.trim()) errs.push("Phone is required")
-    else if (form.phone.length < 11) errs.push("Valid phone number (11+ digits) is required")
+    else if (!/^(\+?880)?01[3-9]\d{8}$/.test(form.phone.trim())) errs.push("Enter a valid Bangladeshi phone number.")
     if (!form.addressLine1.trim()) errs.push("Address is required")
     if (!form.city.trim()) errs.push("City is required")
     return errs
@@ -154,7 +186,13 @@ export default function AccountAddressesPage() {
 
       const payload = {
         ...form,
-        phone: getPhoneInputValue(form.phone) || form.phone,
+        phone: normalizePhoneToLocal(form.phone),
+        divisionId: form.divisionId || null,
+        districtId: form.districtId || null,
+        upazilaId: form.upazilaId || null,
+        divisionName: form.divisionName || null,
+        districtName: form.districtName || null,
+        upazilaName: form.upazilaName || null,
       }
 
       const res = await fetch(url, {
@@ -213,6 +251,12 @@ export default function AccountAddressesPage() {
           city: addr.city,
           zone: addr.zone,
           postalCode: addr.postalCode || "",
+          divisionId: addr.divisionId || null,
+          districtId: addr.districtId || null,
+          upazilaId: addr.upazilaId || null,
+          divisionName: addr.divisionName || null,
+          districtName: addr.districtName || null,
+          upazilaName: addr.upazilaName || null,
           isDefault: true,
         }),
       })
@@ -320,6 +364,11 @@ export default function AccountAddressesPage() {
                   {addr.addressLine2 && (
                     <p className="text-muted-foreground">{addr.addressLine2}</p>
                   )}
+                  {(addr.divisionName || addr.districtName || addr.upazilaName) && (
+                    <p className="text-muted-foreground">
+                      {[addr.upazilaName, addr.districtName, addr.divisionName].filter(Boolean).join(", ")}
+                    </p>
+                  )}
                   <p className="text-muted-foreground">
                     {addr.city}
                     {addr.postalCode ? ` - ${addr.postalCode}` : ""}
@@ -422,7 +471,82 @@ export default function AccountAddressesPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Division</Label>
+                <AddressCombobox
+                  options={divisions}
+                  value={form.divisionId}
+                  onChange={(v) => {
+                    if (!v) return
+                    const div = divisions.find((d) => d.id === v)
+                    if (div) {
+                      setForm({
+                        ...form,
+                        divisionId: div.id,
+                        divisionName: div.name,
+                        districtId: "",
+                        districtName: "",
+                        upazilaId: "",
+                        upazilaName: "",
+                        city: div.name,
+                      })
+                      setDistricts(getDistrictsByDivision(v))
+                      setUpazilas([])
+                    }
+                  }}
+                  placeholder="Select division"
+                  className=""
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>District</Label>
+                <AddressCombobox
+                  options={districts}
+                  value={form.districtId}
+                  onChange={(v) => {
+                    if (!v) return
+                    const dist = districts.find((d) => d.id === v)
+                    if (dist) {
+                      setForm({
+                        ...form,
+                        districtId: dist.id,
+                        districtName: dist.name,
+                        upazilaId: "",
+                        upazilaName: "",
+                        city: dist.name,
+                      })
+                      setUpazilas(getUpazilasByDistrict(v))
+                    }
+                  }}
+                  placeholder={form.divisionId ? "Select district" : "Select division first"}
+                  disabled={!form.divisionId}
+                  className=""
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Upazila / Thana</Label>
+                <AddressCombobox
+                  options={upazilas}
+                  value={form.upazilaId}
+                  onChange={(v) => {
+                    if (!v) return
+                    const upa = upazilas.find((u) => u.id === v)
+                    if (upa) {
+                      setForm({
+                        ...form,
+                        upazilaId: upa.id,
+                        upazilaName: upa.name,
+                      })
+                    }
+                  }}
+                  placeholder={form.districtId ? "Select upazila/thana" : "Select district first"}
+                  disabled={!form.districtId}
+                  className=""
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
                 <Input
@@ -433,6 +557,8 @@ export default function AccountAddressesPage() {
                   className="h-11 rounded-xl"
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="zone">Delivery Zone</Label>
                   <Select
