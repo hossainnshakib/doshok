@@ -35,7 +35,7 @@ const statusColors: Record<string, "default" | "secondary" | "destructive" | "ou
 export default function AccountDashboardPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const [orders, setOrders] = useState<Order[]>([])
+  const [fullOrders, setFullOrders] = useState<Order[]>([])
   const [addressCount, setAddressCount] = useState(0)
   const [reordering, setReordering] = useState<string | null>(null)
   const [resending, setResending] = useState(false)
@@ -45,7 +45,7 @@ export default function AccountDashboardPage() {
     fetch(`/api/orders?userId=${session.user.id}`)
       .then((r) => r.json())
       .then((d) => {
-        if (d.success && Array.isArray(d.data.orders)) setOrders(d.data.orders.slice(0, 5))
+        if (d.success && Array.isArray(d.data.orders)) setFullOrders(d.data.orders)
       })
       .catch(() => {})
     fetch("/api/account/addresses")
@@ -120,13 +120,14 @@ export default function AccountDashboardPage() {
     }
   }
 
-  const activeOrders = orders.filter(
+  const recentOrders = fullOrders.slice(0, 5)
+  const activeOrders = fullOrders.filter(
     (o) => !["delivered", "cancelled"].includes(o.orderStatus)
   ).length
-  const deliveredOrders = orders.filter(
+  const deliveredOrders = fullOrders.filter(
     (o) => o.orderStatus === "delivered"
   ).length
-  const recentOrder = orders[0]
+  const recentOrder = recentOrders[0]
 
   const displayName = session?.user?.firstName || session?.user?.name || "there"
   const isVerified = !!session?.user?.emailVerified
@@ -160,7 +161,7 @@ export default function AccountDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-3 md:px-6 pb-3 md:pb-6">
-            <p className="text-xl md:text-3xl font-bold">{orders.length}</p>
+            <p className="text-xl md:text-3xl font-bold">{fullOrders.length}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 rounded-2xl shadow-sm">
@@ -201,7 +202,7 @@ export default function AccountDashboardPage() {
       <Card className="border-border/50 rounded-2xl shadow-sm overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4">
           <CardTitle className="text-base md:text-lg">Recent Order</CardTitle>
-          {orders.length > 1 && (
+          {fullOrders.length > 1 && (
             <Link href="/account/orders" className="text-xs md:text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors">
               View All <ArrowRight className="h-3 w-3" />
             </Link>
