@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic"
 function maskCredentials(creds: Record<string, string>): Record<string, string> {
   const masked: Record<string, string> = {}
   for (const [key, val] of Object.entries(creds)) {
-    masked[key] = val ? "••••••••" : ""
+    masked[key] = val ? "********" : ""
   }
   return masked
 }
@@ -91,14 +91,14 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const hasNewValues = Object.values(parsedCreds).some((v) => v && !v.startsWith("••••••"))
+    const hasNewValues = Object.values(parsedCreds).some((v) => v && !v.startsWith("********"))
     if (hasNewValues) {
       credentialsJson = encrypt(JSON.stringify(parsedCreds), "courier")
     } else if (existing && existing.credentialsJson) {
       const existingCreds = JSON.parse(decrypt(existing.credentialsJson, "courier"))
       const merged = { ...existingCreds }
       for (const [key, val] of Object.entries(parsedCreds)) {
-        if (val && !val.startsWith("••••••")) {
+        if (val && !val.startsWith("********")) {
           merged[key] = val
         }
       }
