@@ -34,6 +34,10 @@ export type BkashTokenCache = {
   expiresAt: number
 }
 
+export type BkashInitCheckResult =
+  | { ok: true }
+  | { ok: false; reason: string; detail?: string }
+
 const tokenCache: Record<string, BkashTokenCache> = {}
 
 const TOKEN_TTL_MS = 55 * 60 * 1000
@@ -93,19 +97,31 @@ async function getToken(mode: "SANDBOX" | "LIVE"): Promise<{ token: string; base
     return { token: cached.token, baseUrl: creds.baseUrl }
   }
 
-  const res = await fetch(`${creds.baseUrl}/tokenized/checkout/token/grant`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-APP-Key": creds.appKey,
-    },
-    body: JSON.stringify({
-      app_key: creds.appKey,
-      app_secret: creds.appSecret,
-    }),
-  })
+  const normalizedBaseUrl = creds.baseUrl.trim().replace(/\/+$/, '').replace(/\/tokenized$/i, '')
 
-  const data = await res.json()
+  let res: Response
+  try {
+    res = await fetch(`${normalizedBaseUrl}/tokenized/checkout/token/grant`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-APP-Key": creds.appKey,
+      },
+      body: JSON.stringify({
+        app_key: creds.appKey,
+        app_secret: creds.appSecret,
+      }),
+    })
+  } catch {
+    return null
+  }
+
+  let data: any
+  try {
+    data = await res.json()
+  } catch {
+    return null
+  }
   if (!data?.id_token) return null
 
   tokenCache[cacheKey] = {
@@ -128,6 +144,122 @@ export async function isBkashEnabled(): Promise<boolean> {
     where: { provider: "BKASH" },
   })
   return setting?.enabled ?? false
+}
+
+export async function canInitBkashPayment(): Promise<boolean> {
+  const setting = await prisma.paymentMethodSetting.findUnique({
+    where: { provider: "BKASH" },
+  })
+  if (!setting?.enabled) return false
+
+  const mode = (setting?.mode as "SANDBOX" | "LIVE") || "SANDBOX"
+  const tokenData = await getToken(mode)
+
+  return !!tokenData
+}
+
+export async function checkBkashInit(): Promise<BkashInitCheckResult> {
+  const setting = await prisma.paymentMethodSetting.findUnique({
+    where: { provider: "BKASH" },
+  })
+
+  if (!setting) {
+    return { ok: false, reason: "payment_method_not_found" }
+  }
+
+  if (!setting.enabled) {
+    return { ok: false, reason: "payment_method_disabled" }
+  }
+
+  const activeMode = await getBkashMode()
+  const settingMode = (setting.mode as "SANDBOX" | "LIVE") || "SANDBOX"
+  if (settingMode !== activeMode) {
+    return { ok: false, reason: "mode_mismatch" }
+  }
+
+  let appKey = ""
+  let appSecret = ""
+  let username = ""
+  let password = ""
+  let baseUrl = ""
+
+  if (setting.credentialsJson) {
+    try {
+      const decrypted = decrypt(setting.credentialsJson, "payment")
+      const parsed = JSON.parse(decrypted)
+      appKey = parsed.appKey || ""
+      appSecret = parsed.appSecret || ""
+      username = parsed.username || ""
+      password = parsed.password || ""
+      baseUrl = parsed.baseUrl || ""
+    } catch {
+      return { ok: false, reason: "credential_parse_error" }
+    }
+  }
+
+  appKey = appKey || process.env.BKASH_APP_KEY || ""
+  appSecret = appSecret || process.env.BKASH_APP_SECRET || ""
+  username = username || process.env.BKASH_USERNAME || ""
+  password = password || process.env.BKASH_PASSWORD || ""
+  baseUrl = baseUrl || process.env.BKASH_BASE_URL || "https://tokenized.sandbox.bka.sh/v1.2.0-beta"
+
+  if (!appKey || !appSecret) {
+    return { ok: false, reason: "missing_credentials" }
+  }
+
+  if (!username || !password) {
+    return { ok: false, reason: "missing_credentials" }
+  }
+
+  const normalizedBaseUrl = baseUrl.trim().replace(/\/+$/, '').replace(/\/tokenized$/i, '')
+
+  let res: Response
+  try {
+    res = await fetch(`${normalizedBaseUrl}/tokenized/checkout/token/grant`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-APP-Key": appKey,
+      },
+      body: JSON.stringify({
+        app_key: appKey,
+        app_secret: appSecret,
+      }),
+    })
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "token_fetch_error",
+      detail: err instanceof Error ? err.message.slice(0, 200) : "unknown fetch error",
+    }
+  }
+
+  if (!res.ok) {
+    let text: string
+    try {
+      text = await res.text()
+    } catch {
+      text = `HTTP ${res.status}`
+    }
+    return {
+      ok: false,
+      reason: "token_http_403",
+      detail: text.length > 0 ? text.slice(0, 200) : `HTTP ${res.status}`,
+    }
+  }
+
+  let data: any
+  try {
+    data = await res.json()
+  } catch {
+    return { ok: false, reason: "token_response_parse_error" }
+  }
+
+  if (!data?.id_token) {
+    return { ok: false, reason: "token_missing_id_token" }
+  }
+
+  return { ok: true }
 }
 
 export async function createBkashPayment(

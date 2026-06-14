@@ -809,6 +809,11 @@ export function CheckoutForm() {
           return
         }
 
+        if (order?.payNow > 0 && !paymentInitData?.paymentUrl) {
+          toast.error("Payment could not be started. Please try again.")
+          return
+        }
+
         const orderNumber = order?.orderNumber
         if (orderNumber) {
           router.push(`/order/${orderNumber}`)

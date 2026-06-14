@@ -73,10 +73,13 @@ export default async function OrderConfirmationPage({
 
   if (!order) notFound()
 
-  const dueAmount = order.total - order.paidAmount
   const isBkashPayment = order.paymentMethod.toLowerCase() === "bkash"
-  const isPaymentSuccess = sp.payment === "success"
-  const canRetryPayment = isBkashPayment
+  const isOnlinePayment = isBkashPayment
+  const requiresAdvancePayment = order.payNow > 0
+  const showSuccessBanner = sp.payment === "success" && order.paymentStatus === "paid"
+  const showPendingBanner = isOnlinePayment && order.paymentStatus === "pending"
+
+  const canRetryPayment = isOnlinePayment
     && order.paymentStatus === "pending"
     && order.orderStatus === "pending"
     && order.paymentExpiresAt
@@ -98,9 +101,6 @@ export default async function OrderConfirmationPage({
     })
     return tx
   })()
-
-  const showSuccessBanner = isPaymentSuccess && order.paymentStatus === "paid"
-  const showPendingBanner = isBkashPayment && order.paymentStatus === "pending" && !isPaymentSuccess
 
   return (
     <div className="container mx-auto container-px py-8 md:py-12 max-w-3xl">
@@ -124,12 +124,12 @@ export default async function OrderConfirmationPage({
             Your order is created but payment is pending.{expiryInfo ? ` Payment expires in ${expiryInfo}.` : ""}
           </p>
           {canRetryPayment && (
-            <a
+            <Link
               href={`/order/payment-retry?orderId=${order.id}`}
-              className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-amber-800 hover:text-amber-900 underline"
+              className="inline-flex items-center gap-2 mt-3 px-5 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors"
             >
-              Retry Payment
-            </a>
+              Retry Payment — ৳{order.payNow.toLocaleString()}
+            </Link>
           )}
         </div>
       )}
@@ -153,12 +153,18 @@ export default async function OrderConfirmationPage({
           <CheckCircle className="h-10 w-10 text-green-600" />
         </div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
-          {order.paymentStatus === "paid" ? "Order Confirmed!" : "Order Placed!"}
+          {order.paymentStatus === "paid"
+            ? "Order Confirmed!"
+            : requiresAdvancePayment
+              ? "Awaiting Payment"
+              : "Order Placed!"}
         </h1>
         <p className="text-muted-foreground">
           {order.paymentStatus === "paid"
             ? "Your payment is confirmed. We'll prepare your order shortly."
-            : "Thank you for your order. We'll confirm it shortly."}
+            : requiresAdvancePayment
+              ? "Please complete your payment to confirm the order."
+              : "Thank you for your order. We'll confirm it shortly."}
         </p>
       </div>
 
@@ -197,11 +203,40 @@ export default async function OrderConfirmationPage({
             <span>Total</span>
             <span>৳{order.total.toLocaleString()}</span>
           </div>
-          {dueAmount > 0 && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Due at delivery</span>
-              <span>৳{dueAmount.toLocaleString()}</span>
+          {requiresAdvancePayment && order.payNow > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span>Pay Now</span>
+              <span className="font-medium text-primary">৳{order.payNow.toLocaleString()}</span>
             </div>
+          )}
+          {order.paidAmount > 0 && (
+            <div className="flex items-center justify-between text-sm text-green-600">
+              <span>Paid Amount</span>
+              <span>৳{order.paidAmount.toLocaleString()}</span>
+            </div>
+          )}
+          {order.dueAmount > 0 && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Due on Delivery</span>
+              <span>৳{order.dueAmount.toLocaleString()}</span>
+            </div>
+          )}
+          {canRetryPayment && (
+            <>
+              <Separator />
+              <div className="pt-2">
+                <Link
+                  href={`/order/payment-retry?orderId=${order.id}`}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  <Clock className="h-4 w-4" />
+                  Retry Payment — ৳{order.payNow.toLocaleString()}
+                </Link>
+                {expiryInfo && (
+                  <p className="text-xs text-center text-muted-foreground mt-2">Payment expires {expiryInfo}</p>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -301,10 +336,22 @@ export default async function OrderConfirmationPage({
               <span>Total</span>
               <span>৳{order.total.toLocaleString()}</span>
             </div>
-            {dueAmount > 0 && (
-              <div className="flex justify-between text-muted-foreground">
-                <span>Due at delivery</span>
-                <span>৳{dueAmount.toLocaleString()}</span>
+            {requiresAdvancePayment && order.payNow > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Pay Now</span>
+                <span className="font-medium text-primary">৳{order.payNow.toLocaleString()}</span>
+              </div>
+            )}
+            {order.paidAmount > 0 && (
+              <div className="flex justify-between text-green-600 text-sm">
+                <span>Paid Amount</span>
+                <span>৳{order.paidAmount.toLocaleString()}</span>
+              </div>
+            )}
+            {order.dueAmount > 0 && (
+              <div className="flex justify-between text-muted-foreground text-sm">
+                <span>Due on Delivery</span>
+                <span>৳{order.dueAmount.toLocaleString()}</span>
               </div>
             )}
           </div>

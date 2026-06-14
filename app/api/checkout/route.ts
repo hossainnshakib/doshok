@@ -7,7 +7,7 @@ import { generateOrderNumber } from "@/lib/order-number"
 import { getDeliveryFeeByDistrict } from "@/lib/delivery"
 import { checkoutSchema } from "@/lib/validations"
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/mailer"
-import { isBkashEnabled, createBkashPayment } from "@/lib/payment/bkash"
+import { isBkashEnabled, createBkashPayment, checkBkashInit } from "@/lib/payment/bkash"
 import {
   getDivisionById,
   getDistrictById,
@@ -218,6 +218,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const isOnlinePayment = ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())
+
+    // Pre-check payment initialization capability BEFORE creating the order
+    // This prevents order creation when payment gateway cannot be initialized
+    if (isV2 && paymentResult.payNow > 0 && isOnlinePayment && paymentMethod.toLowerCase() === "bkash") {
+      const initCheck = await checkBkashInit()
+      if (!initCheck.ok) {
+        const isDev = process.env.NODE_ENV === "development"
+        if (isDev) {
+          console.warn("[bkash] init failed:", initCheck.reason, initCheck.detail ?? "")
+          return error(`bKash init failed: ${initCheck.reason}`)
+        }
+        return error("Payment could not be started. Please try again.")
+      }
+    }
+
     let resolvedIdempotencyKey: string | null = null
 
     if (isV2) {
@@ -238,6 +254,10 @@ export async function POST(request: NextRequest) {
           if (!existingPayMethod || existingPayMethod === "cod") {
             return error("This order requires advance payment. Please try again with an online payment method.")
           }
+        }
+        // If order requires online payment and hasn't been paid, don't return success
+        if (isV2 && paymentResult.payNow > 0 && existingOrder.paymentStatus !== "paid") {
+          return error("Payment could not be started. Please try again.")
         }
         return success({ order: existingOrder, paymentInitData: null }, 200)
       }
@@ -396,7 +416,6 @@ if (couponCode && discount > 0) {
 
     let paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
 
-    const isOnlinePayment = ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())
     const shouldInitBkash = isV2
       ? (paymentResult.payNow > 0 && isOnlinePayment && paymentMethod.toLowerCase() === "bkash")
       : (isOnlinePayment && paymentMethod.toLowerCase() === "bkash")
@@ -434,8 +453,8 @@ if (couponCode && discount > 0) {
       }
     }
 
-    if (isV2 && paymentResult.payNow > 0 && isOnlinePayment && !paymentInitData) {
-      return error("Payment gateway initialization failed. Please try again or contact support.")
+    if (paymentResult.payNow > 0 && isOnlinePayment && !paymentInitData) {
+      return error("Payment could not be started. Please try again.")
     }
 
     sendOrderConfirmationEmail({
