@@ -229,7 +229,7 @@ export function CheckoutForm() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.crypto) {
+    if (typeof window !== "undefined" && window.crypto && typeof window.crypto.randomUUID === "function") {
       idempotencyKeyRef.current = window.crypto.randomUUID()
     } else {
       idempotencyKeyRef.current = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
@@ -313,10 +313,6 @@ export function CheckoutForm() {
         if (d.success) {
           const methods = d.data as PaymentMethodSetting[]
           setPaymentMethods(methods)
-          const cod = methods.find((m) => m.provider === "COD")
-          if (cod?.enabled) {
-            setPaymentMethod("cod")
-          }
         }
       })
       .catch(() => {})
@@ -360,9 +356,20 @@ export function CheckoutForm() {
         const defaultAddr = addrs.find((a: UserAddress) => a.isDefault)
         if (defaultAddr) {
           setSelectedAddressId(defaultAddr.id)
-          const addrDivisionId = defaultAddr.divisionId || ""
-          const addrDistrictId = defaultAddr.districtId || ""
-          const addrUpazilaId = defaultAddr.upazilaId || ""
+          let addrDivisionId = defaultAddr.divisionId || ""
+          let addrDistrictId = defaultAddr.districtId || ""
+          let addrUpazilaId = defaultAddr.upazilaId || ""
+
+          if (!addrDivisionId && (defaultAddr.divisionName || defaultAddr.city)) {
+            addrDivisionId = resolveIdByName(divisions, defaultAddr.divisionName || defaultAddr.city)
+          }
+          if (!addrDistrictId && (defaultAddr.districtName || defaultAddr.city)) {
+            addrDistrictId = resolveIdByName(districts, defaultAddr.districtName || defaultAddr.city)
+          }
+          if (!addrUpazilaId && defaultAddr.upazilaName) {
+            addrUpazilaId = resolveIdByName(upazilas, defaultAddr.upazilaName)
+          }
+
           setDraft((prev) => ({
             ...prev,
             name: prev.name || defaultAddr.recipientName,
@@ -385,19 +392,49 @@ export function CheckoutForm() {
       .finally(() => setAddressesLoading(false))
   }, [isLoggedIn])
 
+  function resolveIdByName<T extends { id: string; name: string }>(list: T[], name: string | null | undefined): string {
+    if (!name) return ""
+    const found = list.find((item) => item.name.toLowerCase() === name.trim().toLowerCase())
+    return found?.id ?? ""
+  }
+
   function applyAddressToDraft(addr: UserAddress) {
-    const addrDivisionId = addr.divisionId || ""
-    const addrDistrictId = addr.districtId || ""
-    const addrUpazilaId = addr.upazilaId || ""
+    let addrDivisionId = addr.divisionId || ""
+    let addrDistrictId = addr.districtId || ""
+    let addrUpazilaId = addr.upazilaId || ""
+
+    // Fallback: resolve ID from name for legacy addresses that lack IDs
+    if (!addrDivisionId && (addr.divisionName || addr.city)) {
+      addrDivisionId = resolveIdByName(divisions, addr.divisionName || addr.city)
+    }
+    if (!addrDistrictId && (addr.districtName || addr.city)) {
+      addrDistrictId = resolveIdByName(districts, addr.districtName || addr.city)
+    }
+    if (!addrUpazilaId && addr.upazilaName) {
+      addrUpazilaId = resolveIdByName(upazilas, addr.upazilaName)
+    }
+
+    const resolvedDivisionName = addrDivisionId
+      ? (divisions.find((d) => d.id === addrDivisionId)?.name ?? addr.divisionName ?? addr.city)
+      : addr.divisionName || addr.city
+
+    const resolvedDistrictName = addrDistrictId
+      ? (districts.find((d) => d.id === addrDistrictId)?.name ?? addr.districtName ?? addr.city)
+      : addr.districtName || addr.city
+
+    const resolvedUpazilaName = addrUpazilaId
+      ? (upazilas.find((u) => u.id === addrUpazilaId)?.name ?? addr.upazilaName ?? "")
+      : addr.upazilaName || ""
+
     updateFields({
       name: addr.recipientName,
       phone: getLocalFromSaved(addr.phone),
       divisionId: addrDivisionId,
-      divisionName: addr.divisionName || addr.city,
+      divisionName: resolvedDivisionName,
       districtId: addrDistrictId,
-      districtName: addr.districtName || addr.city,
+      districtName: resolvedDistrictName,
       upazilaId: addrUpazilaId,
-      upazilaName: addr.upazilaName || addr.city,
+      upazilaName: resolvedUpazilaName,
       fullAddress: addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ""),
       selectedDeliveryZone: addr.zone as DeliveryZone,
     })
@@ -412,6 +449,7 @@ export function CheckoutForm() {
 
   const validateCurrentStep = useCallback((): string[] => {
     const errors: string[] = []
+    const onlineRequired = isV2 && calculatedPayNow > 0
     switch (step) {
       case 0: {
         if (!draft.name.trim()) errors.push("Full name is required")
@@ -425,7 +463,8 @@ export function CheckoutForm() {
         break
       }
       case 1: {
-        if (!draft.districtId) errors.push("Division and district are required")
+        if (!draft.divisionId) errors.push("Division is required")
+        if (!draft.districtId) errors.push("District is required")
         if (!draft.upazilaId) errors.push("Upazila / Thana is required")
         if (!draft.fullAddress.trim()) errors.push("Full address is required")
         break
@@ -434,11 +473,14 @@ export function CheckoutForm() {
         if (couponCode.trim() && !couponApplied) {
           errors.push("Apply or remove the coupon code before continuing")
         }
+        if (onlineRequired && (!paymentMethod || paymentMethod === "cod")) {
+          errors.push("This order requires advance payment. Please select bKash or another online payment method.")
+        }
         break
       }
     }
     return errors
-  }, [step, draft, couponCode, couponApplied, isV2, otpRequired, otpState])
+  }, [step, draft, couponCode, couponApplied, isV2, otpRequired, otpState, calculatedPayNow, paymentMethod])
 
   const handleNext = useCallback(() => {
     const errors = validateCurrentStep()
@@ -490,11 +532,24 @@ export function CheckoutForm() {
   }, [computedPayment.payNow, computedPayment.dueAmount])
 
   useEffect(() => {
-    if (isOnlinePaymentRequired && paymentMethod === "cod") {
-      const bkash = paymentMethods.find((p) => p.provider === "BKASH" && p.enabled)
-      if (bkash) {
-        setPaymentMethod("bkash")
-        updateField("selectedPaymentMethod", "bkash")
+    if (isOnlinePaymentRequired) {
+      if (paymentMethod === "cod" || paymentMethod === "" || !paymentMethod) {
+        const bkash = paymentMethods.find((p) => p.provider === "BKASH" && p.enabled)
+        if (bkash) {
+          setPaymentMethod("bkash")
+          updateField("selectedPaymentMethod", "bkash")
+        } else {
+          setPaymentMethod("")
+          updateField("selectedPaymentMethod", "")
+        }
+      }
+    } else {
+      if (paymentMethod === "") {
+        const cod = paymentMethods.find((p) => p.provider === "COD" && p.enabled)
+        if (cod) {
+          setPaymentMethod("cod")
+          updateField("selectedPaymentMethod", "cod")
+        }
       }
     }
   }, [isOnlinePaymentRequired, paymentMethod, paymentMethods])
@@ -649,7 +704,10 @@ export function CheckoutForm() {
     }
   }
 
+  const isSubmitting = useRef(false)
+
   async function handlePlaceOrder() {
+    if (isSubmitting.current) return
     if (!draft.phone || !isValidBdPhone(draft.phone)) {
       toast.error("Enter a valid Bangladesh mobile number")
       return
@@ -662,6 +720,15 @@ export function CheckoutForm() {
       return
     }
 
+    if (isOnlinePaymentRequired && (!paymentMethod || paymentMethod === "cod")) {
+      toast.error("This order requires advance payment. Please select bKash or another online payment method.")
+      setStep(2)
+      scrollToTop()
+      return
+    }
+
+    if (isSubmitting.current) return
+    isSubmitting.current = true
     setLoading(true)
     try {
       const payload: Record<string, unknown> = {
@@ -760,6 +827,7 @@ export function CheckoutForm() {
       toast.error("Something went wrong")
     } finally {
       setLoading(false)
+      isSubmitting.current = false
     }
   }
 
@@ -1528,7 +1596,16 @@ export function CheckoutForm() {
                     </div>
                     <div className="space-y-2 pb-4 pt-4">
                       <h3 className="text-sm font-medium text-muted-foreground">Payment</h3>
-                      <p className="text-sm capitalize">{paymentMethod === "cod" ? "Cash on Delivery" : paymentMethod}</p>
+                      <p className="text-sm capitalize">
+                        {isOnlinePaymentRequired && (!paymentMethod || paymentMethod === "cod")
+                          ? "Online payment required"
+                          : paymentMethod === "cod"
+                            ? "Cash on Delivery"
+                            : paymentMethod === "bkash"
+                              ? "bKash"
+                              : paymentMethod
+                        }
+                      </p>
                       {couponApplied && (
                         <p className="text-sm text-green-600">Coupon {couponCode} applied (-৳{couponDiscount.toLocaleString()})</p>
                       )}
@@ -1555,7 +1632,7 @@ export function CheckoutForm() {
                   size="lg"
                   className="w-full h-12 md:h-14 text-base rounded-xl"
                   onClick={handlePlaceOrder}
-                  disabled={loading}
+                  disabled={loading || isSubmitting.current}
                 >
                   {loading ? "Placing Order..." : `Place Order — ৳${displayTotal.toLocaleString()}`}
                 </Button>

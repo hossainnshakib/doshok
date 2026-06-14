@@ -184,6 +184,27 @@ export async function POST(request: NextRequest) {
     const onlineReservationHours = checkoutSetting?.onlineReservationHours ?? 2
     const codReservationHours = checkoutSetting?.codReservationHours ?? 24
 
+    // Backend payment method guard — must run BEFORE any order creation / stock reservation
+    if (isV2 && paymentResult.payNow > 0) {
+      if (!paymentMethod || paymentMethod.toLowerCase() === "cod") {
+        return error("This order requires advance payment. Please select an online payment method.")
+      }
+      if (!ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())) {
+        return error("Selected payment method is not available for online payment.")
+      }
+    }
+
+    // Check if the selected online provider is actually enabled
+    if (isV2 && paymentResult.payNow > 0 && ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())) {
+      const providerSetting = await prisma.paymentMethodSetting.findUnique({
+        where: { provider: paymentMethod.toUpperCase() },
+        select: { enabled: true },
+      })
+      if (!providerSetting?.enabled) {
+        return error("Selected payment method is currently disabled. Please try another method.")
+      }
+    }
+
     let otpVerified = false
     let otpVerifiedAtValue: Date | null = null
 
@@ -211,6 +232,13 @@ export async function POST(request: NextRequest) {
         include: { items: true, address: true },
       })
       if (existingOrder) {
+        // Re-validate payment method for idempotent returns
+        if (isV2 && paymentResult.payNow > 0) {
+          const existingPayMethod = existingOrder.paymentMethod?.toLowerCase()
+          if (!existingPayMethod || existingPayMethod === "cod") {
+            return error("This order requires advance payment. Please try again with an online payment method.")
+          }
+        }
         return success({ order: existingOrder, paymentInitData: null }, 200)
       }
     }
@@ -365,10 +393,6 @@ if (couponCode && discount > 0) {
 
         return createdOrder
     })
-
-    if (isV2 && paymentResult.payNow > 0 && paymentMethod.toLowerCase() === "cod") {
-      return error("This order requires advance payment. Please select an online payment method.")
-    }
 
     let paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
 
