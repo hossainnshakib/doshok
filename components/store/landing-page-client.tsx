@@ -862,7 +862,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                   inputMode="tel"
                   value={phone}
                   onChange={(e) => {
-                    setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                    setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
                   }}
                   placeholder="1XXXXXXXXX"
                   className="h-11 rounded-xl"

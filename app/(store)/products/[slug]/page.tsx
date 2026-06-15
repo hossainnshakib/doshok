@@ -53,7 +53,7 @@ type ProductSummary = {
   oldPrice: number | null
   images: string[]
   category?: { name: string; slug: string }
-  variants: { stock: number }[]
+  variants: { stock: number; reservedStock: number }[]
 }
 
 export default async function ProductDetailPage({
@@ -135,12 +135,17 @@ export default async function ProductDetailPage({
     }
   }
 
-  const relatedProducts: ProductSummary[] = explicitRelated.length > 0
-    ? explicitRelated.map((p) => ({ id: p.id, name: p.name, slug: p.slug, price: p.price, oldPrice: p.oldPrice, images: p.images, category: p.category, variants: p.variants }))
-    : fallbackRelated.map((p) => ({ id: p.id, name: p.name, slug: p.slug, price: p.price, oldPrice: p.oldPrice, images: p.images, category: p.category, variants: p.variants }))
+  const mapSummary = (p: { id: string; name: string; slug: string; price: number; oldPrice: number | null; images: string[]; category?: { name: string; slug: string } | null; variants: { stock: number; reservedStock: number }[] }): ProductSummary => ({
+    id: p.id, name: p.name, slug: p.slug, price: p.price, oldPrice: p.oldPrice, images: p.images, category: p.category ?? undefined,
+    variants: p.variants.map((v) => ({ stock: v.stock, reservedStock: v.reservedStock })),
+  })
 
-  const crossSellProducts: ProductSummary[] = crossSell.map((p) => ({ id: p.id, name: p.name, slug: p.slug, price: p.price, oldPrice: p.oldPrice, images: p.images, category: p.category, variants: p.variants }))
-  const upsellProducts: ProductSummary[] = upsell.map((p) => ({ id: p.id, name: p.name, slug: p.slug, price: p.price, oldPrice: p.oldPrice, images: p.images, category: p.category, variants: p.variants }))
+  const relatedProducts: ProductSummary[] = explicitRelated.length > 0
+    ? explicitRelated.map(mapSummary)
+    : fallbackRelated.map(mapSummary)
+
+  const crossSellProducts: ProductSummary[] = crossSell.map(mapSummary)
+  const upsellProducts: ProductSummary[] = upsell.map(mapSummary)
 
   return (
     <div>

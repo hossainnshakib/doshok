@@ -12,14 +12,14 @@ type ProductCardProps = {
     oldPrice: number | null
     images: string[]
     category?: { name: string; slug: string }
-    variants: { stock: number }[]
+    variants: { stock: number; reservedStock: number }[]
     averageRating?: number | null
     reviewCount?: number | null
   }
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0)
+  const totalStock = product.variants.reduce((sum, v) => sum + Math.max(0, v.stock - v.reservedStock), 0)
   const image = product.images[0]
   const isSoldOut = totalStock === 0
   const isLowStock = !isSoldOut && totalStock > 0 && totalStock <= LOW_STOCK_THRESHOLD

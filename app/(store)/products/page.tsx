@@ -31,6 +31,34 @@ export default async function ProductsPage({
     ? await prisma.category.findUnique({ where: { slug: category } })
     : null
 
+  if (category && !selectedCategory) {
+    return (
+      <div className="container mx-auto container-px py-8 md:py-12">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-8">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2 font-medium">Collection</p>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight capitalize">Category Not Found</h1>
+          </div>
+        </div>
+        <div className="text-center py-24">
+          <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Package className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Category not found</h2>
+          <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-sm">
+            The category you are looking for does not exist.
+          </p>
+          <Link
+            href="/products"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            View All Products
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const showDiscounts = discount === "true"
   const showFeatured = featured === "true"
   const hasActiveFilter = !!(category || showDiscounts || showFeatured)

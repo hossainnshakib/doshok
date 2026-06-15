@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -72,6 +73,14 @@ export default async function OrderConfirmationPage({
   }
 
   if (!order) notFound()
+
+  const session = await auth()
+  if (!session?.user) {
+    redirect(`/auth/login?callbackUrl=/order/${orderNumber}`)
+  }
+  if (session.user.role !== "admin" && order.userId && order.userId !== session.user.id) {
+    notFound()
+  }
 
   const isBkashPayment = order.paymentMethod.toLowerCase() === "bkash"
   const isOnlinePayment = isBkashPayment

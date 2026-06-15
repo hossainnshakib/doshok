@@ -979,7 +979,11 @@ export function CheckoutForm() {
 
         const orderNumber = order?.orderNumber
         if (orderNumber) {
-          router.push(`/order/${orderNumber}`)
+          if (isLoggedIn) {
+            router.push(`/order/${orderNumber}`)
+          } else {
+            router.push(`/track-order?order=${orderNumber}`)
+          }
         } else {
           router.push("/")
         }

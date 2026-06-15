@@ -42,6 +42,7 @@ type ProductWithVariants = {
     color: string
     colorHex: string | null
     stock: number
+    reservedStock: number
   }[]
   specifications?: {
     id: string
@@ -78,7 +79,7 @@ type ProductSummary = {
   oldPrice: number | null
   images: string[]
   category?: { name: string; slug: string }
-  variants: { stock: number }[]
+  variants: { stock: number; reservedStock: number }[]
 }
 
 export function ProductDetailClient({
@@ -94,7 +95,7 @@ export function ProductDetailClient({
 }) {
   const router = useRouter()
   const [selectedImage, setSelectedImage] = useState(0)
-  const firstAvailableVariant = product.variants.find((variant) => variant.stock > 0) ?? product.variants[0]
+  const firstAvailableVariant = product.variants.find((variant) => (variant.stock - variant.reservedStock) > 0) ?? product.variants[0]
   const [selectedSize, setSelectedSize] = useState(firstAvailableVariant?.size ?? "")
   const [selectedColor, setSelectedColor] = useState(firstAvailableVariant?.color ?? "")
   const [quantity, setQuantity] = useState(1)
@@ -125,10 +126,10 @@ export function ProductDetailClient({
   const selectedVariant = product.variants.find(
     (variant) => variant.size === selectedSize && variant.color === selectedColor
   )
-  const inStock = selectedVariant ? selectedVariant.stock > 0 : true
-  const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0)
+  const inStock = selectedVariant ? Math.max(0, selectedVariant.stock - selectedVariant.reservedStock) > 0 : true
+  const totalStock = product.variants.reduce((sum, variant) => sum + Math.max(0, variant.stock - variant.reservedStock), 0)
   const isSoldOut = totalStock === 0
-  const selectedStock = selectedVariant?.stock ?? totalStock
+  const selectedStock = selectedVariant ? Math.max(0, selectedVariant.stock - selectedVariant.reservedStock) : totalStock
   const isLowStock = selectedStock > 0 && selectedStock <= LOW_STOCK_THRESHOLD
   const discountPercent = product.oldPrice && product.oldPrice > product.price
     ? Math.round((1 - product.price / product.oldPrice) * 100)

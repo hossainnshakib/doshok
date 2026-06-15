@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
     if (!coupon.active) return error("Coupon is inactive")
     if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return error("Coupon has expired")
     if (subtotal < coupon.minOrder) return error(`Minimum order amount is ৳${coupon.minOrder.toLocaleString()}`)
+    if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
+      return error("This coupon has reached its maximum usage limit")
+    }
 
     const identityKey = userId ?? email
     if (coupon.maxUsesPerCustomer && identityKey) {

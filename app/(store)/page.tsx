@@ -13,7 +13,7 @@ type HomeProduct = {
   price: number
   oldPrice: number | null
   images: string[]
-  variants: { stock: number }[]
+  variants: { stock: number; reservedStock: number }[]
   category?: { name: string; slug: string }
 }
 
@@ -26,7 +26,7 @@ type HomeCategory = {
 
 function mapProduct(p: {
   id: string; name: string; slug: string; price: number; oldPrice: number | null;
-  images: string[]; variants: { stock: number }[];
+  images: string[]; variants: { stock: number; reservedStock: number }[];
   category?: { name: string; slug: string } | null;
 }): HomeProduct {
   return { ...p, category: p.category ?? undefined }

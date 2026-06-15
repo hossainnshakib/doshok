@@ -29,7 +29,7 @@ export default async function SearchPage({
     seoKeywords: string | null
     averageRating: number | null
     reviewCount: number | null
-    variants: { stock: number; sku: string | null }[]
+    variants: { stock: number; reservedStock: number; sku: string | null }[]
     category: { name: string; slug: string }
   }> = []
   let total = 0

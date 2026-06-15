@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { CreditCard, MapPin, Package, Search, Truck, RefreshCw, Clock, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -88,7 +89,8 @@ const statusColors: Record<string, "default" | "secondary" | "destructive" | "ou
 }
 
 export default function TrackOrderPage() {
-  const [orderNumber, setOrderNumber] = useState("")
+  const searchParams = useSearchParams()
+  const [orderNumber, setOrderNumber] = useState(searchParams.get("order") ?? "")
   const [phone, setPhone] = useState("")
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)

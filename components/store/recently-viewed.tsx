@@ -15,7 +15,7 @@ type ProductSummary = {
   oldPrice: number | null
   images: string[]
   category?: { name: string; slug: string }
-  variants: { stock: number }[]
+  variants: { stock: number; reservedStock: number }[]
 }
 
 function safeGet<T>(key: string): T[] {
