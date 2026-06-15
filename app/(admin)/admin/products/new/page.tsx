@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { AdminBackLink, AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
+import { ProductRelationSelector } from "@/components/admin/product-relation-selector"
 import { AlertTriangle, Archive, EyeOff, Layers, Plus, Ruler, Save, SendHorizonal, Trash2 } from "lucide-react"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 import { slugifyName } from "@/lib/slug"
@@ -85,6 +86,9 @@ export default function NewProductPage() {
   const [sizeChartIds, setSizeChartIds] = useState<string[]>([])
   const [allSizeCharts, setAllSizeCharts] = useState<{ id: string; name: string }[]>([])
   const [chartSearch, setChartSearch] = useState("")
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>([])
+  const [crossSellProductIds, setCrossSellProductIds] = useState<string[]>([])
+  const [upsellProductIds, setUpsellProductIds] = useState<string[]>([])
 
   useEffect(() => {
     fetch("/api/categories")
@@ -170,6 +174,9 @@ export default function NewProductPage() {
       seoImage: seoImage || undefined,
       specifications: specifications.filter((s) => s.label && s.value),
       sizeChartIds,
+      relatedProductIds,
+      crossSellProductIds,
+      upsellProductIds,
     }
 
     if (pageType === "LANDING") {
@@ -337,7 +344,7 @@ export default function NewProductPage() {
               {allSizeCharts.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
                   <Ruler className="mx-auto mb-2 h-5 w-5 text-slate-300" />
-                  <p className="text-xs text-slate-500">No size charts available. <a href="/admin/size-charts/new" target="_blank" className="text-blue-600 hover:underline">Create one first.</a></p>
+                  <p className="text-xs text-slate-500">No size charts available. <a href="/admin/size-charts" target="_blank" className="text-blue-600 hover:underline">Manage size charts</a></p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -664,6 +671,32 @@ export default function NewProductPage() {
                 <Label htmlFor="defaultCouponCode">Default coupon code <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
                 <Input id="defaultCouponCode" value={defaultCouponCode} onChange={(e) => setDefaultCouponCode(e.target.value)} placeholder="WELCOME10" className="uppercase max-w-xs text-xs" />
               </div>
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="Product Recommendations">
+            <div className="space-y-6">
+              {(["RELATED", "CROSS_SELL", "UPSELL"] as const).map((type) => {
+                const label = type === "RELATED" ? "Related Products" : type === "CROSS_SELL" ? "Cross-sell Products" : "Upsell Products"
+                const desc = type === "RELATED" ? "Products shown as related. Label: You May Also Like." : type === "CROSS_SELL" ? "Products shown as complementary. Label: Pairs well with." : "Premium alternatives. Label: Upgrade your choice."
+                const state = type === "RELATED" ? relatedProductIds : type === "CROSS_SELL" ? crossSellProductIds : upsellProductIds
+                const setState = type === "RELATED" ? setRelatedProductIds : type === "CROSS_SELL" ? setCrossSellProductIds : setUpsellProductIds
+
+                return (
+                  <div key={type} className="space-y-2">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700">{label}</p>
+                      <p className="text-[10px] text-slate-400">{desc}</p>
+                    </div>
+                    <ProductRelationSelector
+                      selectedIds={state}
+                      onChange={setState}
+                      excludeId=""
+                      label={label}
+                    />
+                  </div>
+                )
+              })}
             </div>
           </AdminSectionCard>
 
