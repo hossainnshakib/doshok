@@ -87,20 +87,30 @@ async function main() {
     console.log("\nWARNING: No admin user found. The seed script can recreate one.")
   }
 
-  // 3b. Reset homepage featuredIds
+  // 3b. Reset homepage featuredIds and sections
   console.log("\nResetting homepage config...")
+  const defaultSections = JSON.stringify([
+    { type: "hero", enabled: true, title: "", description: "", sortOrder: 0, config: {} },
+    { type: "categories", enabled: true, title: "Shop by Category", description: "", sortOrder: 10, config: { maxCategories: 8 } },
+    { type: "sale_products", enabled: true, title: "Special Discount", description: "", sortOrder: 20, config: { maxProducts: 4 } },
+    { type: "new_arrivals", enabled: true, title: "New Arrivals", description: "", sortOrder: 30, config: { maxProducts: 8 } },
+    { type: "featured_products", enabled: true, title: "Doshok Picks", description: "Curated sets for daily elegance and effortless style.", sortOrder: 40, config: { maxProducts: 4 } },
+    { type: "promo_banner", enabled: true, title: "", description: "", sortOrder: 50, config: {} },
+    { type: "quote", enabled: true, title: "Style That Speaks", description: "", sortOrder: 60, config: {} },
+  ])
   await prisma.homepageConfig.upsert({
     where: { id: "homepage" },
-    update: { featuredIds: "[]" },
+    update: { featuredIds: "[]", sections: defaultSections },
     create: {
       id: "homepage",
       heroTitle: "Doshok — Style That Speaks",
       heroSubtitle: "Premium Bangladeshi fashion for the modern wardrobe.",
       heroImage: null,
       featuredIds: "[]",
+      sections: defaultSections,
     },
   })
-  console.log("  -> featuredIds reset to empty array")
+  console.log("  -> featuredIds and sections reset to defaults")
 
   // 3c. Ensure clean delivery zones
   const requiredZones = [

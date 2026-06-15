@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
@@ -13,6 +12,36 @@ import { AdminPageHeader, AdminSectionCard } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+
+interface SectionItem {
+  type: string
+  enabled: boolean
+  title: string
+  description: string
+  sortOrder: number
+  config: Record<string, unknown>
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  hero: "Hero",
+  categories: "Categories",
+  sale_products: "Sale Products",
+  new_arrivals: "New Arrivals",
+  featured_products: "Featured Products",
+  best_sellers: "Best Sellers",
+  promo_banner: "Promo Banner",
+  quote: "Quote",
+}
+
+const DEFAULT_SECTIONS: SectionItem[] = [
+  { type: "hero", enabled: true, title: "", description: "", sortOrder: 0, config: {} },
+  { type: "categories", enabled: true, title: "Shop by Category", description: "", sortOrder: 10, config: { maxCategories: 8 } },
+  { type: "sale_products", enabled: true, title: "Special Discount", description: "", sortOrder: 20, config: { maxProducts: 4 } },
+  { type: "new_arrivals", enabled: true, title: "New Arrivals", description: "", sortOrder: 30, config: { maxProducts: 8 } },
+  { type: "featured_products", enabled: true, title: "Doshok Picks", description: "Curated sets for daily elegance and effortless style.", sortOrder: 40, config: { maxProducts: 4 } },
+  { type: "promo_banner", enabled: true, title: "", description: "", sortOrder: 50, config: {} },
+  { type: "quote", enabled: true, title: "Style That Speaks", description: "", sortOrder: 60, config: {} },
+]
 
 export default function AdminHomepagePage() {
   const [heroTitle, setHeroTitle] = useState("")
@@ -30,6 +59,8 @@ export default function AdminHomepagePage() {
   const [products, setProducts] = useState<{ id: string; name: string; price: number; images?: string[]; imageUrl?: string }[]>([])
   const [selectedProductId, setSelectedProductId] = useState("")
   const [loading, setLoading] = useState(false)
+  const [sections, setSections] = useState<SectionItem[]>(DEFAULT_SECTIONS)
+  const [sectionsOpen, setSectionsOpen] = useState(false)
 
   useEffect(() => {
     fetch("/api/homepage")
@@ -56,6 +87,9 @@ export default function AdminHomepagePage() {
             } catch {
               setFeaturedIds([])
             }
+          }
+          if (Array.isArray(d.data.sections) && d.data.sections.length > 0) {
+            setSections(d.data.sections)
           }
         }
       })
@@ -97,6 +131,7 @@ export default function AdminHomepagePage() {
         featuredIds,
         announcementBarText, announcementBarEnabled,
         promoBannerText, promoBannerImage, promoBannerLink, promoBannerEnabled,
+        sections,
       }),
     })
     const data = await res.json()
@@ -106,6 +141,22 @@ export default function AdminHomepagePage() {
       toast.error(data.error ?? "Failed to update")
     }
     setLoading(false)
+  }
+
+  function updateSection(index: number, field: string, value: unknown) {
+    setSections((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], [field]: value }
+      return next
+    })
+  }
+
+  function updateSectionConfig(index: number, key: string, value: unknown) {
+    setSections((prev) => {
+      const next = [...prev]
+      next[index] = { ...next[index], config: { ...next[index].config, [key]: value } }
+      return next
+    })
   }
 
   const getProductImage = (product: typeof products[0] | undefined): string | null => {
@@ -330,6 +381,86 @@ export default function AdminHomepagePage() {
                 )}
               </div>
             </AdminSectionCard>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-slate-800">Homepage Sections</CardTitle>
+                <p className="text-xs text-slate-500">Enable, reorder, and customize each section on the storefront homepage.</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {sections.map((section, index) => (
+                  <div key={section.type} className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider min-w-[120px]">
+                          {SECTION_LABELS[section.type] ?? section.type}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">#{section.sortOrder}</span>
+                      </div>
+                      <Switch
+                        checked={section.enabled}
+                        onCheckedChange={(v) => updateSection(index, "enabled", v)}
+                      />
+                    </div>
+                    {section.enabled && (
+                      <div className="space-y-2.5">
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Title</Label>
+                            <Input
+                              value={section.title}
+                              onChange={(e) => updateSection(index, "title", e.target.value)}
+                              placeholder={SECTION_LABELS[section.type]}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Description</Label>
+                            <Input
+                              value={section.description}
+                              onChange={(e) => updateSection(index, "description", e.target.value)}
+                              placeholder="Section description"
+                              className="text-xs h-8"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Sort Order</Label>
+                            <Input
+                              type="number"
+                              value={section.sortOrder}
+                              onChange={(e) => updateSection(index, "sortOrder", parseInt(e.target.value) || 0)}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                        </div>
+                        {(section.type === "categories") && (
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Max Categories</Label>
+                            <Input
+                              type="number"
+                              value={(section.config.maxCategories as number) ?? 8}
+                              onChange={(e) => updateSectionConfig(index, "maxCategories", parseInt(e.target.value) || 8)}
+                              className="text-xs h-8 w-24"
+                            />
+                          </div>
+                        )}
+                        {(["sale_products", "new_arrivals", "featured_products", "best_sellers"] as const).includes(section.type as "sale_products") && (
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Max Products</Label>
+                            <Input
+                              type="number"
+                              value={(section.config.maxProducts as number) ?? 8}
+                              onChange={(e) => updateSectionConfig(index, "maxProducts", parseInt(e.target.value) || 8)}
+                              className="text-xs h-8 w-24"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">

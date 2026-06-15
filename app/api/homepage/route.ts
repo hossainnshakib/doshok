@@ -2,6 +2,8 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { auth } from "@/lib/auth"
+import { parseSections, SECTION_TYPES } from "@/lib/homepage-sections"
+import type { HomepageSection } from "@/lib/homepage-sections"
 
 export async function GET() {
   const config = await prisma.homepageConfig.findUnique({
@@ -15,9 +17,12 @@ export async function GET() {
     if (Array.isArray(parsed)) featuredIds = parsed
   } catch {}
 
+  const sections = parseSections(config.sections)
+
   return success({
     ...config,
     featuredIds,
+    sections,
   })
 }
 
@@ -31,6 +36,21 @@ export async function PUT(request: NextRequest) {
     const featuredIds = Array.isArray(body.featuredIds)
       ? JSON.stringify(body.featuredIds)
       : body.featuredIds ?? "[]"
+
+    let sectionsJson = body.sections ?? "[]"
+    if (Array.isArray(body.sections)) {
+      const valid = body.sections.every(
+        (s: HomepageSection) =>
+          s &&
+          typeof s === "object" &&
+          typeof s.type === "string" &&
+          SECTION_TYPES.includes(s.type as HomepageSection["type"]),
+      )
+      if (valid) {
+        sectionsJson = JSON.stringify(body.sections)
+      }
+    }
+
     const config = await prisma.homepageConfig.upsert({
       where: { id: "homepage" },
       update: {
@@ -46,6 +66,7 @@ export async function PUT(request: NextRequest) {
         promoBannerImage: body.promoBannerImage ?? "",
         promoBannerLink: body.promoBannerLink ?? "",
         promoBannerEnabled: body.promoBannerEnabled ?? false,
+        sections: sectionsJson,
       },
       create: {
         id: "homepage",
@@ -61,6 +82,7 @@ export async function PUT(request: NextRequest) {
         promoBannerImage: body.promoBannerImage ?? "",
         promoBannerLink: body.promoBannerLink ?? "",
         promoBannerEnabled: body.promoBannerEnabled ?? false,
+        sections: sectionsJson,
       },
     })
     return success(config)
