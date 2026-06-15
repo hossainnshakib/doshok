@@ -5,7 +5,6 @@ import { success, error } from "@/lib/api-response"
 import { sendOrderStatusEmail } from "@/lib/mailer"
 import { ORDER_STATUSES } from "@/types"
 import {
-  releaseStockForOrder,
   finalizeStockDeductionForConfirmedOrder,
   finalizeStockDeductionForDeliveredOrder,
   restoreStockForCancelledOrder,
@@ -106,21 +105,24 @@ export async function PATCH(
       sendOrderStatusEmail(emailData, filtered.orderStatus as string).catch(() => {})
 
       if (filtered.orderStatus === "confirmed" || filtered.orderStatus === "processing") {
-        finalizeStockDeductionForConfirmedOrder(id).catch((err) => {
-          console.error("Failed to deduct stock on confirmation:", err)
-        })
+        const stockResult = await finalizeStockDeductionForConfirmedOrder(id)
+        if (!stockResult.success) {
+          return error(`Stock deduction failed: ${stockResult.error}`)
+        }
       }
 
       if (filtered.orderStatus === "cancelled") {
-        restoreStockForCancelledOrder(id).catch((err) => {
-          console.error("Failed to restore stock on cancellation:", err)
-        })
+        const stockResult = await restoreStockForCancelledOrder(id)
+        if (!stockResult.success) {
+          return error(`Stock restoration failed: ${stockResult.error}`)
+        }
       }
 
       if (filtered.orderStatus === "delivered") {
-        finalizeStockDeductionForDeliveredOrder(id).catch((err) => {
-          console.error("Failed to finalize stock on delivery:", err)
-        })
+        const stockResult = await finalizeStockDeductionForDeliveredOrder(id)
+        if (!stockResult.success) {
+          return error(`Stock deduction failed: ${stockResult.error}`)
+        }
       }
     }
 

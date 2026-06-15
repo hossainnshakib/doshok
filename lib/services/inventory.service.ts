@@ -410,6 +410,20 @@ export async function finalizeStockDeductionForConfirmedOrder(
 export async function restoreStockForCancelledOrder(
   orderId: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Idempotency: check order.stockRestoredAt as shared guard
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { stockRestoredAt: true },
+  })
+  if (order?.stockRestoredAt) return { success: true }
+
+  // Keep movement-based guard as secondary
+  const alreadyRestored = await prisma.stockMovement.findFirst({
+    where: { orderId, type: "order_cancelled_restored" },
+  })
+  if (alreadyRestored) return { success: true }
+
+  const stockRestoredAt = new Date()
   const confirmedDeduction = await prisma.stockMovement.findFirst({
     where: { orderId, type: "order_confirmed_deducted" },
   })
@@ -419,61 +433,102 @@ export async function restoreStockForCancelledOrder(
     select: { variantId: true, quantity: true, productId: true },
   })
 
-  if (confirmedDeduction || reservedMovements.length > 0) {
-    const deductedMovements = confirmedDeduction
-      ? await prisma.stockMovement.findMany({
-          where: { orderId, type: "order_confirmed_deducted" },
-          select: { variantId: true, quantity: true, productId: true },
-        })
-      : []
-
-    const restoredVariants = new Map<string, { productId: string; quantity: number }>()
-
-    for (const m of deductedMovements) {
-      if (!m.variantId) continue
-      const existing = restoredVariants.get(m.variantId)
-      if (existing) {
-        existing.quantity += m.quantity
-      } else {
-        restoredVariants.set(m.variantId, { productId: m.productId, quantity: m.quantity })
-      }
-    }
-
-    for (const m of reservedMovements) {
-      if (!m.variantId) continue
-      const existing = restoredVariants.get(m.variantId)
-      if (existing) {
-        existing.quantity += m.quantity
-      } else {
-        restoredVariants.set(m.variantId, { productId: m.productId, quantity: m.quantity })
-      }
-    }
+  if (confirmedDeduction) {
+    // Order was confirmed/deducted — restore stock from deductions
+    const deductedMovements = await prisma.stockMovement.findMany({
+      where: { orderId, type: "order_confirmed_deducted" },
+      select: { variantId: true, quantity: true, productId: true },
+    })
 
     await prisma.$transaction(async (tx) => {
-      for (const [variantId, restore] of restoredVariants) {
-        const variant = await tx.productVariant.findUnique({ where: { id: variantId } })
+      const recheck = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { stockRestoredAt: true },
+      })
+      if (recheck?.stockRestoredAt) return
+
+      for (const m of deductedMovements) {
+        if (!m.variantId) continue
+        const variant = await tx.productVariant.findUnique({ where: { id: m.variantId } })
         if (!variant) continue
 
         await tx.productVariant.update({
-          where: { id: variantId },
-          data: { stock: { increment: restore.quantity } },
+          where: { id: m.variantId },
+          data: { stock: { increment: m.quantity } },
         })
 
         await tx.stockMovement.create({
           data: {
-            productId: restore.productId,
-            variantId,
+            productId: m.productId,
+            variantId: m.variantId,
             orderId,
             type: "order_cancelled_restored",
-            quantity: restore.quantity,
+            quantity: m.quantity,
             beforeStock: variant.stock,
-            afterStock: variant.stock + restore.quantity,
+            afterStock: variant.stock + m.quantity,
             beforeReserved: variant.reservedStock,
             afterReserved: variant.reservedStock,
             reason: "Order cancelled",
           },
         })
       }
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { stockRestoredAt },
+      })
+    })
+  } else if (reservedMovements.length > 0) {
+    // Order was only reserved (pending) — release reserved stock, do NOT touch stock
+    const variantReleases = new Map<string, { productId: string; quantity: number }>()
+    for (const m of reservedMovements) {
+      if (!m.variantId) continue
+      const existing = variantReleases.get(m.variantId)
+      if (existing) {
+        existing.quantity += m.quantity
+      } else {
+        variantReleases.set(m.variantId, { productId: m.productId, quantity: m.quantity })
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const recheck = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { stockRestoredAt: true },
+      })
+      if (recheck?.stockRestoredAt) return
+
+      for (const [variantId, release] of variantReleases) {
+        const variant = await tx.productVariant.findUnique({ where: { id: variantId } })
+        if (!variant) continue
+
+        const newReserved = Math.max(0, variant.reservedStock - release.quantity)
+
+        await tx.productVariant.update({
+          where: { id: variantId },
+          data: { reservedStock: newReserved },
+        })
+
+        await tx.stockMovement.create({
+          data: {
+            productId: release.productId,
+            variantId,
+            orderId,
+            type: "order_cancelled_restored",
+            quantity: release.quantity,
+            beforeStock: variant.stock,
+            afterStock: variant.stock,
+            beforeReserved: variant.reservedStock,
+            afterReserved: newReserved,
+            reason: "Order cancelled (reservation released)",
+          },
+        })
+      }
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { stockRestoredAt },
+      })
     })
   }
 
@@ -579,40 +634,44 @@ export async function getLowStockItems(limit = 20): Promise<Array<{
   availableStock: number
   lowStockThreshold: number
 }>> {
+  const candidateIds = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT id FROM "ProductVariant"
+    WHERE ("stock" - "reservedStock") <= "lowStockThreshold"
+      AND "lowStockThreshold" > 0
+    ORDER BY ("stock" - "reservedStock") ASC
+    LIMIT ${limit}
+  `
+
+  if (candidateIds.length === 0) return []
+
   const variants = await prisma.productVariant.findMany({
-    where: {
-      OR: [
-        { stock: { lte: 5 } },
-        { lowStockThreshold: { lt: 5 } },
-      ],
-    },
+    where: { id: { in: candidateIds.map((v) => v.id) } },
     include: {
       product: {
         include: { category: true },
       },
     },
-    orderBy: { stock: "asc" },
-    take: limit,
   })
 
-  return variants
-    .map((v) => {
-      const available = Math.max(0, v.stock - v.reservedStock)
-      return {
-        variantId: v.id,
-        productId: v.productId,
-        productName: v.product.name,
-        productImage: v.product.images[0] ?? null,
-        categoryName: v.product.category.name,
-        size: v.size,
-        color: v.color,
-        currentStock: v.stock,
-        reservedStock: v.reservedStock,
-        availableStock: available,
-        lowStockThreshold: v.lowStockThreshold,
-      }
-    })
-    .filter((v) => v.availableStock <= v.lowStockThreshold)
+  const idOrder = new Map(candidateIds.map((v, i) => [v.id, i]))
+  variants.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
+
+  return variants.map((v) => {
+    const available = Math.max(0, v.stock - v.reservedStock)
+    return {
+      variantId: v.id,
+      productId: v.productId,
+      productName: v.product.name,
+      productImage: v.product.images[0] ?? null,
+      categoryName: v.product.category.name,
+      size: v.size,
+      color: v.color,
+      currentStock: v.stock,
+      reservedStock: v.reservedStock,
+      availableStock: available,
+      lowStockThreshold: v.lowStockThreshold,
+    }
+  })
 }
 
 export async function getStockMovements(filters: StockMovementFilter, limit = 50, offset = 0) {
