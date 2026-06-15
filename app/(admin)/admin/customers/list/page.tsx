@@ -19,7 +19,6 @@ export default async function AdminCustomersPage() {
         eyebrow="Customers"
         title="Customer List"
         description={`${customers.length} registered customer${customers.length === 1 ? "" : "s"} in the system.`}
-        backHref="/admin/customers"
       />
 
       {customers.length === 0 ? (

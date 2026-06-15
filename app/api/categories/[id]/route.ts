@@ -12,6 +12,7 @@ export async function PATCH(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const body = await request.json()
     const { parentId, ...rest } = body
@@ -42,6 +43,7 @@ export async function DELETE(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const productCount = await prisma.product.count({ where: { categoryId: id } })
     if (productCount > 0) {

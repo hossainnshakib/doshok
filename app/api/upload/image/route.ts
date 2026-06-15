@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
   if (!session?.user) {
     return error("Unauthorized", 401)
   }
+  if (session.user.role !== "admin") return error("Forbidden", 403)
 
   try {
     const formData = await request.formData()

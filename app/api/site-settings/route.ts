@@ -20,8 +20,11 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const session = await auth()
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
     }
 
     const body = await request.json()

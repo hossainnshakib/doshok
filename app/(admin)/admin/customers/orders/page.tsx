@@ -16,7 +16,7 @@ export default async function AdminCustomerOrdersPage() {
         eyebrow="Customers"
         title="Customer Orders"
         description={`${orders.length} order${orders.length === 1 ? "" : "s"} linked to customer accounts.`}
-        backHref="/admin/customers"
+        backHref="/admin/customers/list"
       />
 
       {orders.length === 0 ? (

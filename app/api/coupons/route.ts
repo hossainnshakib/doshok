@@ -19,6 +19,7 @@ const couponSchema = z.object({
 export async function GET() {
   const session = await auth()
   if (!session?.user) return error("Unauthorized", 401)
+  if (session.user.role !== "admin") return error("Forbidden", 403)
 
   const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } })
   return success(coupons)
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const body = await request.json()
     const parsed = couponSchema.safeParse(body)

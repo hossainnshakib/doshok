@@ -30,6 +30,7 @@ function getLabelFromHref(href: string): string {
 export async function POST() {
   const session = await auth()
   if (!session?.user) return error("Unauthorized", 401)
+  if (session.user.role !== "admin") return error("Forbidden", 403)
 
   let settings = await prisma.siteSettings.findUnique({ where: { id: "default" } })
   if (!settings) {

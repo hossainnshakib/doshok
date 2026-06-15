@@ -25,6 +25,7 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const body = await request.json()
     const featuredIds = Array.isArray(body.featuredIds)

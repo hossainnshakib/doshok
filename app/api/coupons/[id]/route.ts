@@ -11,6 +11,7 @@ export async function GET(
 
   const session = await auth()
   if (!session?.user) return error("Unauthorized", 401)
+  if (session.user.role !== "admin") return error("Forbidden", 403)
 
   const coupon = await prisma.coupon.findUnique({ where: { id } })
   if (!coupon) return error("Not found", 404)
@@ -26,6 +27,7 @@ export async function PATCH(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const body = await request.json()
     const data: Record<string, unknown> = { ...body }
@@ -47,6 +49,7 @@ export async function DELETE(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     await prisma.coupon.delete({ where: { id } })
     return success({ deleted: true })

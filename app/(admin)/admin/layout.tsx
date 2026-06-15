@@ -31,7 +31,6 @@ import {
   BookOpen,
   CreditCard,
   PackageSearch,
-  MessageSquare,
   ClipboardList,
   MapPin,
   Ruler,
@@ -115,12 +114,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/payment-methods", label: "Payment Methods", icon: CreditCard },
       { href: "/admin/courier-methods", label: "Courier Methods", icon: Truck },
       { href: "/admin/delivery-zones", label: "Delivery Zones", icon: MapPin },
-    ],
-  },
-  {
-    label: "Support",
-    items: [
-      { href: "/admin/support/messages", label: "Contact Messages", icon: MessageSquare },
+      { href: "/admin/checkout-settings", label: "Checkout Settings", icon: ClipboardList },
     ],
   },
   {

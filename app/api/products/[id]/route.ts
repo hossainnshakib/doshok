@@ -78,6 +78,7 @@ export async function PATCH(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const body = await request.json()
 
@@ -269,6 +270,7 @@ export async function DELETE(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     await prisma.product.delete({ where: { id } })
     return success({ deleted: true })

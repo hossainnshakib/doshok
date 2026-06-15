@@ -27,6 +27,9 @@ export async function PATCH(
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+    }
 
     const { id } = await params
     const body = await req.json()
@@ -77,6 +80,9 @@ export async function DELETE(
     const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
     }
 
     const { id } = await params

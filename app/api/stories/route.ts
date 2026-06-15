@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+    }
 
     const body = await req.json()
     const { title, slug, excerpt, content, image, status } = body

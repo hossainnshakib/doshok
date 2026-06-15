@@ -15,7 +15,7 @@ export default async function AdminCustomerAddressesPage() {
         eyebrow="Customers"
         title="Customer Addresses"
         description={`${addresses.length} saved address${addresses.length === 1 ? "" : "es"} in the system.`}
-        backHref="/admin/customers"
+        backHref="/admin/customers/list"
       />
 
       {addresses.length === 0 ? (

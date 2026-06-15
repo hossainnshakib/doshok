@@ -27,6 +27,7 @@ export async function PATCH(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const { id } = await params
     const body = await request.json()
@@ -79,6 +80,7 @@ export async function DELETE(
   try {
     const session = await auth()
     if (!session?.user) return error("Unauthorized", 401)
+    if (session.user.role !== "admin") return error("Forbidden", 403)
 
     const { id } = await params
     const chart = await prisma.sizeChart.findUnique({ where: { id } })

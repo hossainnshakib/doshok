@@ -25,6 +25,11 @@ import { AddressCombobox } from "@/components/store/address-combobox"
 import { normalizePhoneToE164, isValidBdPhone } from "@/lib/checkout/phone"
 import { calculatePaymentAmounts, type PaymentRuleType } from "@/lib/checkout/payment-amount-client"
 import { FirebaseOtpPanel } from "@/components/store/firebase-otp-panel"
+import {
+  saveCheckoutPersistence,
+  loadCheckoutPersistence,
+  clearCheckoutPersistence,
+} from "@/lib/checkout/checkout-persistence"
 
 type PaymentMethodSetting = {
   provider: string
@@ -287,6 +292,79 @@ export function CheckoutForm() {
     }
   }, [isBuyNow, searchParams, router])
 
+  const restoredRef = useRef(false)
+
+  useEffect(() => {
+    if (restoredRef.current) return
+    if (isBuyNow) return
+
+    const saved = loadCheckoutPersistence()
+    if (!saved) {
+      restoredRef.current = true
+      return
+    }
+
+    const cart = getCart()
+    if (cart.length === 0) {
+      clearCheckoutPersistence()
+      restoredRef.current = true
+      return
+    }
+
+    const updates: Partial<typeof draft> = {}
+
+    if (saved.customer) {
+      if (saved.customer.name) updates.name = saved.customer.name
+      if (saved.customer.email) updates.email = saved.customer.email
+      if (saved.customer.phone) updates.phone = saved.customer.phone
+    }
+
+    if (saved.address) {
+      if (saved.address.divisionId) updates.divisionId = saved.address.divisionId
+      if (saved.address.divisionName) updates.divisionName = saved.address.divisionName
+      if (saved.address.districtId) updates.districtId = saved.address.districtId
+      if (saved.address.districtName) updates.districtName = saved.address.districtName
+      if (saved.address.upazilaId) updates.upazilaId = saved.address.upazilaId
+      if (saved.address.upazilaName) updates.upazilaName = saved.address.upazilaName
+      if (saved.address.address) updates.fullAddress = saved.address.address
+      if (saved.address.notes !== undefined) updates.note = saved.address.notes
+      if (saved.address.deliveryZone) {
+        updates.selectedDeliveryZone = saved.address.deliveryZone as DeliveryZone
+      }
+    }
+
+    if (saved.checkout) {
+      if (saved.checkout.couponCode) updates.couponCode = saved.checkout.couponCode
+      if (saved.checkout.paymentMethod) updates.selectedPaymentMethod = saved.checkout.paymentMethod
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updateFields(updates)
+    }
+
+    if (saved.checkout) {
+      setStep(saved.checkout.currentStep)
+      setPaymentMethod(saved.checkout.paymentMethod)
+      setSelectedAddressId(saved.checkout.selectedAddressId ?? null)
+      setCouponCode(saved.checkout.couponCode ?? "")
+    }
+
+    if (saved.address?.deliveryZone) {
+      setDeliveryZone(saved.address.deliveryZone as DeliveryZone)
+    }
+
+    if (saved.address?.divisionId) {
+      const restoredDistricts = getDistrictsByDivision(saved.address.divisionId)
+      setDistricts(restoredDistricts)
+      if (saved.address.districtId) {
+        const restoredUpazilas = getUpazilasByDistrict(saved.address.districtId)
+        setUpazilas(restoredUpazilas)
+      }
+    }
+
+    restoredRef.current = true
+  }, [isBuyNow])
+
   useEffect(() => {
     if (!draft.districtId) return
     const url = draft.districtId ? `/api/delivery-fees?districtId=${encodeURIComponent(draft.districtId)}` : "/api/delivery-fees"
@@ -391,6 +469,90 @@ export function CheckoutForm() {
       .catch(() => {})
       .finally(() => setAddressesLoading(false))
   }, [isLoggedIn])
+
+  const prevSessionRef = useRef(session)
+
+  useEffect(() => {
+    if (prevSessionRef.current && !session) {
+      clearCheckoutPersistence()
+    }
+    prevSessionRef.current = session
+  }, [session])
+
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (isBuyNow) return
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      const itemIds = items.map((i) => {
+        const key = i.variantId ? `${i.productId}:${i.variantId}` : i.productId
+        return key
+      })
+      const quantitySnapshot = items.reduce((sum, i) => sum + i.quantity, 0)
+
+      saveCheckoutPersistence({
+        customer: {
+          name: draft.name,
+          email: draft.email,
+          phone: draft.phone,
+        },
+        address: {
+          divisionId: draft.divisionId,
+          divisionName: draft.divisionName,
+          districtId: draft.districtId,
+          districtName: draft.districtName,
+          upazilaId: draft.upazilaId,
+          upazilaName: draft.upazilaName,
+          address: draft.fullAddress,
+          notes: draft.note,
+          deliveryZone,
+        },
+        checkout: {
+          selectedAddressId,
+          paymentMethod,
+          currentStep: step,
+          couponCode,
+        },
+        cart: {
+          itemIds,
+          quantitySnapshot,
+          timestamp: new Date().toISOString(),
+        },
+      })
+    }, 1500)
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+      }
+    }
+  }, [
+    draft.name,
+    draft.email,
+    draft.phone,
+    draft.divisionId,
+    draft.divisionName,
+    draft.districtId,
+    draft.districtName,
+    draft.upazilaId,
+    draft.upazilaName,
+    draft.fullAddress,
+    draft.note,
+    draft.selectedPaymentMethod,
+    draft.couponCode,
+    deliveryZone,
+    step,
+    paymentMethod,
+    selectedAddressId,
+    couponCode,
+    items,
+    isBuyNow,
+  ])
 
   function resolveIdByName<T extends { id: string; name: string }>(list: T[], name: string | null | undefined): string {
     if (!name) return ""
@@ -796,6 +958,7 @@ export function CheckoutForm() {
             }),
           }).catch(() => {})
         }
+        clearCheckoutPersistence()
         if (!isBuyNow) clearCart()
         resetDraft()
         window.dispatchEvent(new Event("cart-update"))
