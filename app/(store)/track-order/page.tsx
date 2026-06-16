@@ -32,7 +32,6 @@ type Order = {
   paymentStatus: string
   orderStatus: string
   paymentExpiresAt: string | null
-  bkashTrxId: string | null
   paymentVerifiedAt: string | null
   createdAt: string
   notes: string | null
@@ -95,7 +94,7 @@ export default function TrackOrderPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [retrying, setRetrying] = useState(false)
+  const retrying = false
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -124,26 +123,8 @@ export default function TrackOrderPage() {
     }
   }
 
-  async function handleRetryPayment() {
-    if (!order) return
-    setRetrying(true)
-    try {
-      const res = await fetch("/api/payment/bkash/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id }),
-      })
-      const d = await res.json()
-      if (d.success && d.data?.paymentUrl) {
-        window.location.href = d.data.paymentUrl
-      } else {
-        toast.error(d.error ?? "Failed to initialize payment")
-      }
-    } catch {
-      toast.error("Something went wrong")
-    } finally {
-      setRetrying(false)
-    }
+  const handleRetryPayment = async () => {
+    toast.error("Online payments are not available.")
   }
 
 const ORDER_STEPS = ["Pending", "Confirmed", "Processing", "Shipped", "Delivered"] as const
@@ -320,30 +301,12 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
                   </div>
                 )}
 
-                {order.paymentMethod.toLowerCase() === "bkash" && order.paymentStatus === "pending" && order.orderStatus === "pending" && (
+                {order.paymentMethod.toLowerCase() !== "cod" && order.paymentStatus === "pending" && order.orderStatus === "pending" && (
                   <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    {order.paymentExpiresAt && new Date(order.paymentExpiresAt) > new Date() ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-amber-700">
-                          <Clock className="h-4 w-4" />
-                          <span>Payment expires {new Date(order.paymentExpiresAt).toLocaleString()}</span>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="w-full rounded-full"
-                          onClick={handleRetryPayment}
-                          disabled={retrying}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1.5" />
-                          {retrying ? "Loading..." : "Retry Payment"}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm text-red-600">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span>Payment window expired</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 text-sm text-amber-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>This order uses an unsupported payment method. Please contact support.</span>
+                    </div>
                   </div>
                 )}
               </div>

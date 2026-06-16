@@ -10,7 +10,7 @@ Premium Bangladeshi fashion e-commerce platform built with Next.js 16.
 - **UI:** Tailwind CSS v4, Base UI, Framer Motion, shadcn/ui
 - **Email:** Resend
 - **Image Upload:** Cloudinary
-- **Payments:** bKash, Nagad, Rocket, Upay, SSLCommerz, aamarPay (setup-ready)
+- **Payments:** Cash on Delivery (COD)
 - **Couriers:** Pathao, Steadfast, RedX (setup-ready)
 
 ## Local Setup
@@ -78,4 +78,4 @@ Payment and courier provider credentials are encrypted at rest using AES-256-GCM
 
 ## Payment & Courier Integrations
 
-Payment gateways (bKash, Nagad, SSLCommerz, aamarPay, etc.) and courier APIs (Pathao, Steadfast, RedX) are **setup-ready but not live**. Configure providers in the admin panel after deployment. Sandbox mode is the default.
+Only **Cash on Delivery (COD)** is supported for payments. Courier APIs (Pathao, Steadfast, RedX) are **setup-ready but not live**. Configure providers in the admin panel after deployment.

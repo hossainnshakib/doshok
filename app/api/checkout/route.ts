@@ -7,7 +7,6 @@ import { generateOrderNumber } from "@/lib/order-number"
 import { getDeliveryFeeByDistrict } from "@/lib/delivery"
 import { checkoutSchema } from "@/lib/validations"
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/mailer"
-import { isBkashEnabled, createBkashPayment, checkBkashInit } from "@/lib/payment/bkash"
 import {
   getDivisionById,
   getDistrictById,
@@ -18,9 +17,6 @@ import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
 import { resolvePaymentRule } from "@/lib/checkout/payment-rule.service"
 import { isCheckoutVerificationTokenValid } from "@/lib/checkout/otp.service"
 import crypto from "crypto"
-
-const ONLINE_PROVIDERS = ["bkash"]
-const PAYMENT_EXPIRY_HOURS = 2
 
 export async function POST(request: NextRequest) {
   try {
@@ -187,25 +183,9 @@ export async function POST(request: NextRequest) {
     const onlineReservationHours = checkoutSetting?.onlineReservationHours ?? 2
     const codReservationHours = checkoutSetting?.codReservationHours ?? 24
 
-    // Backend payment method guard — must run BEFORE any order creation / stock reservation
-    if (isV2 && paymentResult.payNow > 0) {
-      if (!paymentMethod || paymentMethod.toLowerCase() === "cod") {
-        return error("This order requires advance payment. Please select an online payment method.")
-      }
-      if (!ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())) {
-        return error("Selected payment method is not available for online payment.")
-      }
-    }
-
-    // Check if the selected online provider is actually enabled
-    if (isV2 && paymentResult.payNow > 0 && ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())) {
-      const providerSetting = await prisma.paymentMethodSetting.findUnique({
-        where: { provider: paymentMethod.toUpperCase() },
-        select: { enabled: true },
-      })
-      if (!providerSetting?.enabled) {
-        return error("Selected payment method is currently disabled. Please try another method.")
-      }
+    // Payment method guard — only COD is supported
+    if (paymentMethod && paymentMethod.toLowerCase() !== "cod") {
+      return error("Only Cash on Delivery is available at this time.")
     }
 
     // Backend COD guard: reject COD if disabled in PaymentMethodSetting
@@ -232,21 +212,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const isOnlinePayment = ONLINE_PROVIDERS.includes(paymentMethod.toLowerCase())
-
-    // Pre-check payment initialization capability BEFORE creating the order
-    // This prevents order creation when payment gateway cannot be initialized
-    if (isV2 && paymentResult.payNow > 0 && isOnlinePayment && paymentMethod.toLowerCase() === "bkash") {
-      const initCheck = await checkBkashInit()
-      if (!initCheck.ok) {
-        const isDev = process.env.NODE_ENV === "development"
-        if (isDev) {
-          console.warn("[bkash] init failed:", initCheck.reason, initCheck.detail ?? "")
-          return error(`bKash init failed: ${initCheck.reason}`)
-        }
-        return error("Payment could not be started. Please try again.")
-      }
-    }
+    const isOnlinePayment = false
 
     let resolvedIdempotencyKey: string | null = null
 
@@ -262,17 +228,6 @@ export async function POST(request: NextRequest) {
         include: { items: true, address: true },
       })
       if (existingOrder) {
-        // Re-validate payment method for idempotent returns
-        if (isV2 && paymentResult.payNow > 0) {
-          const existingPayMethod = existingOrder.paymentMethod?.toLowerCase()
-          if (!existingPayMethod || existingPayMethod === "cod") {
-            return error("This order requires advance payment. Please try again with an online payment method.")
-          }
-        }
-        // If order requires online payment and hasn't been paid, don't return success
-        if (isV2 && paymentResult.payNow > 0 && existingOrder.paymentStatus !== "paid") {
-          return error("Payment could not be started. Please try again.")
-        }
         return success({ order: existingOrder, paymentInitData: null }, 200)
       }
     }
@@ -439,48 +394,7 @@ if (couponCode && discount > 0) {
         return createdOrder
     })
 
-    let paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
-
-    const shouldInitBkash = isV2
-      ? (paymentResult.payNow > 0 && isOnlinePayment && paymentMethod.toLowerCase() === "bkash")
-      : (isOnlinePayment && paymentMethod.toLowerCase() === "bkash")
-
-    if (shouldInitBkash) {
-      const bkashEnabled = await isBkashEnabled()
-      if (bkashEnabled) {
-        const callbackBase = process.env.NEXTAUTH_URL || "http://localhost:3000"
-        const paymentAmount = order.payNow > 0 ? order.payNow : order.total
-        const bkashResult = await createBkashPayment(order.id, order.orderNumber, paymentAmount, callbackBase)
-
-        if (!("error" in bkashResult)) {
-          const mode = await prisma.paymentMethodSetting.findUnique({ where: { provider: "BKASH" } })
-          const baseUrl = mode?.mode === "LIVE"
-            ? "https://checkout.pay.bka.sh/v1.2.0-beta"
-            : "https://tokenized.sandbox.bka.sh/v1.2.0-beta"
-
-          if (!isV2) {
-            const expiresAt = new Date(Date.now() + PAYMENT_EXPIRY_HOURS * 60 * 60 * 1000)
-            await prisma.order.update({
-              where: { id: order.id },
-              data: { paymentExpiresAt: expiresAt },
-            })
-          }
-
-          if (bkashResult.paymentExecuteStatus === "success" && bkashResult.trxId) {
-            paymentInitData = { paymentId: bkashResult.trxId }
-          } else if (bkashResult.paymentId) {
-            paymentInitData = {
-              paymentId: bkashResult.paymentId,
-              paymentUrl: `${baseUrl}/tokenized/checkout/pay/${bkashResult.paymentId}`,
-            }
-          }
-        }
-      }
-    }
-
-    if (paymentResult.payNow > 0 && isOnlinePayment && !paymentInitData) {
-      return error("Payment could not be started. Please try again.")
-    }
+    const paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
 
     sendOrderConfirmationEmail({
       orderNumber: order.orderNumber,

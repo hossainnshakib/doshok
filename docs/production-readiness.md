@@ -21,13 +21,7 @@
 
 | Variable | Required | Status | Notes |
 |----------|----------|--------|-------|
-| `BKASH_APP_KEY` | If bKash enabled | | Set only when bKash is ready for production |
-| `BKASH_APP_SECRET` | If bKash enabled | | Set only when bKash is ready for production |
-| `BKASH_USERNAME` | If bKash enabled | | |
-| `BKASH_PASSWORD` | If bKash enabled | | |
-| `BKASH_BASE_URL` | If bKash enabled | | Use production URL when live |
-
-> **Note:** bKash/Nagad gateways should remain paused/disabled in PaymentMethodSetting until fully tested and ready.
+> **Note:** Only Cash on Delivery (COD) is currently supported. Online payment gateways have been removed.
 
 ## Email (Resend-only — no SMTP/nodemailer)
 
@@ -49,7 +43,7 @@ If OTP verification is enabled, ensure Firebase project is configured for produc
 
 - [ ] All environment variables configured in production
 - [ ] Database migrations applied
-- [ ] Payment methods reviewed (COD/bKash enabled/disabled as needed)
+- [ ] Payment methods reviewed (COD enabled/disabled as needed)
 - [ ] Cron jobs configured (order cleanup, stock release, etc.)
 - [ ] Rate limiting enabled and tuned
 - [ ] SSL/TLS enforced

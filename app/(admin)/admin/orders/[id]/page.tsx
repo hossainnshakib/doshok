@@ -117,12 +117,7 @@ export default async function AdminOrderDetailPage({
               <AdminStatusBadge status={order.paymentMethod.toUpperCase()} type="default" />
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              {order.bkashTrxId && (
-                <div className="rounded-lg bg-slate-50/60 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">bKash TrxID</p>
-                  <p className="font-mono text-[11px] font-bold text-slate-700">{order.bkashTrxId}</p>
-                </div>
-              )}
+
               {order.paymentVerifiedAt && (
                 <div className="rounded-lg bg-emerald-50/60 p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500 mb-1">Verified At</p>

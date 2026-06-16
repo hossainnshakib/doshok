@@ -27,7 +27,6 @@ type Order = {
   paymentStatus: string
   orderStatus: string
   paymentExpiresAt: string | null
-  bkashTrxId: string | null
   paymentVerifiedAt: string | null
   createdAt: string
   notes: string | null
@@ -119,26 +118,8 @@ export default function AccountOrderDetailPage() {
       .finally(() => setLoading(false))
   }, [orderNumber, phone])
 
-  async function handleRetryPayment() {
-    if (!order) return
-    setRetrying(true)
-    try {
-      const res = await fetch("/api/payment/bkash/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id }),
-      })
-      const d = await res.json()
-      if (d.success && d.data?.paymentUrl) {
-        window.location.href = d.data.paymentUrl
-      } else {
-        toast.error(d.error ?? "Failed to initialize payment")
-      }
-    } catch {
-      toast.error("Something went wrong")
-    } finally {
-      setRetrying(false)
-    }
+  const handleRetryPayment = async () => {
+    toast.error("Online payments are not available.")
   }
 
   async function handleReorder(mode: "cart" | "checkout") {
@@ -311,12 +292,7 @@ export default function AccountOrderDetailPage() {
                   </Badge>
                 </div>
               ))}
-              {order.bkashTrxId && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-xs text-muted-foreground">bKash TrxID:</span>
-                  <span className="font-mono text-xs">{order.bkashTrxId}</span>
-                </div>
-              )}
+
               {order.paymentVerifiedAt && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-xs text-muted-foreground">Verified:</span>
@@ -326,30 +302,12 @@ export default function AccountOrderDetailPage() {
             </div>
           )}
 
-          {order.paymentMethod.toLowerCase() === "bkash" && order.paymentStatus === "pending" && order.orderStatus === "pending" && (
+          {order.paymentMethod.toLowerCase() !== "cod" && order.paymentStatus === "pending" && order.orderStatus === "pending" && (
             <div className="mt-4">
-              {order.paymentExpiresAt && new Date(order.paymentExpiresAt) > new Date() ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-amber-600">
-                    <Clock className="h-4 w-4" />
-                    <span>Payment expires {new Date(order.paymentExpiresAt).toLocaleString()}</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="rounded-full"
-                    onClick={handleRetryPayment}
-                    disabled={retrying}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-1.5" />
-                    {retrying ? "Loading..." : "Retry Payment"}
-                  </Button>
-                </div>
-              ) : order.paymentExpiresAt ? (
-                <div className="flex items-center gap-2 text-sm text-red-500">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Payment window expired</span>
-                </div>
-              ) : null}
+              <div className="flex items-center gap-2 text-sm text-amber-600">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Unsupported payment method. Please contact support.</span>
+              </div>
             </div>
           )}
         </CardContent>

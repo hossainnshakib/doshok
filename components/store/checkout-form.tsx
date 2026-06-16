@@ -52,7 +52,7 @@ type CheckoutSettings = {
   defaultPaymentRuleValue: number | null
 }
 
-const ONLINE_PROVIDERS = ["BKASH"]
+const ONLINE_PROVIDERS: string[] = []
 
 const STEPS = [
   { index: 0, label: "Contact", description: "Who & where to reach" },
@@ -636,7 +636,7 @@ export function CheckoutForm() {
           errors.push("Apply or remove the coupon code before continuing")
         }
         if (onlineRequired && (!paymentMethod || paymentMethod === "cod")) {
-          errors.push("This order requires advance payment. Please select bKash or another online payment method.")
+          errors.push("This order requires advance payment but only Cash on Delivery is available.")
         }
         break
       }
@@ -696,14 +696,8 @@ export function CheckoutForm() {
   useEffect(() => {
     if (isOnlinePaymentRequired) {
       if (paymentMethod === "cod" || paymentMethod === "" || !paymentMethod) {
-        const bkash = paymentMethods.find((p) => p.provider === "BKASH" && p.enabled)
-        if (bkash) {
-          setPaymentMethod("bkash")
-          updateField("selectedPaymentMethod", "bkash")
-        } else {
-          setPaymentMethod("")
-          updateField("selectedPaymentMethod", "")
-        }
+        setPaymentMethod("")
+        updateField("selectedPaymentMethod", "")
       }
     } else {
       if (paymentMethod === "") {
@@ -883,7 +877,7 @@ export function CheckoutForm() {
     }
 
     if (isOnlinePaymentRequired && (!paymentMethod || paymentMethod === "cod")) {
-      toast.error("This order requires advance payment. Please select bKash or another online payment method.")
+      toast.error("This order requires advance payment but only Cash on Delivery is available.")
       setStep(2)
       scrollToTop()
       return
@@ -1613,7 +1607,7 @@ export function CheckoutForm() {
                       value={paymentMethod}
                       onValueChange={(v) => {
                         const target = paymentMethods.find((p) => p.provider.toLowerCase() === v)
-                        if (target && target.enabled && (target.provider === "COD" || target.provider === "BKASH")) {
+                        if (target && target.enabled && target.provider === "COD") {
                           setPaymentMethod(v)
                           updateField("selectedPaymentMethod", v)
                         }
@@ -1624,9 +1618,8 @@ export function CheckoutForm() {
                         const isOnline = ONLINE_PROVIDERS.includes(pm.provider)
                         const isEnabled = pm.enabled
                         const isCod = pm.provider === "COD"
-                        const isBkash = pm.provider === "BKASH"
                         const isCodBlocked = isCod && isOnlinePaymentRequired
-                        const isSelectable = isEnabled && !isCodBlocked && (isCod || isBkash)
+                        const isSelectable = isEnabled && !isCodBlocked && isCod
 
                         return (
                           <div
@@ -1675,21 +1668,6 @@ export function CheckoutForm() {
                                   )}
                                 </div>
                               )}
-                              {isBkash && isEnabled && (
-                                <div className="mt-1.5 space-y-1">
-                                  <p className="text-xs text-muted-foreground">
-                                    Pay now with bKash to confirm your order instantly.
-                                  </p>
-                                  <p className="text-xs font-medium text-primary">
-                                    Amount to pay: ৳{(isV2 ? payNowForDisplay : displayTotal).toLocaleString()}
-                                  </p>
-                                  {isV2 && payNowForDisplay < displayTotal && (
-                                    <p className="text-xs text-muted-foreground">
-                                      Due on delivery: ৳{dueAmountForDisplay.toLocaleString()}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
                               {pm.instructions && isEnabled && (
                                 <p className="text-xs text-muted-foreground mt-1">
                                   {pm.instructions}
@@ -1698,11 +1676,6 @@ export function CheckoutForm() {
                               {isOnline && !isEnabled && (
                                 <p className="text-xs text-muted-foreground mt-1 italic">
                                   Currently unavailable
-                                </p>
-                              )}
-                              {isOnline && isEnabled && !isBkash && (
-                                <p className="text-xs text-muted-foreground mt-1 italic">
-                                  {pm.displayName} is not yet configured
                                 </p>
                               )}
                             </div>
@@ -1768,15 +1741,8 @@ export function CheckoutForm() {
                     </div>
                     <div className="space-y-2 pb-4 pt-4">
                       <h3 className="text-sm font-medium text-muted-foreground">Payment</h3>
-                      <p className="text-sm capitalize">
-                        {isOnlinePaymentRequired && (!paymentMethod || paymentMethod === "cod")
-                          ? "Online payment required"
-                          : paymentMethod === "cod"
-                            ? "Cash on Delivery"
-                            : paymentMethod === "bkash"
-                              ? "bKash"
-                              : paymentMethod
-                        }
+                      <p className="text-sm">
+                        Cash on Delivery
                       </p>
                       {couponApplied && (
                         <p className="text-sm text-green-600">Coupon {couponCode} applied (-৳{couponDiscount.toLocaleString()})</p>

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { success, error } from "@/lib/api-response"
-import { cancelExpiredPayments } from "@/lib/payment/bkash"
+import { success } from "@/lib/api-response"
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("Authorization")
@@ -19,8 +18,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const processed = await cancelExpiredPayments()
-  return success({ processed, skipped: 0, failed: 0 })
+  return success({ processed: 0, skipped: 0, failed: 0 })
 }
 
 export async function GET(request: NextRequest) {

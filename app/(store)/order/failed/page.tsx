@@ -24,15 +24,15 @@ type PendingOrder = {
 const REASON_MESSAGES: Record<string, { title: string; description: string }> = {
   payment_not_success: {
     title: "Payment Not Completed",
-    description: "Your bKash payment was not completed. Please try again.",
+    description: "Your payment was not completed. Please try again.",
   },
   verification_failed: {
     title: "Verification Failed",
-    description: "We couldn't verify your payment with bKash. Please try again.",
+    description: "We couldn't verify your payment. Please try again.",
   },
   payment_not_completed: {
     title: "Payment Incomplete",
-    description: "Your payment was not completed on bKash. Please try again.",
+    description: "Your payment was not completed. Please try again.",
   },
   invoice_mismatch: {
     title: "Order Mismatch",
@@ -44,7 +44,7 @@ const REASON_MESSAGES: Record<string, { title: string; description: string }> = 
   },
   transaction_failed: {
     title: "Transaction Failed",
-    description: "Your bKash transaction failed. Please try again.",
+    description: "Your transaction failed. Please try again.",
   },
   expired: {
     title: "Payment Session Expired",
@@ -60,7 +60,7 @@ const REASON_MESSAGES: Record<string, { title: string; description: string }> = 
   },
   unknown: {
     title: "Something Went Wrong",
-    description: "An unexpected error occurred during payment. Please try again.",
+    description: "An unexpected error occurred. Please try again.",
   },
   callback_error: {
     title: "Processing Error",
@@ -104,32 +104,11 @@ export default function PaymentFailedPage() {
       .finally(() => setLoadingOrder(false))
   }, [orderId])
 
-  async function handleRetryPayment() {
-    if (!orderId) return
-    setRetrying(true)
-    try {
-      const res = await fetch("/api/payment/bkash/retry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      })
-      const d = await res.json()
-      if (d.success && d.data?.paymentUrl) {
-        window.location.href = d.data.paymentUrl
-      } else {
-        toast.error(d.error ?? "Failed to initialize payment. Please try again.")
-      }
-    } catch {
-      toast.error("Something went wrong")
-    } finally {
-      setRetrying(false)
-    }
+  const handleRetryPayment = async () => {
+    toast.error("Online payments are not available.")
   }
 
-  const canRetry = pendingOrder
-    && pendingOrder.paymentStatus === "pending"
-    && pendingOrder.orderStatus === "pending"
-    && pendingOrder.paymentMethod.toLowerCase() === "bkash"
+  const canRetry = false
 
   const expiryInfo = pendingOrder ? getExpiryInfo(pendingOrder.paymentExpiresAt) : null
   const isExpired = expiryInfo?.expired ?? false

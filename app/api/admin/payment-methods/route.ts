@@ -2,18 +2,9 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { auth } from "@/lib/auth"
-import { paymentMethodUpdateSchema, providerCredentialsMap } from "@/lib/validations"
-import { encrypt, decrypt } from "@/lib/encryption"
+import { paymentMethodUpdateSchema } from "@/lib/validations"
 
 export const dynamic = "force-dynamic"
-
-function maskCredentials(creds: Record<string, string>): Record<string, string> {
-  const masked: Record<string, string> = {}
-  for (const [key, val] of Object.entries(creds)) {
-    masked[key] = val ? "********" : ""
-  }
-  return masked
-}
 
 export async function GET() {
   try {
@@ -25,32 +16,20 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     })
 
-    const result = methods.map((m) => {
-      let credentials: Record<string, string> = {}
-      if (m.credentialsJson) {
-        try {
-          const decrypted = decrypt(m.credentialsJson, "payment")
-          credentials = JSON.parse(decrypted)
-        } catch {
-          credentials = {}
-        }
-      }
-
-      return {
-        id: m.id,
-        provider: m.provider,
-        displayName: m.displayName,
-        enabled: m.enabled,
-        mode: m.mode,
-        supportsFullPayment: m.supportsFullPayment,
-        supportsPartialPayment: m.supportsPartialPayment,
-        supportsCodDeliveryCharge: m.supportsCodDeliveryCharge,
-        instructions: m.instructions,
-        credentials: maskCredentials(credentials),
-        createdAt: m.createdAt,
-        updatedAt: m.updatedAt,
-      }
-    })
+    const result = methods.map((m) => ({
+      id: m.id,
+      provider: m.provider,
+      displayName: m.displayName,
+      enabled: m.enabled,
+      mode: m.mode,
+      supportsFullPayment: m.supportsFullPayment,
+      supportsPartialPayment: m.supportsPartialPayment,
+      supportsCodDeliveryCharge: m.supportsCodDeliveryCharge,
+      instructions: m.instructions,
+      credentials: {},
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+    }))
 
     return success(result)
   } catch {
@@ -70,76 +49,20 @@ export async function PUT(request: NextRequest) {
       return error(parsed.error.issues[0]?.message ?? "Invalid input")
     }
 
-    const { provider, credentials, ...data } = parsed.data
-    const existing = await prisma.paymentMethodSetting.findUnique({
-      where: { provider },
-    })
-
-    let credentialsJson: string | null = existing?.credentialsJson ?? null
-    let parsedCreds: Record<string, string> = {}
-
-    // For COD, skip credentials processing — no gateway credentials to manage
-    if (provider !== "COD") {
-      const credsSchema = providerCredentialsMap[provider]
-      if (credsSchema) {
-        const credResult = credsSchema.safeParse(credentials ?? {})
-        if (credResult.success) {
-          parsedCreds = credResult.data as Record<string, string>
-        } else {
-          parsedCreds = (credentials ?? {}) as Record<string, string>
-        }
-      }
-
-      let mergedCreds: Record<string, string> = {}
-      if (existing?.credentialsJson) {
-        try {
-          const decrypted = decrypt(existing.credentialsJson, "payment")
-          mergedCreds = JSON.parse(decrypted)
-        } catch {
-          mergedCreds = {}
-        }
-      }
-
-      for (const [key, val] of Object.entries(parsedCreds)) {
-        const trimmed = typeof val === "string" ? val.trim() : String(val ?? "")
-        if (trimmed && !trimmed.startsWith("********")) {
-          mergedCreds[key] = trimmed
-        }
-      }
-
-      const hasAnyRealValue = Object.values(mergedCreds).some((v) => {
-        if (typeof v === "string") return v.trim() !== ""
-        return v !== null && v !== undefined && v !== false && v !== 0
-      })
-      if (hasAnyRealValue) {
-        credentialsJson = encrypt(JSON.stringify(mergedCreds), "payment")
-      } else {
-        credentialsJson = null
-      }
-    }
+    const { provider, ...data } = parsed.data
 
     const method = await prisma.paymentMethodSetting.upsert({
       where: { provider },
       update: {
         displayName: data.displayName,
         enabled: data.enabled,
-        mode: data.mode,
-        supportsFullPayment: data.supportsFullPayment,
-        supportsPartialPayment: data.supportsPartialPayment,
-        supportsCodDeliveryCharge: data.supportsCodDeliveryCharge,
         instructions: data.instructions || null,
-        credentialsJson,
       },
       create: {
         provider,
         displayName: data.displayName,
         enabled: data.enabled,
-        mode: data.mode,
-        supportsFullPayment: data.supportsFullPayment,
-        supportsPartialPayment: data.supportsPartialPayment,
-        supportsCodDeliveryCharge: data.supportsCodDeliveryCharge,
         instructions: data.instructions || null,
-        credentialsJson,
       },
     })
 
@@ -153,7 +76,6 @@ export async function PUT(request: NextRequest) {
       supportsPartialPayment: method.supportsPartialPayment,
       supportsCodDeliveryCharge: method.supportsCodDeliveryCharge,
       instructions: method.instructions,
-      credentials: parsedCreds,
     })
   } catch {
     return error("Failed to update payment method")

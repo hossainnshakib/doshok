@@ -3,7 +3,7 @@ import { success, error } from "@/lib/api-response"
 
 export const dynamic = "force-dynamic"
 
-const CUSTOMER_VISIBLE_PROVIDERS = ["COD", "BKASH"]
+const CUSTOMER_VISIBLE_PROVIDERS = ["COD"]
 
 export async function GET() {
   try {

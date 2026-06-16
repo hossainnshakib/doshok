@@ -198,37 +198,15 @@ export const otpSchema = z.object({
   code: z.string().length(6),
 })
 
-export const paymentProvider = z.enum([
-  "BKASH", "NAGAD", "COD",
-])
+export const paymentProvider = z.enum(["COD"])
 
 export const paymentMode = z.enum(["SANDBOX", "LIVE"])
 
-export const bkashCredentialsSchema = z.object({
-  merchantNumber: z.string().optional().default(""),
-  appKey: z.string().optional().default(""),
-  appSecret: z.string().optional().default(""),
-  username: z.string().optional().default(""),
-  password: z.string().optional().default(""),
-  baseUrl: z.string().optional().default(""),
-  callbackUrl: z.string().optional().default(""),
-})
-
-export const nagadCredentialsSchema = z.object({
-  merchantId: z.string().optional().default(""),
-  merchantNumber: z.string().optional().default(""),
-  publicKey: z.string().optional().default(""),
-  privateKey: z.string().optional().default(""),
-  baseUrl: z.string().optional().default(""),
-  callbackUrl: z.string().optional().default(""),
-})
 export const codSettingsSchema = z.object({
   deliveryChargePrepayRequired: z.boolean().optional().default(false),
 })
 
 export const providerCredentialsMap: Record<string, z.ZodTypeAny> = {
-  BKASH: bkashCredentialsSchema,
-  NAGAD: nagadCredentialsSchema,
   COD: codSettingsSchema,
 }
 

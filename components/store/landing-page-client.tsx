@@ -39,7 +39,7 @@ type CheckoutSettings = {
   defaultPaymentRuleValue: number | null
 }
 
-const ONLINE_PROVIDERS = ["BKASH"]
+const ONLINE_PROVIDERS: string[] = []
 
 type ProductWithVariants = {
   id: string
@@ -1207,7 +1207,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                   value={paymentMethod}
                   onValueChange={(v) => {
                     const target = paymentMethods.find((p) => p.provider.toLowerCase() === v)
-                    if (target && target.enabled && (target.provider === "COD" || target.provider === "BKASH")) {
+                    if (target && target.enabled && target.provider === "COD") {
                       setPaymentMethod(v)
                     }
                   }}
@@ -1216,9 +1216,8 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                   {paymentMethods.map((pm) => {
                     const isOnline = ONLINE_PROVIDERS.includes(pm.provider)
                     const isCod = pm.provider === "COD"
-                    const isBkash = pm.provider === "BKASH"
                     const isEnabled = pm.enabled
-                    const isSelectable = isEnabled && (isCod || isBkash)
+                    const isSelectable = isEnabled && isCod
                     return (
                       <div
                         key={pm.provider}
@@ -1251,11 +1250,7 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                                 — Coming soon
                               </span>
                             )}
-                            {isBkash && isEnabled && (
-                              <span className="ml-2 text-xs text-green-600 font-medium">
-                                — Pay now
-                              </span>
-                            )}
+
                           </Label>
                           {pm.instructions && isSelectable && (
                             <p className="text-xs text-muted-foreground mt-1">

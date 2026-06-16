@@ -82,17 +82,12 @@ export default async function OrderConfirmationPage({
     notFound()
   }
 
-  const isBkashPayment = order.paymentMethod.toLowerCase() === "bkash"
-  const isOnlinePayment = isBkashPayment
+  const isOnlinePayment = false
   const requiresAdvancePayment = order.payNow > 0
   const showSuccessBanner = sp.payment === "success" && order.paymentStatus === "paid"
   const showPendingBanner = isOnlinePayment && order.paymentStatus === "pending"
 
-  const canRetryPayment = isOnlinePayment
-    && order.paymentStatus === "pending"
-    && order.orderStatus === "pending"
-    && order.paymentExpiresAt
-    && new Date(order.paymentExpiresAt) > new Date()
+  const canRetryPayment = false
 
   const expiryInfo = order.paymentExpiresAt ? (() => {
     const diff = new Date(order.paymentExpiresAt!).getTime() - Date.now()
@@ -119,7 +114,7 @@ export default async function OrderConfirmationPage({
             <CheckCircle className="h-7 w-7 text-green-600" />
           </div>
           <h2 className="text-lg font-semibold text-green-800">Payment Successful!</h2>
-          <p className="text-sm text-green-700 mt-1">Your bKash payment has been verified. Your order is confirmed.</p>
+          <p className="text-sm text-green-700 mt-1">Your payment has been verified. Your order is confirmed.</p>
         </div>
       ) : null}
 
@@ -132,14 +127,7 @@ export default async function OrderConfirmationPage({
           <p className="text-sm text-amber-700 mt-1">
             Your order is created but payment is pending.{expiryInfo ? ` Payment expires in ${expiryInfo}.` : ""}
           </p>
-          {canRetryPayment && (
-            <Link
-              href={`/order/payment-retry?orderId=${order.id}`}
-              className="inline-flex items-center gap-2 mt-3 px-5 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors"
-            >
-              Retry Payment — ৳{order.payNow.toLocaleString()}
-            </Link>
-          )}
+          {null}
         </div>
       )}
 
@@ -190,7 +178,7 @@ export default async function OrderConfirmationPage({
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Payment</span>
             <Badge variant={order.paymentStatus === "paid" ? "default" : "secondary"} className="rounded-full">
-              {order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod.toUpperCase()}
+              Cash on Delivery
             </Badge>
           </div>
           {paymentInfo && (
@@ -234,16 +222,10 @@ export default async function OrderConfirmationPage({
             <>
               <Separator />
               <div className="pt-2">
-                <Link
-                  href={`/order/payment-retry?orderId=${order.id}`}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
+                <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted px-6 py-3 text-sm font-medium text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  Retry Payment — ৳{order.payNow.toLocaleString()}
-                </Link>
-                {expiryInfo && (
-                  <p className="text-xs text-center text-muted-foreground mt-2">Payment expires {expiryInfo}</p>
-                )}
+                  Online payments are not available
+                </div>
               </div>
             </>
           )}

@@ -749,7 +749,7 @@ Only global config:
 
 The current Doshok system has:
 - Solid ecommerce core (products, orders, cart, checkout)
-- Working payment integration (bKash)
+- Working payment integration (COD only)
 - Working courier integration (Pathao)
 - Basic admin structure with hub pages
 - Static content pages hardcoded
