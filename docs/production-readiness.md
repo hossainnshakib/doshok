@@ -11,6 +11,9 @@
 | `CLOUDINARY_CLOUD_NAME` | Yes | | Cloudinary cloud name for image uploads |
 | `CLOUDINARY_API_KEY` | Yes | | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Yes | | Cloudinary API secret — do not expose client-side |
+| `FROM_EMAIL` | Yes | | Sender address; must match a verified Resend domain. E.g. `Doshok <noreply@doshok.com>` |
+| `ADMIN_EMAIL` | Yes | | Recipient for contact form & admin notifications |
+| `OTP_FROM_EMAIL` | Yes | | Sender for OTP emails; must match a verified Resend domain |
 | `CRON_SECRET` | Yes | | Shared secret for cron job authentication |
 | `NEXTAUTH_URL` | Yes | | Must match production deployment URL |
 
@@ -25,6 +28,14 @@
 | `BKASH_BASE_URL` | If bKash enabled | | Use production URL when live |
 
 > **Note:** bKash/Nagad gateways should remain paused/disabled in PaymentMethodSetting until fully tested and ready.
+
+## Email (Resend-only — no SMTP/nodemailer)
+
+All transactional emails are sent via Resend. No SMTP or nodemailer setup is needed.
+
+- **Domain verification:** Resend requires you to verify a sending domain (`doshok.com`) before you can send from addresses like `noreply@doshok.com` or `otp@doshok.com`. Add the provided DNS TXT records to your domain.
+- **From addresses** must use the format `"Display Name <address@verified.domain>"` — e.g. `FROM_EMAIL="Doshok <noreply@doshok.com>"`.
+- **API key:** Set `RESEND_API_KEY` in your production environment variables.
 
 ## Firebase / OTP
 

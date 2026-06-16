@@ -3,7 +3,7 @@ import { getPhoneDisplayE164 } from "@/lib/utils"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const adminEmail = process.env.ADMIN_EMAIL || "admin@doshok.com"
-const fromEmail = process.env.FROM_EMAIL || "noreply@doshok.com"
+const fromEmail = process.env.FROM_EMAIL || "Doshok <noreply@doshok.com>"
 const otpFromEmail = process.env.OTP_FROM_EMAIL || "Doshok <otp@doshok.com>"
 const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
 
