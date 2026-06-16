@@ -359,7 +359,7 @@ export function ProductDetailClient({
               <div className="flex flex-wrap gap-2">
                 {sizes.map((size) => {
                   const hasStock = product.variants.some(
-                    (variant) => variant.size === size && variant.stock > 0
+                    (variant) => variant.size === size && Math.max(0, variant.stock - variant.reservedStock) > 0
                   )
                   return (
                     <button

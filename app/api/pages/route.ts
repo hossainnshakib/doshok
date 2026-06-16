@@ -7,7 +7,15 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get("status") ?? "active"
 
-    const where = status === "all" ? {} : { status }
+    const session = await auth()
+
+    if (status === "all" || status === "draft") {
+      if (!session?.user || session.user.role !== "admin") {
+        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+      }
+    }
+
+    const where = status === "all" ? {} : { status: status === "draft" ? "draft" : "active" }
 
     const pages = await prisma.page.findMany({
       where,

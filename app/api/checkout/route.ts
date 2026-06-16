@@ -208,6 +208,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Backend COD guard: reject COD if disabled in PaymentMethodSetting
+    if (paymentMethod && paymentMethod.toLowerCase() === "cod") {
+      const codSetting = await prisma.paymentMethodSetting.findUnique({
+        where: { provider: "COD" },
+        select: { enabled: true },
+      })
+      if (!codSetting?.enabled) {
+        return error("Cash on Delivery is currently disabled. Please select another payment method.")
+      }
+    }
+
     let otpVerified = false
     let otpVerifiedAtValue: Date | null = null
 

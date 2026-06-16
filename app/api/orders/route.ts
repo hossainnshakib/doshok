@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
   const limit = 25
   const skip = (page - 1) * limit
 
+  if (!session?.user) return error("Unauthorized", 401)
+
   if (userId) {
-    if (!session?.user) return error("Unauthorized", 401)
     if (session.user.id !== userId && session.user.role !== "admin") {
       return error("Forbidden", 403)
     }
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (phone) {
+    if (session.user.role !== "admin") return error("Forbidden", 403)
     const where = { customerPhone: phone }
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -47,7 +49,6 @@ export async function GET(request: NextRequest) {
     return success({ orders, total, page, pages: Math.ceil(total / limit) })
   }
 
-  if (!session?.user) return error("Unauthorized", 401)
   if (session.user.role !== "admin") return error("Forbidden", 403)
 
   const where: Record<string, unknown> = {}
