@@ -292,7 +292,7 @@ model Order {
   paidAmount     Int             @default(0)
   paymentMethod  String
   paymentStatus  String          @default("pending")
-  bkashTrxId     String?
+
   orderStatus    String          @default("pending")
   notes          String?
   couponCode     String?
@@ -324,7 +324,6 @@ model Order {
   updatedAt      DateTime        @updatedAt
 
   @@index([userId])
-  @@index([bkashTrxId])
 }
 
 model OrderItem {
@@ -346,7 +345,7 @@ model PaymentTransaction {
   id               String    @id @default(cuid())
   orderId          String
   order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider         String    @default("BKASH")
+  provider         String    @default("COD")
   trxId            String    @unique
   amount           Int
   status           String    @default("initiated")
