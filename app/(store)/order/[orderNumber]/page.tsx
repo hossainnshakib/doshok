@@ -165,72 +165,79 @@ export default async function OrderConfirmationPage({
         </p>
       </div>
 
-      <Card className="mb-6 border-border/50 rounded-2xl shadow-sm overflow-hidden">
-        <CardContent className="p-6 md:p-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Order Number</span>
-            <span className="font-mono font-bold text-lg">{order.orderNumber}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Status</span>
-            <Badge variant="secondary" className="rounded-full">{order.orderStatus}</Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Payment</span>
-            <Badge variant={order.paymentStatus === "paid" ? "default" : "secondary"} className="rounded-full">
-              Cash on Delivery
-            </Badge>
-          </div>
-          {paymentInfo && (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Transaction ID</span>
-                <span className="font-mono text-sm">{paymentInfo.trxId}</span>
-              </div>
-              {paymentInfo.verifiedAt && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Verified</span>
-                  <span className="text-sm">{new Date(paymentInfo.verifiedAt).toLocaleString()}</span>
-                </div>
-              )}
-            </>
-          )}
-          <Separator />
-          <div className="flex items-center justify-between font-bold text-xl">
-            <span>Total</span>
-            <span>৳{order.total.toLocaleString()}</span>
-          </div>
-          {requiresAdvancePayment && order.payNow > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span>Pay Now</span>
-              <span className="font-medium text-primary">৳{order.payNow.toLocaleString()}</span>
-            </div>
-          )}
-          {order.paidAmount > 0 && (
-            <div className="flex items-center justify-between text-sm text-green-600">
-              <span>Paid Amount</span>
-              <span>৳{order.paidAmount.toLocaleString()}</span>
-            </div>
-          )}
-          {order.dueAmount > 0 && (
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Due on Delivery</span>
-              <span>৳{order.dueAmount.toLocaleString()}</span>
-            </div>
-          )}
-          {canRetryPayment && (
-            <>
-              <Separator />
-              <div className="pt-2">
-                <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted px-6 py-3 text-sm font-medium text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  Online payments are not available
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+       <Card className="mb-6 border-border/50 rounded-2xl shadow-sm overflow-hidden">
+         <CardContent className="p-6 md:p-8 space-y-4">
+           <div className="flex items-center justify-between">
+             <span className="text-sm text-muted-foreground">Order Number</span>
+             <span className="font-mono font-bold text-lg">{order.orderNumber}</span>
+           </div>
+           <div className="flex items-center justify-between">
+             <span className="text-sm text-muted-foreground">Status</span>
+             <Badge variant="secondary" className="rounded-full">{order.orderStatus}</Badge>
+           </div>
+           <div className="flex items-center justify-between">
+             <span className="text-sm text-muted-foreground">Payment</span>
+             <Badge variant={order.paymentStatus === "paid" ? "default" : "secondary"} className="rounded-full">
+               Cash on Delivery
+             </Badge>
+           </div>
+           {paymentInfo && (
+             <>
+               <div className="flex items-center justify-between">
+                 <span className="text-sm text-muted-foreground">Transaction ID</span>
+                 <span className="font-mono text-sm">{paymentInfo.trxId}</span>
+               </div>
+               {paymentInfo.verifiedAt && (
+                 <div className="flex items-center justify-between">
+                   <span className="text-sm text-muted-foreground">Verified</span>
+                   <span className="text-sm">{new Date(paymentInfo.verifiedAt).toLocaleString()}</span>
+                 </div>
+               )}
+             </>
+           )}
+           <Separator />
+           <div className="flex items-center justify-between font-bold text-xl">
+             <span>Total</span>
+             <span>৳{order.total.toLocaleString()}</span>
+           </div>
+           {requiresAdvancePayment && order.payNow > 0 && (
+             <div className="flex items-center justify-between text-sm">
+               <span>Pay Now</span>
+               <span className="font-medium text-primary">৳{order.payNow.toLocaleString()}</span>
+             </div>
+           )}
+           {order.paidAmount > 0 && (
+             <div className="flex items-center justify-between text-sm text-green-600">
+               <span>Paid Amount</span>
+               <span>৳{order.paidAmount.toLocaleString()}</span>
+             </div>
+           )}
+           {order.dueAmount > 0 && (
+             <div className="flex items-center justify-between text-sm text-muted-foreground">
+               <span>Due on Delivery</span>
+               <span>৳{order.dueAmount.toLocaleString()}</span>
+             </div>
+           )}
+           {canRetryPayment && (
+             <>
+               <Separator />
+               <div className="pt-2">
+                 <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted px-6 py-3 text-sm font-medium text-muted-foreground">
+                   <Clock className="h-4 w-4" />
+                   Online payments are not available
+                 </div>
+               </div>
+             </>
+           )}
+           <Separator />
+           <Link
+             href={`/order/${order.orderNumber}/invoice`}
+             className="inline-flex w-full items-center justify-center rounded-full bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 transition-all"
+           >
+             View Invoice
+           </Link>
+         </CardContent>
+       </Card>
 
       {order.shipment && order.shipment.status !== "NOT_CREATED" && (
         <Card className="mb-6 border-border/50 rounded-2xl shadow-sm">

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -6,6 +7,7 @@ import { UpdateOrderStatus } from "@/components/admin/update-order-status"
 import { OrderShipment } from "@/components/admin/order-shipment"
 import { AdminPageHeader, AdminSectionCard, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { getPhoneDisplayE164 } from "@/lib/utils"
 import { getPaymentRuleLabel } from "@/lib/checkout/payment-rule.service"
 
@@ -45,12 +47,19 @@ export default async function AdminOrderDetailPage({
 
   return (
     <div className="space-y-5">
-      <AdminPageHeader
-        eyebrow="Sales"
-        title={`Order ${order.orderNumber}`}
-        description={`Placed on ${order.createdAt.toLocaleString()}. Review customer details, fulfillment status, and order totals.`}
-        backHref="/admin/orders"
-      />
+      <div className="flex items-center justify-between">
+        <AdminPageHeader
+          eyebrow="Sales"
+          title={`Order ${order.orderNumber}`}
+          description={`Placed on ${order.createdAt.toLocaleString()}. Review customer details, fulfillment status, and order totals.`}
+          backHref="/admin/orders"
+        />
+        <Link href={`/order/${order.orderNumber}/invoice`}>
+          <Button variant="outline" size="sm" className="rounded-full">
+            View Invoice
+          </Button>
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <AdminSectionCard title="Customer Information" description="Contact details for this order.">

@@ -192,36 +192,42 @@ export default function AccountOrderDetailPage() {
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2 font-medium">Order Details</p>
-          <h1 className="text-2xl font-bold font-mono">{order.orderNumber}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Placed on {new Date(order.createdAt).toLocaleDateString()}
-          </p>
-        </div>
+         <div>
+           <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2 font-medium">Order Details</p>
+           <h1 className="text-2xl font-bold font-mono">{order.orderNumber}</h1>
+           <p className="text-sm text-muted-foreground mt-1">
+             Placed on {new Date(order.createdAt).toLocaleDateString()}
+           </p>
+         </div>
 
-        <div className="flex gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={reordering}
-            onClick={() => handleReorder("cart")}
-            className="rounded-full"
-          >
-            <ShoppingCart className="h-4 w-4 mr-1.5" />
-            {reordering ? "Adding..." : "Add to Cart"}
-          </Button>
-          <Button
-            size="sm"
-            disabled={reordering}
-            onClick={() => handleReorder("checkout")}
-            className="rounded-full"
-          >
-            <RotateCcw className="h-4 w-4 mr-1.5" />
-            {reordering ? "Adding..." : "Buy Again"}
-          </Button>
-        </div>
-      </div>
+         <div className="flex gap-2 shrink-0 flex-wrap">
+           <Link
+             href={`/order/${order.orderNumber}/invoice`}
+             className="inline-flex h-10 items-center justify-center rounded-full border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
+           >
+             View Invoice
+           </Link>
+           <Button
+             size="sm"
+             variant="outline"
+             disabled={reordering}
+             onClick={() => handleReorder("cart")}
+             className="rounded-full"
+           >
+             <ShoppingCart className="h-4 w-4 mr-1.5" />
+             {reordering ? "Adding..." : "Add to Cart"}
+           </Button>
+           <Button
+             size="sm"
+             disabled={reordering}
+             onClick={() => handleReorder("checkout")}
+             className="rounded-full"
+           >
+             <RotateCcw className="h-4 w-4 mr-1.5" />
+             {reordering ? "Adding..." : "Buy Again"}
+           </Button>
+         </div>
+       </div>
 
       {reorderResult && reorderResult.note && reorderResult.reorderable.length > 0 && (
         <div className="text-xs text-muted-foreground bg-muted/50 rounded-xl px-4 py-2.5">

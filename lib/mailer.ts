@@ -83,6 +83,7 @@ type OrderData = {
   paymentMethod: string
   orderStatus: string
   items: { name: string; quantity: number; price: number; size?: string | null; color?: string | null }[]
+  userId?: string | null
 }
 
 export async function sendOrderConfirmationEmail(order: OrderData): Promise<void> {
@@ -96,6 +97,9 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
           `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${item.name}${item.size ? ` (${item.size}${item.color ? ` / ${item.color}` : ""})` : ""}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">৳${(item.price * item.quantity).toLocaleString()}</td></tr>`
       )
       .join("")
+
+    const trackUrl = `${appUrl}/track-order?order=${encodeURIComponent(order.orderNumber)}`
+    const invoiceUrl = order.userId ? `${appUrl}/order/${encodeURIComponent(order.orderNumber)}/invoice` : null
 
     await resend.emails.send({
       from: fromEmail,
@@ -115,6 +119,13 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
             <p style="display:flex;justify-content:space-between;margin:4px 0;font-size:18px;font-weight:bold;"><span>Total</span><span>৳${order.total.toLocaleString()}</span></p>
           </div>
           <p style="color:#888;margin-top:24px;font-size:14px;">We will contact you at ${getPhoneDisplayE164(order.customerPhone)} for delivery confirmation.</p>
+          <div style="margin-top:24px;padding:16px;background:#f5f5f5;border-radius:8px;">
+            <p style="margin:0 0 12px 0;font-weight:bold;color:#111;">Track & Manage Your Order</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a href="${trackUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;">Track Order</a>
+              ${invoiceUrl ? `<a href="${invoiceUrl}" style="display:inline-block;background:#555;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;">View Invoice</a>` : ""}
+            </div>
+          </div>
         </div>
       `,
     })
@@ -226,6 +237,8 @@ export async function sendOrderStatusEmail(order: OrderData, newStatus: string):
       )
       .join("")
 
+    const trackUrl = `${appUrl}/track-order?order=${encodeURIComponent(order.orderNumber)}`
+
     await resend.emails.send({
       from: fromEmail,
       to: order.customerEmail,
@@ -244,7 +257,10 @@ export async function sendOrderStatusEmail(order: OrderData, newStatus: string):
             <p style="display:flex;justify-content:space-between;margin:4px 0;"><span>Delivery Fee</span><span>৳${order.deliveryFee.toLocaleString()}</span></p>
             <p style="display:flex;justify-content:space-between;margin:4px 0;font-size:18px;font-weight:bold;"><span>Total</span><span>৳${order.total.toLocaleString()}</span></p>
           </div>
-          <p style="color:#888;margin-top:24px;font-size:14px;">Track your order at ${appUrl}/track-order</p>
+          <div style="margin-top:24px;padding:16px;background:#f5f5f5;border-radius:8px;">
+            <p style="margin:0 0 12px 0;font-weight:bold;color:#111;">Track Your Order</p>
+            <a href="${trackUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;">View Order Status</a>
+          </div>
         </div>
       `,
     })

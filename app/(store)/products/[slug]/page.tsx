@@ -150,8 +150,68 @@ export default async function ProductDetailPage({
   const crossSellProducts: ProductSummary[] = crossSell.map(mapSummary)
   const upsellProducts: ProductSummary[] = upsell.map(mapSummary)
 
+  // Calculate available stock from variants
+  const availableStock = product.variants.reduce(
+    (sum, variant) => sum + Math.max(0, variant.stock - variant.reservedStock),
+    0
+  )
+
+  // Get first SKU if available
+  const firstSku = product.variants.find((v) => v.sku)?.sku
+
+  // Build breadcrumb
+  const breadcrumbList = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": product.category
+      ? [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": SITE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Products", "item": `${SITE_URL}/products` },
+          { "@type": "ListItem", "position": 3, "name": product.category.name, "item": `${SITE_URL}/products?category=${product.category.slug}` },
+          { "@type": "ListItem", "position": 4, "name": product.name, "item": `${SITE_URL}/products/${slug}` },
+        ]
+      : [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": SITE_URL },
+          { "@type": "ListItem", "position": 2, "name": "Products", "item": `${SITE_URL}/products` },
+          { "@type": "ListItem", "position": 3, "name": product.name, "item": `${SITE_URL}/products/${slug}` },
+        ],
+  }
+
+  // Build Product JSON-LD
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "description": product.description || product.shortDescription || undefined,
+    "image": product.images && product.images.length > 0 ? product.images : undefined,
+    "brand": {
+      "@type": "Brand",
+      "name": "Doshok",
+    },
+    ...(firstSku && { "sku": firstSku }),
+    "offers": {
+      "@type": "Offer",
+      "price": product.price,
+      "priceCurrency": "BDT",
+      "availability": availableStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "url": `${SITE_URL}/products/${slug}`,
+    },
+  }
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbList),
+        }}
+      />
       <ProductDetailClient
         product={product as unknown as Parameters<typeof ProductDetailClient>[0]["product"]}
         relatedProducts={relatedProducts}

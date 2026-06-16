@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Hind_Siliguri, Manrope, Plus_Jakarta_Sans } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { Providers } from "@/components/providers/session-provider"
+import { OrganizationSchema } from "@/components/json-ld/organization-schema"
 import "./globals.css"
 
 const manrope = Manrope({
@@ -53,6 +54,7 @@ export default function RootLayout({
       className={`${manrope.variable} ${jakarta.variable} ${hindSiliguri.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <OrganizationSchema />
         <Providers>{children}</Providers>
         <Toaster richColors closeButton />
       </body>
