@@ -58,6 +58,24 @@ export async function PATCH(
       return error("Invalid order status")
     }
 
+    const allowedTransitions: Record<string, string[]> = {
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["processing", "shipped", "cancelled"],
+      processing: ["shipped", "cancelled"],
+      shipped: ["delivered", "returned"],
+      delivered: ["returned"],
+      cancelled: [],
+      returned: [],
+    }
+
+    const newStatus = filtered.orderStatus as string
+    if (newStatus && newStatus !== currentOrder.orderStatus) {
+      const allowed = allowedTransitions[currentOrder.orderStatus]
+      if (!allowed || !allowed.includes(newStatus)) {
+        return error("Invalid order status transition")
+      }
+    }
+
     const shipmentSyncMap: Record<string, string> = {
       shipped: "DISPATCHED",
       delivered: "DELIVERED",

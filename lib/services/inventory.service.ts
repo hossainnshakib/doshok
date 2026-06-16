@@ -89,36 +89,27 @@ export async function reserveStockForOrder(
 ): Promise<{ success: boolean; error?: string; failedItems?: string[] }> {
   const failedItems: string[] = []
 
-  for (const item of items) {
-    if (!item.variantId) continue
-
-    const snapshot = await getStockSnapshot(item.variantId)
-    if (!snapshot) {
-      failedItems.push(item.variantId)
-      continue
-    }
-
-    if (snapshot.availableStock < item.quantity) {
-      failedItems.push(item.variantId)
-      continue
-    }
-  }
-
-  if (failedItems.length > 0) {
-    return { success: false, error: "Insufficient stock for some items", failedItems }
-  }
-
   await prisma.$transaction(async (tx) => {
     for (const item of items) {
       if (!item.variantId) continue
 
-      const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
-      if (!variant) continue
+      const result = await tx.$executeRaw`
+        UPDATE "ProductVariant"
+        SET "reservedStock" = "reservedStock" + ${item.quantity}
+        WHERE id = ${item.variantId}
+          AND ("stock" - "reservedStock") >= ${item.quantity}
+      `
 
-      await tx.productVariant.update({
-        where: { id: item.variantId },
-        data: { reservedStock: { increment: item.quantity } },
-      })
+      if (result === 0) {
+        failedItems.push(item.variantId)
+        continue
+      }
+
+      const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
+      if (!variant) {
+        failedItems.push(item.variantId)
+        continue
+      }
 
       await tx.stockMovement.create({
         data: {
@@ -130,13 +121,17 @@ export async function reserveStockForOrder(
           quantity: item.quantity,
           beforeStock: variant.stock,
           afterStock: variant.stock,
-          beforeReserved: variant.reservedStock,
-          afterReserved: variant.reservedStock + item.quantity,
+          beforeReserved: variant.reservedStock - item.quantity,
+          afterReserved: variant.reservedStock,
           reason: reason ?? "Order created",
         },
       })
     }
   })
+
+  if (failedItems.length > 0) {
+    return { success: false, error: "Insufficient stock for some items", failedItems }
+  }
 
   return { success: true }
 }
@@ -315,6 +310,14 @@ export async function finalizeStockDeductionForConfirmedOrder(
     return { success: true }
   }
 
+  const alreadyDeliveredDeducted = await prisma.stockMovement.findFirst({
+    where: { orderId, type: "order_delivered_deducted" },
+  })
+
+  if (alreadyDeliveredDeducted) {
+    return { success: true }
+  }
+
   const reservedMovements = await prisma.stockMovement.findMany({
     where: { orderId, type: "order_reserved" },
     select: { variantId: true, quantity: true, productId: true },
@@ -427,6 +430,14 @@ export async function restoreStockForCancelledOrder(
   const confirmedDeduction = await prisma.stockMovement.findFirst({
     where: { orderId, type: "order_confirmed_deducted" },
   })
+
+  const deliveredDeduction = await prisma.stockMovement.findFirst({
+    where: { orderId, type: "order_delivered_deducted" },
+  })
+
+  if (deliveredDeduction) {
+    return { success: false, error: "Delivered orders cannot be cancelled through cancellation flow" }
+  }
 
   const reservedMovements = await prisma.stockMovement.findMany({
     where: { orderId, type: "order_reserved" },

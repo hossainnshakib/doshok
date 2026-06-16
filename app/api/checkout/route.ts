@@ -295,18 +295,19 @@ export async function POST(request: NextRequest) {
 
       for (const item of validatedItems) {
         if (item.variantId) {
-          const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
-          if (!variant) throw new Error(`Variant not found: ${item.variantId}`)
-          const availableStock = Math.max(0, variant.stock - variant.reservedStock)
-          if (availableStock < item.quantity) {
+          const result = await tx.$executeRaw`
+            UPDATE "ProductVariant"
+            SET "reservedStock" = "reservedStock" + ${item.quantity}
+            WHERE id = ${item.variantId}
+              AND ("stock" - "reservedStock") >= ${item.quantity}
+          `
+          if (result === 0) {
+            const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
+            const availableStock = variant ? Math.max(0, variant.stock - variant.reservedStock) : 0
             throw new Error(
               `Insufficient stock for "${productMap.get(item.productId)?.name || "Product"}". Available: ${availableStock}, requested: ${item.quantity}`
             )
           }
-          await tx.productVariant.update({
-            where: { id: item.variantId },
-            data: { reservedStock: { increment: item.quantity } },
-          })
         }
       }
 
