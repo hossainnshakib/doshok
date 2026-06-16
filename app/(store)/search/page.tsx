@@ -1,8 +1,13 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { ProductCard } from "@/components/store/product-card"
 import { ProductPagination } from "@/components/store/product-pagination"
 import { Search, Package, TrendingUp, Tag, Sparkles } from "lucide-react"
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+}
 
 const SUGGESTED_SEARCHES = ["T-Shirt", "Shirt", "Panjabi", "Saree", "Kurta", "Shoe"]
 const LIMIT = 24

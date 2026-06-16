@@ -23,6 +23,11 @@ const hindSiliguri = Hind_Siliguri({
 export const metadata: Metadata = {
   title: "Doshok — Premium Bangladeshi Fashion",
   description: "Style That Speaks. Premium Bangladeshi fashion for the modern wardrobe.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 }
 
 export default function RootLayout({

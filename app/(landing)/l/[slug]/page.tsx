@@ -1,7 +1,52 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { LandingPageClient } from "@/components/store/landing-page-client"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const product = await prisma.product.findUnique({
+    where: { slug, pageType: "LANDING", status: "Active" },
+    select: {
+      name: true,
+      description: true,
+      shortDescription: true,
+      seoTitle: true,
+      seoDescription: true,
+      seoKeywords: true,
+      seoImage: true,
+      images: true,
+    },
+  })
+
+  if (!product) return { title: "Landing Page — Doshok" }
+
+  const title = product.seoTitle || `${product.name} — Doshok`
+  const description = product.seoDescription || product.shortDescription || product.description || undefined
+  const ogImage = product.seoImage || (product.images?.[0]) || undefined
+
+  return {
+    title,
+    description,
+    keywords: product.seoKeywords ? product.seoKeywords.split(",").map((k) => k.trim()) : undefined,
+    openGraph: {
+      title,
+      description: description ?? undefined,
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: description ?? undefined,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+  }
+}
 
 export default async function LandingPage({
   params,

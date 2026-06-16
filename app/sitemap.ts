@@ -64,10 +64,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
     for (const page of pages) {
       entries.push({
-        url: `${SITE_URL}/page/${page.slug}`,
+        url: `${SITE_URL}/p/${page.slug}`,
         lastModified: page.updatedAt,
         changeFrequency: "monthly",
         priority: 0.4,
+      })
+    }
+  } catch {}
+
+  try {
+    const landingProducts = await prisma.product.findMany({
+      where: { pageType: "LANDING", status: "Active" },
+      select: { slug: true, updatedAt: true },
+    })
+    for (const product of landingProducts) {
+      entries.push({
+        url: `${SITE_URL}/l/${product.slug}`,
+        lastModified: product.updatedAt,
+        changeFrequency: "weekly",
+        priority: 0.6,
+      })
+    }
+  } catch {}
+
+  try {
+    const categories = await prisma.category.findMany({
+      select: { slug: true, updatedAt: true },
+    })
+    for (const category of categories) {
+      entries.push({
+        url: `${SITE_URL}/products?category=${category.slug}`,
+        lastModified: category.updatedAt,
+        changeFrequency: "weekly",
+        priority: 0.5,
       })
     }
   } catch {}

@@ -28,6 +28,8 @@ export default async function DynamicPage({
   )
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export async function generateMetadata({
   params,
 }: {
@@ -44,6 +46,7 @@ export async function generateMetadata({
   return {
     title: page.seoTitle || page.title,
     description: page.seoDescription,
+    alternates: { canonical: `${SITE_URL}/p/${slug}` },
     openGraph: page.seoImage
       ? { title: page.seoTitle || page.title, description: page.seoDescription ?? undefined, images: [{ url: page.seoImage }] }
       : undefined,

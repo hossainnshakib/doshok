@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { ProductDetailClient } from "@/components/store/product-detail-client"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export async function generateMetadata({
   params,
 }: {
@@ -35,6 +37,7 @@ export async function generateMetadata({
     title,
     description,
     keywords: product.seoKeywords ? product.seoKeywords.split(",").map((k) => k.trim()) : undefined,
+    alternates: { canonical: `${SITE_URL}/products/${slug}` },
     openGraph: ogImage
       ? {
           title,
