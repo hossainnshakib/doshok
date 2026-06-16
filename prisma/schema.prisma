@@ -443,27 +443,35 @@ model CheckoutSetting {
 }
 
 model SiteSettings {
-  id              String  @id @default("default")
-  brandName       String  @default("DOSHOK")
-  tagline         String  @default("Style That Speaks")
-  supportEmail    String  @default("hello@doshok.com")
-  phone           String  @default("")
-  whatsapp        String?
-  facebookUrl     String?
-  instagramUrl    String?
-  tiktokUrl       String?
-  youtubeUrl      String?
-  address         String  @default("We deliver across all districts of Bangladesh. Our operation hub is in Chattogram.")
-  footerText      String  @default("Premium Bangladeshi fashion for the modern wardrobe.")
-  topbarText      String  @default("Inside Chattogram delivery available")
-  footerLinks     String  @default("[]")
-  headerQuickLinks String @default("[]")
-  accentColor     String  @default("#364152")
-  buttonRadius    String  @default("xl")
-  cardRadius      String  @default("1.5rem")
-  storefrontTone  String  @default("light")
-  adminAccentTone String  @default("neutral")
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default("default")
+  brandName         String   @default("DOSHOK")
+  tagline           String   @default("Style That Speaks")
+  supportEmail      String   @default("hello@doshok.com")
+  phone             String   @default("")
+  whatsapp          String?
+  facebookUrl       String?
+  instagramUrl      String?
+  tiktokUrl         String?
+  youtubeUrl        String?
+  address           String   @default("We deliver across all districts of Bangladesh. Our operation hub is in Chattogram.")
+  footerText        String   @default("Premium Bangladeshi fashion for the modern wardrobe.")
+  topbarText        String   @default("Inside Chattogram delivery available")
+  footerLinks       String   @default("[]")
+  headerQuickLinks  String   @default("[]")
+  accentColor       String   @default("#364152")
+  buttonRadius      String   @default("xl")
+  cardRadius        String   @default("1.5rem")
+  storefrontTone    String   @default("light")
+  adminAccentTone   String   @default("neutral")
+  headerLogo        String?
+  footerLogo        String?
+  favicon           String?
+  appleTouchIcon    String?
+  defaultSeoTitle   String?
+  defaultSeoDescription String?
+  defaultSeoImage   String?
+  defaultSeoKeywords String?
+  updatedAt         DateTime @updatedAt
 }
 
 model HomepageConfig {

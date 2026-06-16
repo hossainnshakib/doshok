@@ -45,9 +45,9 @@ async function getHeaderData() {
     } else {
       quickLinks = DEFAULT_QUICK_LINKS
     }
-    return { categories, topbarText, quickLinks }
+    return { categories, topbarText, quickLinks, headerLogo: settings?.headerLogo ?? null, tagline: settings?.tagline ?? null }
   } catch {
-    return { categories: [], topbarText: "Inside Chattogram delivery available", quickLinks: DEFAULT_QUICK_LINKS }
+    return { categories: [], topbarText: "Inside Chattogram delivery available", quickLinks: DEFAULT_QUICK_LINKS, headerLogo: null, tagline: null }
   }
 }
 
@@ -74,7 +74,7 @@ function getLabelFromHref(href: string): string {
 }
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [{ categories, topbarText, quickLinks }, announcementData, session] = await Promise.all([
+  const [{ categories, topbarText, quickLinks, headerLogo, tagline }, announcementData, session] = await Promise.all([
     getHeaderData(),
     prisma.homepageConfig.findUnique({
       where: { id: "homepage" },
@@ -117,10 +117,16 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
           <div className={styles.navbar}>
             <Link href="/" className={styles.logo}>
-              <span className={styles.mark}>D</span>
-              <span className={styles.word}>
-                Doshok<span className="text-[#ee2c3c]">.</span>com
-              </span>
+              {headerLogo ? (
+                <img src={headerLogo} alt="Doshok" className="h-8 w-auto object-contain" />
+              ) : (
+                <>
+                  <span className={styles.mark}>D</span>
+                  <span className={styles.word}>
+                    Doshok<span className="text-[#ee2c3c]">.</span>com
+                  </span>
+                </>
+              )}
             </Link>
 
             <form action="/search" className={styles.searchWrap}>

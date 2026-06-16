@@ -28,6 +28,18 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+  openGraph: {
+    siteName: "Doshok",
+    title: "Doshok — Premium Bangladeshi Fashion",
+    description: "Style That Speaks. Premium Bangladeshi fashion for the modern wardrobe.",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Doshok — Premium Bangladeshi Fashion",
+    description: "Style That Speaks. Premium Bangladeshi fashion for the modern wardrobe.",
+  },
 }
 
 export default function RootLayout({

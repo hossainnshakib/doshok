@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
+import { getSiteSettings } from "@/lib/site-settings"
 import { ProductCard } from "@/components/store/product-card"
 import { ProductSortSelect } from "@/components/store/product-sort-select"
 import { ProductPagination } from "@/components/store/product-pagination"
@@ -15,6 +16,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const params = await searchParams
   const categorySlug = params.category
+  const settings = await getSiteSettings()
 
   if (categorySlug) {
     const cat = await prisma.category.findUnique({ where: { slug: categorySlug } })
@@ -29,7 +31,7 @@ export async function generateMetadata({
           title,
           description,
           images: cat.seoImage ? [{ url: cat.seoImage }] : undefined,
-          siteName: "Doshok",
+          siteName: settings?.defaultSeoTitle || "Doshok",
         },
         twitter: {
           card: "summary_large_image",
@@ -42,9 +44,25 @@ export async function generateMetadata({
     }
   }
 
+  const title = settings?.defaultSeoTitle ? `${settings.defaultSeoTitle}` : "Products | Doshok"
+  const description = settings?.defaultSeoDescription || "Browse all products from Doshok"
+
   return {
-    title: "Products | Doshok",
-    description: "Browse all products from Doshok",
+    title,
+    description,
+    keywords: settings?.defaultSeoKeywords || undefined,
+    openGraph: {
+      title,
+      description,
+      images: settings?.defaultSeoImage ? [{ url: settings.defaultSeoImage }] : undefined,
+      siteName: settings?.defaultSeoTitle || "Doshok",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: settings?.defaultSeoImage ? [settings.defaultSeoImage] : undefined,
+    },
     alternates: { canonical: "/products" },
   }
 }

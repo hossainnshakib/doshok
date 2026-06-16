@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { AdminPageHeader, AdminSectionCard } from "@/components/admin/admin-ui"
 import { Plus, Trash2, Eye } from "lucide-react"
+import { ImageUploader } from "@/components/admin/image-uploader"
 import { cn } from "@/lib/utils"
 
 type FooterLink = { label: string; href: string; group: string }
@@ -18,6 +19,8 @@ type Settings = {
   address: string; footerText: string; footerLinks: string
   accentColor: string; buttonRadius: string; cardRadius: string
   storefrontTone: string; adminAccentTone: string
+  headerLogo: string; footerLogo: string; favicon: string; appleTouchIcon: string
+  defaultSeoTitle: string; defaultSeoDescription: string; defaultSeoImage: string; defaultSeoKeywords: string
 }
 
 const ACCENT_COLORS = [
@@ -59,6 +62,11 @@ export default function SiteSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [footerLinks, setFooterLinks] = useState<FooterLink[]>([])
+  const [headerLogoArr, setHeaderLogoArr] = useState<string[]>([])
+  const [footerLogoArr, setFooterLogoArr] = useState<string[]>([])
+  const [faviconArr, setFaviconArr] = useState<string[]>([])
+  const [appleTouchIconArr, setAppleTouchIconArr] = useState<string[]>([])
+  const [defaultSeoImageArr, setDefaultSeoImageArr] = useState<string[]>([])
 
   useEffect(() => {
     fetch("/api/site-settings")
@@ -72,11 +80,18 @@ export default function SiteSettingsPage() {
             address: "", footerText: "", footerLinks: "[]",
             accentColor: "#364152", buttonRadius: "xl", cardRadius: "1.5rem",
             storefrontTone: "light", adminAccentTone: "neutral",
+            headerLogo: "", footerLogo: "", favicon: "", appleTouchIcon: "",
+            defaultSeoTitle: "", defaultSeoDescription: "", defaultSeoImage: "", defaultSeoKeywords: "",
           }
           for (const key of Object.keys(defaults) as (keyof Settings)[]) {
             cleaned[key] = d.data[key] ?? defaults[key]
           }
           setSettings(cleaned)
+          setHeaderLogoArr(cleaned.headerLogo ? [cleaned.headerLogo] : [])
+          setFooterLogoArr(cleaned.footerLogo ? [cleaned.footerLogo] : [])
+          setFaviconArr(cleaned.favicon ? [cleaned.favicon] : [])
+          setAppleTouchIconArr(cleaned.appleTouchIcon ? [cleaned.appleTouchIcon] : [])
+          setDefaultSeoImageArr(cleaned.defaultSeoImage ? [cleaned.defaultSeoImage] : [])
           try {
             const parsed = JSON.parse(cleaned.footerLinks || "[]")
             setFooterLinks(Array.isArray(parsed) ? parsed : [])
@@ -91,6 +106,12 @@ export default function SiteSettingsPage() {
 
   function update(field: keyof Settings, value: string) {
     setSettings((prev) => prev ? { ...prev, [field]: value } : prev)
+  }
+
+  function syncImage(field: keyof Settings, arr: string[], setArr: (v: string[]) => void) {
+    const value = arr[0] || ""
+    setArr(arr)
+    update(field, value)
   }
 
   function addFooterLink() {
@@ -149,6 +170,95 @@ export default function SiteSettingsPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="footerText" className="text-xs font-medium text-slate-600">Footer Short Description</Label>
                 <Input id="footerText" value={settings.footerText} onChange={(e) => update("footerText", e.target.value)} placeholder="A short tagline shown site-wide in the footer." className="text-xs h-9" />
+              </div>
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="Branding Assets" description="Upload logos and icons for site-wide branding. Falls back to text branding when not set.">
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="headerLogo" className="text-xs font-medium text-slate-600">Header Logo <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+                  <ImageUploader
+                    images={headerLogoArr}
+                    onChange={(v) => syncImage("headerLogo", v, setHeaderLogoArr)}
+                    single
+                    label=""
+                    helperText="Replaces the Doshok.com text in the header."
+                    folder="branding"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="footerLogo" className="text-xs font-medium text-slate-600">Footer Logo <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+                  <ImageUploader
+                    images={footerLogoArr}
+                    onChange={(v) => syncImage("footerLogo", v, setFooterLogoArr)}
+                    single
+                    label=""
+                    helperText="Replaces the D mark + text in the footer."
+                    folder="branding"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="favicon" className="text-xs font-medium text-slate-600">Favicon <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+                  <ImageUploader
+                    images={faviconArr}
+                    onChange={(v) => syncImage("favicon", v, setFaviconArr)}
+                    single
+                    label=""
+                    helperText="Browser tab icon. Ideal size: 32×32px."
+                    folder="branding"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="appleTouchIcon" className="text-xs font-medium text-slate-600">Apple Touch Icon <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+                  <ImageUploader
+                    images={appleTouchIconArr}
+                    onChange={(v) => syncImage("appleTouchIcon", v, setAppleTouchIconArr)}
+                    single
+                    label=""
+                    helperText="Home screen icon on iOS. Ideal size: 180×180px."
+                    folder="branding"
+                  />
+                </div>
+              </div>
+            </div>
+          </AdminSectionCard>
+
+          <AdminSectionCard title="SEO Settings" description="Default metadata values used across the storefront when a page does not provide its own.">
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="defaultSeoTitle" className="text-xs font-medium text-slate-600">Default SEO Title</Label>
+                  <Input id="defaultSeoTitle" value={settings.defaultSeoTitle} onChange={(e) => update("defaultSeoTitle", e.target.value)} placeholder="e.g. Doshok — Premium Bangladeshi Fashion" className="text-xs h-9" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="defaultSeoKeywords" className="text-xs font-medium text-slate-600">Default SEO Keywords <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+                  <Input id="defaultSeoKeywords" value={settings.defaultSeoKeywords} onChange={(e) => update("defaultSeoKeywords", e.target.value)} placeholder="e.g. panjabi, kurta, Bangladeshi fashion" className="text-xs h-9" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="defaultSeoDescription" className="text-xs font-medium text-slate-600">Default SEO Description</Label>
+                <textarea
+                  id="defaultSeoDescription"
+                  value={settings.defaultSeoDescription}
+                  onChange={(e) => update("defaultSeoDescription", e.target.value)}
+                  placeholder="Brief description of your store for search engines."
+                  className="flex min-h-[60px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-0 resize-y"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="defaultSeoImage" className="text-xs font-medium text-slate-600">Default SEO Image <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+                <ImageUploader
+                  images={defaultSeoImageArr}
+                  onChange={(v) => syncImage("defaultSeoImage", v, setDefaultSeoImageArr)}
+                  single
+                  label=""
+                  helperText="Fallback social sharing image (1200×630 recommended)."
+                  folder="branding"
+                />
               </div>
             </div>
           </AdminSectionCard>

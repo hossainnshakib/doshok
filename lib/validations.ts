@@ -195,6 +195,14 @@ export const siteSettingsSchema = z.object({
   cardRadius: z.string().optional().default("1.5rem"),
   storefrontTone: z.string().optional().default("light"),
   adminAccentTone: z.string().optional().default("neutral"),
+  headerLogo: z.string().optional().or(z.literal("")),
+  footerLogo: z.string().optional().or(z.literal("")),
+  favicon: z.string().optional().or(z.literal("")),
+  appleTouchIcon: z.string().optional().or(z.literal("")),
+  defaultSeoTitle: z.string().optional().or(z.literal("")),
+  defaultSeoDescription: z.string().optional().or(z.literal("")),
+  defaultSeoImage: z.string().optional().or(z.literal("")),
+  defaultSeoKeywords: z.string().optional().or(z.literal("")),
 })
 
 export const otpSchema = z.object({

@@ -107,10 +107,16 @@ export async function SiteFooter() {
       <div className={styles.footerInner}>
         <div>
           <Link href="/" className={styles.logo}>
-            <span className={styles.mark}>D</span>
-            <span className={styles.word}>
-              {settings?.brandName || "Doshok"}<span className="text-[#364152]">.</span>com
-            </span>
+            {settings?.footerLogo ? (
+              <img src={settings.footerLogo} alt="Doshok" className="h-8 w-auto object-contain" />
+            ) : (
+              <>
+                <span className={styles.mark}>D</span>
+                <span className={styles.word}>
+                  {settings?.brandName || "Doshok"}<span className="text-[#364152]">.</span>com
+                </span>
+              </>
+            )}
           </Link>
           {settings?.tagline ? (
             <div className={styles.brandTag}>{settings.tagline}</div>
