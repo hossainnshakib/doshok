@@ -676,15 +676,19 @@ model Page {
 }
 
 model Story {
-  id           String   @id @default(cuid())
-  title        String
-  slug         String   @unique
-  excerpt      String?
-  content      String
-  image        String?
-  status       String   @default("draft")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  excerpt        String?
+  content        String
+  image          String?
+  seoTitle       String?
+  seoDescription String?
+  seoImage       String?
+  seoKeywords    String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([slug])
   @@index([status])

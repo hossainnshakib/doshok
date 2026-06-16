@@ -33,7 +33,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await req.json()
-    const { title, slug, excerpt, content, image, status } = body
+    const { title, slug, excerpt, content, image, status, seoTitle, seoDescription, seoImage, seoKeywords } = body
 
     if (slug) {
       const existing = await prisma.story.findFirst({ where: { slug, id: { not: id } } })
@@ -44,7 +44,7 @@ export async function PATCH(
 
     const story = await prisma.story.update({
       where: { id },
-      data: { title, slug, excerpt, content, image, status },
+      data: { title, slug, excerpt, content, image, status, seoTitle, seoDescription, seoImage, seoKeywords },
     })
 
     return NextResponse.json({ success: true, data: story })

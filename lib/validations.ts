@@ -322,3 +322,16 @@ export const sizeChartUpdateSchema = z.object({
     measurements: z.record(z.string(), z.number()),
   })).optional(),
 })
+
+export const storySchema = z.object({
+  title: z.string().min(1),
+  slug: z.string().min(1),
+  excerpt: z.string().optional(),
+  content: z.string().min(1),
+  image: z.string().optional(),
+  status: z.enum(["draft", "active"]).default("draft"),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
+  seoImage: z.string().optional(),
+  seoKeywords: z.string().optional(),
+})

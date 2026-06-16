@@ -17,6 +17,10 @@ type Story = {
   excerpt: string | null
   content: string
   image: string | null
+  seoTitle: string | null
+  seoDescription: string | null
+  seoImage: string | null
+  seoKeywords: string | null
   status: string
   createdAt: string
   updatedAt: string
@@ -55,6 +59,10 @@ export default function AdminStoriesPage() {
         content: formData.get("content") as string,
         image: formData.get("image") as string || null,
         status: formData.get("status") as string,
+        seoTitle: formData.get("seoTitle") as string || null,
+        seoDescription: formData.get("seoDescription") as string || null,
+        seoImage: formData.get("seoImage") as string || null,
+        seoKeywords: formData.get("seoKeywords") as string || null,
       }
 
       const url = editing ? `/api/stories/${editing.id}` : "/api/stories"
@@ -213,6 +221,10 @@ function StoryModal({
   const [content, setContent] = useState(story?.content ?? "")
   const [image, setImage] = useState(story?.image ?? "")
   const [status, setStatus] = useState(story?.status ?? "draft")
+  const [seoTitle, setSeoTitle] = useState(story?.seoTitle ?? "")
+  const [seoDescription, setSeoDescription] = useState(story?.seoDescription ?? "")
+  const [seoImage, setSeoImage] = useState(story?.seoImage ?? "")
+  const [seoKeywords, setSeoKeywords] = useState(story?.seoKeywords ?? "")
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -231,6 +243,10 @@ function StoryModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="hidden" name="image" value={image} />
           <input type="hidden" name="status" value={status} />
+          <input type="hidden" name="seoTitle" value={seoTitle} />
+          <input type="hidden" name="seoDescription" value={seoDescription} />
+          <input type="hidden" name="seoImage" value={seoImage} />
+          <input type="hidden" name="seoKeywords" value={seoKeywords} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-600">Title</label>
@@ -266,6 +282,34 @@ function StoryModal({
               <option value="draft">Draft</option>
               <option value="active">Active</option>
             </select>
+          </div>
+          <div className="border-t border-border pt-4 mt-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">SEO</p>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600">SEO Title</label>
+                <input name="seoTitle" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600">SEO Description</label>
+                <textarea name="seoDescription" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600">SEO Keywords</label>
+                <input name="seoKeywords" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="comma, separated, values" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600">SEO Image</label>
+                <ImageUploader
+                  images={seoImage ? [seoImage] : []}
+                  onChange={(imgs) => setSeoImage(imgs[0] || "")}
+                  single
+                  label=""
+                  helperText=""
+                  folder="stories"
+                />
+              </div>
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={onClose}>Cancel</Button>
