@@ -144,30 +144,29 @@ export async function verifyCheckoutOtp(phoneInput: string, code: string) {
 export async function consumeCheckoutVerificationToken(token: string, phoneInput: string) {
   const phone = assertValidBdPhone(phoneInput)
 
-  const record = await prisma.phoneOtpVerification.findUnique({
-    where: { checkoutToken: token },
+  const result = await prisma.phoneOtpVerification.updateMany({
+    where: {
+      checkoutToken: token,
+      checkoutTokenUsedAt: null,
+      checkoutTokenExpiresAt: { gt: new Date() },
+      phone,
+    },
+    data: {
+      checkoutTokenUsedAt: new Date(),
+    },
   })
 
-  if (!record) {
-    throw new Error("Invalid verification token.")
-  }
-
-  if (record.phone !== phone) {
-    throw new Error("Token does not match the provided phone number.")
-  }
-
-  if (!record.checkoutTokenExpiresAt || new Date() > record.checkoutTokenExpiresAt) {
-    throw new Error("Verification token has expired.")
-  }
-
-  if (record.checkoutTokenUsedAt) {
+  if (result.count !== 1) {
+    const record = await prisma.phoneOtpVerification.findUnique({
+      where: { checkoutToken: token },
+    })
+    if (!record) throw new Error("Invalid verification token.")
+    if (record.phone !== phone) throw new Error("Token does not match the provided phone number.")
+    if (!record.checkoutTokenExpiresAt || new Date() > record.checkoutTokenExpiresAt) {
+      throw new Error("Verification token has expired.")
+    }
     throw new Error("Verification token has already been used.")
   }
-
-  await prisma.phoneOtpVerification.update({
-    where: { id: record.id },
-    data: { checkoutTokenUsedAt: new Date() },
-  })
 
   return { phone }
 }
