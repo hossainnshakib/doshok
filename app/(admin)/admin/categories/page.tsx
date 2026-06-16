@@ -20,6 +20,10 @@ type CategoryWithMeta = {
   parentId?: string | null
   parent?: { name: string } | null
   _count: { products: number }
+  seoTitle?: string | null
+  seoDescription?: string | null
+  seoKeywords?: string | null
+  seoImage?: string | null
 }
 
 export default function AdminCategoriesPage() {
@@ -38,6 +42,14 @@ export default function AdminCategoriesPage() {
   const [editImage, setEditImage] = useState<string[]>([])
   const [editIsSubcategory, setEditIsSubcategory] = useState(false)
   const [editParentId, setEditParentId] = useState("")
+  const [seoTitle, setSeoTitle] = useState("")
+  const [seoDescription, setSeoDescription] = useState("")
+  const [seoKeywords, setSeoKeywords] = useState("")
+  const [seoImage, setSeoImage] = useState<string[]>([])
+  const [editSeoTitle, setEditSeoTitle] = useState("")
+  const [editSeoDescription, setEditSeoDescription] = useState("")
+  const [editSeoKeywords, setEditSeoKeywords] = useState("")
+  const [editSeoImage, setEditSeoImage] = useState<string[]>([])
 
   async function loadCategories() {
     const res = await fetch("/api/categories")
@@ -91,6 +103,10 @@ export default function AdminCategoriesPage() {
         slug,
         image: image[0] || undefined,
         parentId: isSubcategory && parentId ? parentId : null,
+        seoTitle: seoTitle || undefined,
+        seoDescription: seoDescription || undefined,
+        seoKeywords: seoKeywords || undefined,
+        seoImage: seoImage[0] || undefined,
       }),
     })
     const data = await res.json()
@@ -100,6 +116,10 @@ export default function AdminCategoriesPage() {
       setSlug("")
       setSlugManuallyEdited(false)
       setImage([])
+      setSeoTitle("")
+      setSeoDescription("")
+      setSeoKeywords("")
+      setSeoImage([])
       setIsSubcategory(false)
       setParentId("")
       loadCategories()
@@ -117,6 +137,10 @@ export default function AdminCategoriesPage() {
     setEditImage(cat.image ? [cat.image] : [])
     setEditIsSubcategory(!!cat.parentId)
     setEditParentId(cat.parentId || "")
+    setEditSeoTitle(cat.seoTitle || "")
+    setEditSeoDescription(cat.seoDescription || "")
+    setEditSeoKeywords(cat.seoKeywords || "")
+    setEditSeoImage(cat.seoImage ? [cat.seoImage] : [])
   }
 
   async function saveEdit(id: string) {
@@ -128,6 +152,10 @@ export default function AdminCategoriesPage() {
         slug: editSlug,
         image: editImage[0] || undefined,
         parentId: editIsSubcategory && editParentId ? editParentId : null,
+        seoTitle: editSeoTitle || undefined,
+        seoDescription: editSeoDescription || undefined,
+        seoKeywords: editSeoKeywords || undefined,
+        seoImage: editSeoImage[0] || undefined,
       }),
     })
     const data = await res.json()
@@ -207,6 +235,40 @@ export default function AdminCategoriesPage() {
             helperText="Upload a category icon or image."
             folder="categories"
           />
+
+          <div className="border-t border-slate-200 pt-4 mt-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">SEO Settings</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="catSeoTitle">SEO Title</Label>
+                <Input id="catSeoTitle" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="e.g. Premium Panjabi Collection" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="catSeoKeywords">SEO Keywords</Label>
+                <Input id="catSeoKeywords" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="e.g. panjabi, kurta, men's fashion" />
+              </div>
+            </div>
+            <div className="space-y-1.5 mt-3">
+              <Label htmlFor="catSeoDescription">SEO Description</Label>
+              <textarea
+                id="catSeoDescription"
+                value={seoDescription}
+                onChange={(e) => setSeoDescription(e.target.value)}
+                placeholder="Brief description for search engines"
+                className="flex min-h-[60px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-0 resize-y"
+              />
+            </div>
+            <div className="mt-3">
+              <ImageUploader
+                images={seoImage}
+                onChange={setSeoImage}
+                single
+                label="SEO Image (optional)"
+                helperText="Social sharing image (1200×630 recommended)."
+                folder="categories"
+              />
+            </div>
+          </div>
 
           <Button type="submit" disabled={loading} className="h-9 rounded-lg px-5 text-xs font-semibold">
             {loading ? "Creating..." : isSubcategory ? "Add subcategory" : "Add category"}
@@ -334,6 +396,42 @@ export default function AdminCategoriesPage() {
                   helperText=""
                   folder="categories"
                 />
+              </TableCell>
+            </TableRow>
+          )}
+          {editingId && categories.find((c) => c.id === editingId) && (
+            <TableRow>
+              <TableCell colSpan={7} className="bg-slate-50/50 py-3 px-3 border-t-0">
+                <div className="space-y-3">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">SEO Settings</h4>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-slate-500">SEO Title</Label>
+                      <Input value={editSeoTitle} onChange={(e) => setEditSeoTitle(e.target.value)} className="h-8 text-xs" placeholder="e.g. Premium Panjabi Collection" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-slate-500">SEO Keywords</Label>
+                      <Input value={editSeoKeywords} onChange={(e) => setEditSeoKeywords(e.target.value)} className="h-8 text-xs" placeholder="e.g. panjabi, kurta" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-slate-500">SEO Description</Label>
+                    <textarea
+                      value={editSeoDescription}
+                      onChange={(e) => setEditSeoDescription(e.target.value)}
+                      placeholder="Brief description for search engines"
+                      className="flex min-h-[50px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-0 resize-y"
+                    />
+                  </div>
+                  <ImageUploader
+                    images={editSeoImage}
+                    onChange={setEditSeoImage}
+                    single
+                    label="SEO Image (optional)"
+                    helperText="Social sharing image."
+                    folder="categories"
+                  />
+                </div>
               </TableCell>
             </TableRow>
           )}

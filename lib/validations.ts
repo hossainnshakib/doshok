@@ -79,6 +79,10 @@ export const categorySchema = z.object({
   slug: z.string().min(1),
   image: z.string().optional(),
   parentId: z.string().optional().nullable(),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
+  seoKeywords: z.string().optional(),
+  seoImage: z.string().optional(),
 })
 
 export const addressSchema = z.object({

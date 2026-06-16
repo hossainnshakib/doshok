@@ -1,4 +1,5 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
 import { ProductCard } from "@/components/store/product-card"
 import { ProductSortSelect } from "@/components/store/product-sort-select"
@@ -6,6 +7,47 @@ import { ProductPagination } from "@/components/store/product-pagination"
 import { Package } from "lucide-react"
 
 const LIMIT = 24
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>
+}): Promise<Metadata> {
+  const params = await searchParams
+  const categorySlug = params.category
+
+  if (categorySlug) {
+    const cat = await prisma.category.findUnique({ where: { slug: categorySlug } })
+    if (cat) {
+      const title = cat.seoTitle || `${cat.name} | Doshok`
+      const description = cat.seoDescription || `Browse ${cat.name} collection from Doshok`
+      return {
+        title,
+        description,
+        keywords: cat.seoKeywords || undefined,
+        openGraph: {
+          title,
+          description,
+          images: cat.seoImage ? [{ url: cat.seoImage }] : undefined,
+          siteName: "Doshok",
+        },
+        twitter: {
+          card: "summary_large_image",
+          title,
+          description,
+          images: cat.seoImage ? [cat.seoImage] : undefined,
+        },
+        alternates: { canonical: `/products?category=${categorySlug}` },
+      }
+    }
+  }
+
+  return {
+    title: "Products | Doshok",
+    description: "Browse all products from Doshok",
+    alternates: { canonical: "/products" },
+  }
+}
 
 type SortOption = "newest" | "price-low" | "price-high" | "rating"
 
