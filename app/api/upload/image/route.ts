@@ -1,7 +1,8 @@
-import { NextRequest } from "next/server"
-import { auth } from "@/lib/auth"
+import { NextRequest, NextResponse } from "next/server"
 import { success, error } from "@/lib/api-response"
 import { getCloudinary } from "@/lib/cloudinary"
+import { requireAdminPermission } from "@/lib/auth/admin"
+import type { PermissionGroup } from "@/lib/permissions"
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 const MAX_SIZE = 5 * 1024 * 1024
@@ -11,19 +12,33 @@ const FOLDER_MAP: Record<string, string> = {
   homepage: "doshok/homepage",
   landing: "doshok/landing",
   categories: "doshok/categories",
+  branding: "doshok/branding",
+  pages: "doshok/pages",
+  stories: "doshok/stories",
+  promo: "doshok/homepage",
+  seo: "doshok/products",
+}
+
+const FOLDER_PERMISSIONS: Record<string, PermissionGroup> = {
+  products: "products",
+  landing: "products",
+  categories: "products",
+  seo: "products",
+  homepage: "cms",
+  pages: "cms",
+  stories: "cms",
+  promo: "cms",
+  branding: "settings",
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) {
-    return error("Unauthorized", 401)
-  }
-  if (session.user.role !== "admin") return error("Forbidden", 403)
-
   try {
     const formData = await request.formData()
     const file = formData.get("file") as File | null
     const folderKey = (formData.get("folder") as string) || "products"
+    const permission = FOLDER_PERMISSIONS[folderKey] ?? "products"
+    const session = await requireAdminPermission(permission)
+    if (session instanceof NextResponse) return session
 
     if (!file) {
       return error("No file provided")

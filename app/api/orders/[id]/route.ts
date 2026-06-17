@@ -1,7 +1,8 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
+import { requireAdminPermission } from "@/lib/auth/admin"
 import { sendOrderStatusEmail } from "@/lib/mailer"
 import { ORDER_STATUSES } from "@/types"
 import { applyInventorySideEffectsForOrderStatus } from "@/lib/services/inventory.service"
@@ -22,8 +23,9 @@ export async function GET(
 
   if (!order) return error("Not found", 404)
 
-  if (session.user.role !== "admin" && order.userId !== session.user.id) {
-    return error("Forbidden", 403)
+  if (order.userId !== session.user.id) {
+    const adminSession = await requireAdminPermission("orders")
+    if (adminSession instanceof NextResponse) return adminSession
   }
 
   return success(order)
@@ -33,9 +35,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth()
-  if (!session?.user) return error("Unauthorized", 401)
-  if (session.user.role !== "admin") return error("Forbidden", 403)
+  const session = await requireAdminPermission("orders")
+  if (session instanceof NextResponse) return session
 
   const { id } = await params
 

@@ -1,7 +1,7 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 import { shipmentCreateSchema, shipmentUpdateSchema } from "@/lib/validations"
 import { createPathaoParcel } from "@/lib/courier/pathao"
 import { createSteadfastParcel, type OrderForSteadfast } from "@/lib/courier/steadfast"
@@ -14,9 +14,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("orders")
+    if (session instanceof NextResponse) return session
 
     const { id } = await params
 
@@ -35,9 +34,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("orders")
+    if (session instanceof NextResponse) return session
 
     const { id } = await params
     const body = await request.json()
@@ -357,9 +355,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("orders")
+    if (session instanceof NextResponse) return session
 
     const { id } = await params
     const body = await request.json()

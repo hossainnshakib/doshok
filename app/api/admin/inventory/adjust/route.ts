@@ -1,12 +1,11 @@
-import { NextRequest } from "next/server"
-import { auth } from "@/lib/auth"
+import { NextRequest, NextResponse } from "next/server"
 import { success, error } from "@/lib/api-response"
 import { manualAdjustStock } from "@/lib/services/inventory.service"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return error("Unauthorized", 401)
-  if (session.user.role !== "admin") return error("Forbidden", 403)
+  const session = await requireAdminPermission("inventory")
+  if (session instanceof NextResponse) return session
 
   try {
     const body = await request.json()

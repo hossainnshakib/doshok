@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { siteSettingsSchema } from "@/lib/validations"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export async function GET() {
   try {
@@ -19,13 +19,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("settings")
+    if (session instanceof NextResponse) return session
 
     const body = await request.json()
     const parsed = siteSettingsSchema.safeParse(body)

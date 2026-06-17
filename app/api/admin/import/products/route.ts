@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { parseCsvLine } from "@/lib/csv"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
@@ -19,10 +19,8 @@ function getField(row: string[], map: Map<string, number>, name: string): string
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "admin") {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-  }
+  const session = await requireAdminPermission("import_export")
+  if (session instanceof NextResponse) return session
 
   const text = await request.text()
 

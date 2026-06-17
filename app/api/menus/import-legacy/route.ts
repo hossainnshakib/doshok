@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 import type { LegacyFooterLink, LegacyHeaderQuickLink } from "@/types"
 
 function getLabelFromHref(href: string): string {
@@ -28,9 +28,8 @@ function getLabelFromHref(href: string): string {
 }
 
 export async function POST() {
-  const session = await auth()
-  if (!session?.user) return error("Unauthorized", 401)
-  if (session.user.role !== "admin") return error("Forbidden", 403)
+  const session = await requireAdminPermission("cms")
+  if (session instanceof NextResponse) return session
 
   let settings = await prisma.siteSettings.findUnique({ where: { id: "default" } })
   if (!settings) {

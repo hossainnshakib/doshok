@@ -1,7 +1,7 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export async function PATCH(
   request: NextRequest,
@@ -10,9 +10,8 @@ export async function PATCH(
   const { id } = await params
 
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("products")
+    if (session instanceof NextResponse) return session
 
     const body = await request.json()
     const { parentId, ...rest } = body
@@ -41,9 +40,8 @@ export async function DELETE(
   const { id } = await params
 
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("products")
+    if (session instanceof NextResponse) return session
 
     const productCount = await prisma.product.count({ where: { categoryId: id } })
     if (productCount > 0) {

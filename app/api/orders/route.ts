@@ -1,7 +1,8 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export async function GET(request: NextRequest) {
   const session = await auth()
@@ -16,8 +17,9 @@ export async function GET(request: NextRequest) {
   if (!session?.user) return error("Unauthorized", 401)
 
   if (userId) {
-    if (session.user.id !== userId && session.user.role !== "admin") {
-      return error("Forbidden", 403)
+    if (session.user.id !== userId) {
+      const adminSession = await requireAdminPermission("orders")
+      if (adminSession instanceof NextResponse) return adminSession
     }
     const where = { userId }
     const [orders, total] = await Promise.all([
@@ -34,7 +36,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (phone) {
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const adminSession = await requireAdminPermission("orders")
+    if (adminSession instanceof NextResponse) return adminSession
     const where = { customerPhone: phone }
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -49,7 +52,8 @@ export async function GET(request: NextRequest) {
     return success({ orders, total, page, pages: Math.ceil(total / limit) })
   }
 
-  if (session.user.role !== "admin") return error("Forbidden", 403)
+  const adminSession = await requireAdminPermission("orders")
+  if (adminSession instanceof NextResponse) return adminSession
 
   const where: Record<string, unknown> = {}
   if (status && status !== "all") where.orderStatus = status

@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { toCsvRow } from "@/lib/csv"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "admin") {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-  }
+  const session = await requireAdminPermission("import_export")
+  if (session instanceof NextResponse) return session
 
   const customers = await prisma.user.findMany({
     where: { role: "customer" },

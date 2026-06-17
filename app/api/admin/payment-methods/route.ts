@@ -1,16 +1,15 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
-import { auth } from "@/lib/auth"
 import { paymentMethodUpdateSchema } from "@/lib/validations"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("operations")
+    if (session instanceof NextResponse) return session
 
     const methods = await prisma.paymentMethodSetting.findMany({
       orderBy: { createdAt: "asc" },
@@ -39,9 +38,8 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("operations")
+    if (session instanceof NextResponse) return session
 
     const body = await request.json()
     const parsed = paymentMethodUpdateSchema.safeParse(body)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export async function GET(
   req: NextRequest,
@@ -13,9 +13,9 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Page not found" }, { status: 404 })
     }
 
-    const session = await auth()
-    if (page.status !== "active" && (!session?.user || session.user.role !== "admin")) {
-      return NextResponse.json({ success: false, error: "Page not found" }, { status: 404 })
+    if (page.status !== "active") {
+      const session = await requireAdminPermission("cms")
+      if (session instanceof NextResponse) return session
     }
 
     return NextResponse.json({ success: true, data: page })
@@ -29,13 +29,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("cms")
+    if (session instanceof NextResponse) return session
 
     const { id } = await params
     const body = await req.json()
@@ -64,13 +59,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("cms")
+    if (session instanceof NextResponse) return session
 
     const { id } = await params
     await prisma.page.delete({ where: { id } })

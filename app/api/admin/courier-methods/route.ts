@@ -1,9 +1,9 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
-import { auth } from "@/lib/auth"
 import { courierMethodUpdateSchema, courierCredentialsMap } from "@/lib/validations"
 import { encrypt, decrypt } from "@/lib/encryption"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export const dynamic = "force-dynamic"
 
@@ -17,9 +17,8 @@ function maskCredentials(creds: Record<string, string>): Record<string, string> 
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("operations")
+    if (session instanceof NextResponse) return session
 
     const methods = await prisma.courierProviderSetting.findMany({
       orderBy: { createdAt: "asc" },
@@ -63,9 +62,8 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("operations")
+    if (session instanceof NextResponse) return session
 
     const body = await request.json()
     const parsed = courierMethodUpdateSchema.safeParse(body)
