@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
+import { isAdminRole } from "@/lib/permissions"
 
 export async function proxy(request: NextRequest) {
   const token = await getToken({
@@ -11,7 +12,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-    if (!token || token.role !== "admin") {
+    if (!token || !isAdminRole(String(token.role)) || token.isActive === false) {
       return NextResponse.redirect(new URL("/admin/login", request.url))
     }
     return NextResponse.next()
@@ -24,7 +25,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    if (token.role === "admin") {
+    if (isAdminRole(String(token.role))) {
       return NextResponse.redirect(new URL("/admin/dashboard", request.url))
     }
   }

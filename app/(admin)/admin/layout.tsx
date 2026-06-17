@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import type { LucideIcon } from "lucide-react"
 import {
   LogOut,
@@ -36,7 +36,10 @@ import {
   Ruler,
   ExternalLink,
   Download,
+  Shield,
 } from "lucide-react"
+import { canAccessSection, hasSettingsAccess } from "@/lib/permissions"
+import type { PermissionGroup } from "@/lib/permissions"
 
 const STORAGE_KEY = "doshok_admin_sidebar_pinned"
 
@@ -44,26 +47,30 @@ interface NavItem {
   href: string
   label: string
   icon: LucideIcon
+  permission?: PermissionGroup | "operations"
 }
 
 interface NavGroup {
   label: string
+  permission: PermissionGroup | "operations"
   items: NavItem[]
 }
 
 const navGroups: NavGroup[] = [
   {
     label: "Overview",
+    permission: "dashboard",
     items: [
       { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ],
   },
   {
     label: "Commerce",
+    permission: "commerce",
     items: [
-      { href: "/admin/products", label: "Products", icon: Package },
-      { href: "/admin/categories", label: "Categories", icon: Grid3x3 },
-      { href: "/admin/size-charts", label: "Size Charts", icon: Ruler },
+      { href: "/admin/products", label: "Products", icon: Package, permission: "products" },
+      { href: "/admin/categories", label: "Categories", icon: Grid3x3, permission: "products" },
+      { href: "/admin/size-charts", label: "Size Charts", icon: Ruler, permission: "products" },
       { href: "/admin/coupons", label: "Coupons", icon: Tag },
       { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp },
       { href: "/admin/commerce/import-export", label: "Import / Export", icon: Download },
@@ -71,6 +78,7 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Inventory",
+    permission: "inventory",
     items: [
       { href: "/admin/inventory", label: "Stock Overview", icon: PackageSearch },
       { href: "/admin/inventory/movements", label: "Stock Movements", icon: ClipboardList },
@@ -79,30 +87,42 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Sales",
+    permission: "orders",
     items: [
       { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
     ],
   },
   {
     label: "Customers",
+    permission: "customers",
     items: [
       { href: "/admin/customers/list", label: "Customer List", icon: Users },
     ],
   },
   {
+    label: "Support",
+    permission: "support",
+    items: [
+      { href: "/admin/support", label: "Support", icon: Headphones },
+    ],
+  },
+  {
     label: "Reviews",
+    permission: "reviews",
     items: [
       { href: "/admin/reviews", label: "Product Reviews", icon: Star },
     ],
   },
   {
     label: "Careers",
+    permission: "careers",
     items: [
       { href: "/admin/careers", label: "Career Posts", icon: BriefcaseMedical },
     ],
   },
   {
     label: "CMS",
+    permission: "cms",
     items: [
       { href: "/admin/homepage", label: "Homepage", icon: Home },
       { href: "/admin/cms/footer", label: "Footer", icon: Link2 },
@@ -114,6 +134,7 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Operations",
+    permission: "operations",
     items: [
       { href: "/admin/payment-methods", label: "Payment Methods", icon: CreditCard },
       { href: "/admin/courier-methods", label: "Courier Methods", icon: Truck },
@@ -123,8 +144,10 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Settings",
+    permission: "settings",
     items: [
       { href: "/admin/site-settings", label: "Site Settings", icon: Settings },
+      { href: "/admin/settings/users", label: "Admin Users", icon: Shield },
     ],
   },
 ]
@@ -132,9 +155,12 @@ const navGroups: NavGroup[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [pinned, setPinned] = useState(true)
   const [hovered, setHovered] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const userRole = session?.user?.role ?? "customer"
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
@@ -146,6 +172,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [pathname])
 
   const expanded = pinned || hovered
+
+  const canAccessNavPermission = (permission: PermissionGroup | "operations") => {
+    if (permission === "operations") {
+      return userRole === "super_admin" || userRole === "admin"
+    }
+    if (permission === "settings") {
+      return hasSettingsAccess(userRole)
+    }
+    return canAccessSection(userRole, permission)
+  }
+
+  const visibleNavGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccessNavPermission(item.permission ?? group.permission)),
+    }))
+    .filter((group) => group.items.length > 0)
 
   const togglePin = useCallback(() => {
     setPinned((prev) => {
@@ -161,7 +204,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.refresh()
   }
 
-  const currentTitle = navGroups
+  const currentTitle = visibleNavGroups
     .flatMap(g => g.items)
     .find(item => pathname === item.href || pathname.startsWith(item.href + "/"))
     ?.label ?? "Dashboard"
@@ -211,7 +254,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-5">
-          {navGroups.map((group) => (
+          {visibleNavGroups.map((group) => (
             <div key={group.label}>
               {expanded && (
                 <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">

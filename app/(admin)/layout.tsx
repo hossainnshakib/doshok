@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { isAdminRole } from "@/lib/permissions"
 
 export default async function AdminRootLayout({
   children,
@@ -8,7 +9,7 @@ export default async function AdminRootLayout({
 }) {
   const session = await auth()
 
-  if (!session?.user || session.user.role !== "admin") {
+  if (!session?.user || !isAdminRole(session.user.role) || session.user.isActive === false) {
     redirect("/admin/login")
   }
 

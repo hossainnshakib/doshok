@@ -4,20 +4,21 @@ import { hash } from "bcryptjs"
 async function main() {
   const adminPassword = await hash("admin123", 12)
 
-  const admin = await prisma.user.upsert({
+  const existingAdmin = await prisma.user.findUnique({
     where: { email: "admin@doshok.com" },
-    update: {
-      role: "admin",
-      name: "Admin",
-    },
-    create: {
+    select: { email: true },
+  })
+
+  const admin = existingAdmin ?? await prisma.user.create({
+    data: {
       name: "Admin",
       email: "admin@doshok.com",
       password: adminPassword,
-      role: "admin",
+      role: "super_admin",
+      isActive: true,
     },
   })
-  console.log("Admin created:", admin.email)
+  console.log(existingAdmin ? "Default admin already exists:" : "Admin created:", admin.email)
 
   const seedCategories = [
     { name: "Three Piece", slug: "three-piece" },

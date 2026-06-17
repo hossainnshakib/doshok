@@ -20,6 +20,7 @@ model User {
   gender        String?
   password      String?
   role          String    @default("customer")
+  isActive      Boolean   @default(true)
   status        String    @default("active")
   accounts      Account[]
   sessions      Session[]

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { SessionProvider } from "next-auth/react"
+import { isAdminRole } from "@/lib/permissions"
 
 function LoginForm() {
   const router = useRouter()
@@ -23,7 +24,7 @@ function LoginForm() {
   useEffect(() => {
     if (status === "loading") return
     if (status === "authenticated") {
-      if (session?.user?.role === "admin") {
+      if (isAdminRole(session?.user?.role ?? "") && session?.user?.isActive !== false) {
         router.push("/admin/dashboard")
       } else {
         signOut({ redirect: false })
@@ -65,7 +66,7 @@ function LoginForm() {
     const sessionRes = await fetch("/api/auth/session")
     const sessionData = await sessionRes.json()
 
-    if (sessionData?.user?.role !== "admin") {
+    if (!isAdminRole(sessionData?.user?.role ?? "") || sessionData?.user?.isActive === false) {
       await signOut({ redirect: false })
       toast.error("This portal is for administrators only")
       router.push("/auth/login")

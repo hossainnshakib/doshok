@@ -18,7 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email: credentials.email as string },
         })
 
-        if (!user || !user.password) return null
+        if (!user || !user.password || !user.isActive) return null
 
         const isValid = await compare(credentials.password as string, user.password)
         if (!isValid) return null
@@ -31,6 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           lastName: user.lastName,
           phone: user.phone,
           role: user.role,
+          isActive: user.isActive,
           emailVerified: user.emailVerified,
           phoneVerifiedAt: user.phoneVerifiedAt,
         }
@@ -41,6 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as { role: string }).role
+        token.isActive = (user as { isActive?: boolean }).isActive ?? true
         token.id = user.id
         token.firstName = (user as { firstName?: string | null }).firstName
         token.lastName = (user as { lastName?: string | null }).lastName
@@ -50,8 +52,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.id) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id },
-          select: { emailVerified: true, phoneVerifiedAt: true },
+          select: { role: true, isActive: true, emailVerified: true, phoneVerifiedAt: true },
         })
+        token.role = fresh?.role ?? token.role
+        token.isActive = fresh?.isActive ?? false
         token.emailVerified = fresh?.emailVerified?.toISOString() ?? null
         token.phoneVerifiedAt = fresh?.phoneVerifiedAt?.toISOString() ?? null
       }
@@ -60,6 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.role = token.role as string
+        session.user.isActive = token.isActive as boolean
         session.user.id = token.id as string
         session.user.firstName = token.firstName as string | null | undefined
         session.user.lastName = token.lastName as string | null | undefined

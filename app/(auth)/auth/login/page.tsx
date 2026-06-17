@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Eye, EyeOff, Loader2, CheckCircle } from "lucide-react"
+import { isAdminRole } from "@/lib/permissions"
 
 function LoginForm() {
   const router = useRouter()
@@ -69,7 +70,7 @@ function LoginForm() {
       const sessionRes = await fetch("/api/auth/session")
       const sessionData = await sessionRes.json()
 
-      if (sessionData?.user?.role === "admin") {
+      if (isAdminRole(sessionData?.user?.role ?? "")) {
         toast.error("Please use the admin login portal")
         await signOut({ redirect: false })
         router.push("/admin/login")
