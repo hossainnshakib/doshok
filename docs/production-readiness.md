@@ -44,7 +44,7 @@ If OTP verification is enabled, ensure Firebase project is configured for produc
 - [ ] All environment variables configured in production
 - [ ] Database migrations applied
 - [ ] Payment methods reviewed (COD enabled; online payment settings paused)
-- [ ] Cron jobs configured (order cleanup, stock release, etc.)
+- [ ] Cron jobs configured (`/api/cron/release-reservations` active for reservation stock release)
 - [ ] Rate limiting enabled and tuned
 - [ ] SSL/TLS enforced
 - [ ] CORS configured if needed
@@ -73,6 +73,14 @@ curl -i "https://doshok.com/api/stories?status=all"
 
 # Checkout with COD enabled
 # Should create paymentMethod=cod, paidAmount=0, paymentStatus=pending, payNow=0, dueAmount=total
+
+# Cron: release expired reservations
+curl -i -X POST https://doshok.com/api/cron/release-reservations \
+  -H "Authorization: Bearer $CRON_SECRET"
+
+# Cron: expired online payment cancellation
+# Do not schedule /api/cron/cancel-expired-payments in COD-only V1.1.
+# The protected route remains available as a paused no-op until online payments are rebuilt.
 ```
 
 > **Do not store real secrets in code or commit them to version control.**

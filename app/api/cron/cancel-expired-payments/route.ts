@@ -18,7 +18,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return success({ processed: 0, skipped: 0, failed: 0 })
+  return success({
+    processed: 0,
+    skipped: 0,
+    failed: 0,
+    paused: true,
+    mode: "cod_only",
+    message: "Online payment cancellation is paused because Doshok V1.1 is COD-only.",
+  })
 }
 
 export async function GET(request: NextRequest) {
