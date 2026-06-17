@@ -347,3 +347,32 @@ export const storySchema = z.object({
   seoImage: z.string().optional(),
   seoKeywords: z.string().optional(),
 })
+
+const RESERVED_SLUGS = [
+  "admin", "api", "account", "auth", "checkout", "cart",
+  "products", "stories", "p", "l", "go", "feed",
+  "order", "search", "track-order",
+]
+
+export const shortLinkSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens only")
+    .refine((val) => !RESERVED_SLUGS.includes(val), "This slug is reserved"),
+  destinationUrl: z.string().min(1, "Destination URL is required"),
+  type: z.enum(["internal", "external"]).default("internal"),
+  status: z.enum(["active", "inactive"]).default("active"),
+  utmSource: z.string().optional().or(z.literal("")),
+  utmMedium: z.string().optional().or(z.literal("")),
+  utmCampaign: z.string().optional().or(z.literal("")),
+  nofollow: z.boolean().optional().default(false),
+  expiresAt: z.string().optional().or(z.literal("")),
+}).refine(
+  (data) => {
+    if (data.type === "internal") return data.destinationUrl.startsWith("/")
+    return data.destinationUrl.startsWith("http://") || data.destinationUrl.startsWith("https://")
+  },
+  { message: "Internal URLs must start with / and external URLs must start with http:// or https://" },
+)

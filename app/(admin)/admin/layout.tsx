@@ -34,6 +34,7 @@ import {
   ClipboardList,
   MapPin,
   Ruler,
+  ExternalLink,
 } from "lucide-react"
 
 const STORAGE_KEY = "doshok_admin_sidebar_pinned"
@@ -106,6 +107,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/cms/menus", label: "Menus", icon: Menu },
       { href: "/admin/cms/pages", label: "Pages", icon: FileText },
       { href: "/admin/cms/stories", label: "Stories", icon: BookOpen },
+      { href: "/admin/cms/short-links", label: "Short Links", icon: ExternalLink },
     ],
   },
   {

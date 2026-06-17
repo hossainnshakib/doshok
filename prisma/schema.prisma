@@ -747,3 +747,24 @@ model ProductRelation {
   @@index([relatedProductId])
   @@index([type])
 }
+
+model ShortLink {
+  id             String    @id @default(cuid())
+  title          String
+  slug           String    @unique
+  destinationUrl String
+  type           String    @default("internal") // internal | external
+  status         String    @default("active") // active | inactive
+  clickCount     Int       @default(0)
+  lastClickedAt  DateTime?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  nofollow       Boolean   @default(false)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([status])
+}
