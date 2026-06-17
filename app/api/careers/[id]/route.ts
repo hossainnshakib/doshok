@@ -14,7 +14,7 @@ export async function GET(
     }
 
     if (post.status !== "Open") {
-      const session = await requireAdminPermission("cms")
+      const session = await requireAdminPermission("careers")
       if (session instanceof NextResponse) {
         return NextResponse.json({ success: false, error: "Career post not found" }, { status: 404 })
       }
@@ -31,7 +31,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAdminPermission("cms")
+    const session = await requireAdminPermission("careers")
     if (session instanceof NextResponse) return session
 
     const { id } = await params
@@ -80,7 +80,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAdminPermission("cms")
+    const session = await requireAdminPermission("careers")
     if (session instanceof NextResponse) return session
 
     const { id } = await params

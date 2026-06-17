@@ -71,8 +71,8 @@ const navGroups: NavGroup[] = [
       { href: "/admin/products", label: "Products", icon: Package, permission: "products" },
       { href: "/admin/categories", label: "Categories", icon: Grid3x3, permission: "products" },
       { href: "/admin/size-charts", label: "Size Charts", icon: Ruler, permission: "products" },
-      { href: "/admin/coupons", label: "Coupons", icon: Tag },
-      { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp },
+      { href: "/admin/coupons", label: "Coupons", icon: Tag, permission: "operations" },
+      { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp, permission: "products" },
       { href: "/admin/commerce/import-export", label: "Import / Export", icon: Download, permission: "import_export" },
     ],
   },
@@ -108,7 +108,7 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Reviews",
-    permission: "reviews",
+    permission: "support",
     items: [
       { href: "/admin/reviews", label: "Product Reviews", icon: Star },
     ],
@@ -125,7 +125,7 @@ const navGroups: NavGroup[] = [
     permission: "cms",
     items: [
       { href: "/admin/homepage", label: "Homepage", icon: Home },
-      { href: "/admin/cms/footer", label: "Footer", icon: Link2 },
+      { href: "/admin/cms/footer", label: "Footer", icon: Link2, permission: "settings" },
       { href: "/admin/cms/menus", label: "Menus", icon: Menu },
       { href: "/admin/cms/pages", label: "Pages", icon: FileText },
       { href: "/admin/cms/stories", label: "Stories", icon: BookOpen },

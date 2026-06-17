@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const admin = searchParams.get("admin") === "true"
 
     if (admin) {
-      const session = await requireAdminPermission("cms")
+      const session = await requireAdminPermission("careers")
       if (session instanceof NextResponse) return session
     }
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireAdminPermission("cms")
+    const session = await requireAdminPermission("careers")
     if (session instanceof NextResponse) return session
 
     const body = await req.json()

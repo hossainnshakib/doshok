@@ -43,7 +43,6 @@ export type PermissionGroup =
   | "cms"
   | "settings"
   | "support"
-  | "reviews"
   | "careers"
   | "commerce"
   | "operations"
@@ -59,7 +58,6 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   "cms",
   "settings",
   "support",
-  "reviews",
   "careers",
   "commerce",
   "operations",
@@ -77,7 +75,6 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
     "cms",
     "settings",
     "support",
-    "reviews",
     "careers",
     "commerce",
     "operations",
@@ -93,7 +90,6 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
     "cms",
     "settings",
     "support",
-    "reviews",
     "careers",
     "commerce",
     "operations",
@@ -119,6 +115,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
   content_manager: [
     "dashboard",
     "cms",
+    "careers",
     "short_links",
   ],
   support_agent: [
