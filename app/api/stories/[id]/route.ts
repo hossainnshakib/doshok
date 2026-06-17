@@ -12,6 +12,12 @@ export async function GET(
     if (!story) {
       return NextResponse.json({ success: false, error: "Story not found" }, { status: 404 })
     }
+
+    const session = await auth()
+    if (story.status !== "active" && (!session?.user || session.user.role !== "admin")) {
+      return NextResponse.json({ success: false, error: "Story not found" }, { status: 404 })
+    }
+
     return NextResponse.json({ success: true, data: story })
   } catch {
     return NextResponse.json({ success: false, error: "Failed to fetch story" }, { status: 500 })

@@ -8,6 +8,13 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status")
     const admin = searchParams.get("admin") === "true"
 
+    if (admin) {
+      const session = await auth()
+      if (!session?.user || session.user.role !== "admin") {
+        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
+      }
+    }
+
     let where = {}
     if (!admin) {
       where = { status: "Open" }

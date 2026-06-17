@@ -381,14 +381,16 @@ model Coupon {
 }
 
 model CouponUsage {
-  id        String   @id @default(cuid())
-  couponId  String
-  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  userId    String?
-  email     String
-  orderId   String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  couponId    String
+  coupon      Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId      String?
+  email       String
+  customerKey String
+  orderId     String
+  createdAt   DateTime @default(now())
 
+  @@unique([couponId, customerKey])
   @@index([couponId, userId])
   @@index([couponId, email])
 }

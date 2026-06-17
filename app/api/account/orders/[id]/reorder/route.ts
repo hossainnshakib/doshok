@@ -107,14 +107,15 @@ export async function POST(
         continue
       }
 
-      if (variant.stock < item.quantity) {
+      const availableStock = Math.max(0, variant.stock - variant.reservedStock)
+      if (availableStock < item.quantity) {
         skipped.push({
           productId: item.productId,
           variantId: item.variantId,
           name: product.name,
           size: variant.size,
           color: variant.color,
-          reason: `Only ${variant.stock} in stock (requested ${item.quantity})`,
+          reason: `Only ${availableStock} in stock (requested ${item.quantity})`,
         })
         continue
       }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { ProductDetailClient } from "@/components/store/product-detail-client"
+import { safeJsonLd } from "@/lib/json-ld"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
 
@@ -203,13 +204,13 @@ export default async function ProductDetailPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(productJsonLd),
+          __html: safeJsonLd(productJsonLd),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbList),
+          __html: safeJsonLd(breadcrumbList),
         }}
       />
       <ProductDetailClient

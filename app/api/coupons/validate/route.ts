@@ -27,10 +27,7 @@ export async function POST(request: NextRequest) {
       const usageCount = await prisma.couponUsage.count({
         where: {
           couponId: coupon.id,
-          OR: [
-            ...(userId ? [{ userId }] : []),
-            { email: email ?? "" },
-          ],
+          customerKey: identityKey,
         },
       })
       if (usageCount >= coupon.maxUsesPerCustomer) {

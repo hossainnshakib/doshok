@@ -111,27 +111,9 @@ export async function POST(request: NextRequest) {
       if (!coupon.active) return error("Coupon is inactive")
       if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return error("Coupon has expired")
       if (subtotal < coupon.minOrder) return error(`Minimum order amount is ৳${coupon.minOrder.toLocaleString()}`)
-      if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
-        return error("This coupon has reached its maximum usage limit")
-      }
 
       const identityKey = userId ?? customer.email
       if (!identityKey) return error("Please provide an email to use a coupon")
-
-      if (coupon.maxUsesPerCustomer) {
-        const customerUsageCount = await prisma.couponUsage.count({
-          where: {
-            couponId: coupon.id,
-            OR: [
-              ...(userId ? [{ userId }] : []),
-              { email: customer.email },
-            ],
-          },
-        })
-        if (customerUsageCount >= coupon.maxUsesPerCustomer) {
-          return error(`You have already used this coupon ${coupon.maxUsesPerCustomer} time(s)`)
-        }
-      }
 
       const result = applyScopedCoupon({
         coupon,
@@ -288,10 +270,23 @@ export async function POST(request: NextRequest) {
       }
 
       if (couponCode && discount > 0) {
-        await tx.coupon.update({
-          where: { code: couponCode.toUpperCase() },
-          data: { usedCount: { increment: 1 } },
-        })
+        const coupon = await tx.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
+        if (!coupon) throw new Error("Coupon not found")
+        if (!coupon.active) throw new Error("Coupon is inactive")
+        if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) throw new Error("Coupon has expired")
+
+        if (coupon.maxUses !== null) {
+          const result = await tx.coupon.updateMany({
+            where: { code: couponCode.toUpperCase(), usedCount: { lt: coupon.maxUses } },
+            data: { usedCount: { increment: 1 } },
+          })
+          if (result.count === 0) throw new Error("This coupon has reached its maximum usage limit")
+        } else {
+          await tx.coupon.update({
+            where: { code: couponCode.toUpperCase() },
+            data: { usedCount: { increment: 1 } },
+          })
+        }
       }
 
       const createdOrder = await tx.order.create({
@@ -357,11 +352,25 @@ export async function POST(request: NextRequest) {
 if (couponCode && discount > 0) {
           const coupon = await tx.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
           if (coupon) {
+            const customerKey = userId ?? customer.email ?? ""
+            if (coupon.maxUsesPerCustomer) {
+              const usageCount = await tx.couponUsage.count({
+                where: {
+                  couponId: coupon.id,
+                  customerKey,
+                },
+              })
+              if (usageCount >= coupon.maxUsesPerCustomer) {
+                throw new Error(`You have already used this coupon ${coupon.maxUsesPerCustomer} time(s)`)
+              }
+            }
+
             await tx.couponUsage.create({
               data: {
                 couponId: coupon.id,
                 userId,
                 email: customer.email || "",
+                customerKey,
                 orderId: createdOrder.id,
               },
             })

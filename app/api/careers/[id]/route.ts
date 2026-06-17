@@ -12,6 +12,12 @@ export async function GET(
     if (!post) {
       return NextResponse.json({ success: false, error: "Career post not found" }, { status: 404 })
     }
+
+    const session = await auth()
+    if (post.status !== "Open" && (!session?.user || session.user.role !== "admin")) {
+      return NextResponse.json({ success: false, error: "Career post not found" }, { status: 404 })
+    }
+
     return NextResponse.json({ success: true, data: post })
   } catch {
     return NextResponse.json({ success: false, error: "Failed to fetch career post" }, { status: 500 })

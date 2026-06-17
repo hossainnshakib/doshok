@@ -1,4 +1,5 @@
 import { getSiteSettings } from "@/lib/site-settings"
+import { safeJsonLd } from "@/lib/json-ld"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
 
@@ -41,13 +42,13 @@ export async function OrganizationSchema() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(organizationJsonLd),
+          __html: safeJsonLd(organizationJsonLd),
         }}
       />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(websiteJsonLd),
+          __html: safeJsonLd(websiteJsonLd),
         }}
       />
     </>

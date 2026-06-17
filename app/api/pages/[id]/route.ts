@@ -12,6 +12,12 @@ export async function GET(
     if (!page) {
       return NextResponse.json({ success: false, error: "Page not found" }, { status: 404 })
     }
+
+    const session = await auth()
+    if (page.status !== "active" && (!session?.user || session.user.role !== "admin")) {
+      return NextResponse.json({ success: false, error: "Page not found" }, { status: 404 })
+    }
+
     return NextResponse.json({ success: true, data: page })
   } catch {
     return NextResponse.json({ success: false, error: "Failed to fetch page" }, { status: 500 })
