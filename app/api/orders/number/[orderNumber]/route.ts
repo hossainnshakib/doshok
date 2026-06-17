@@ -20,14 +20,6 @@ export async function GET(
     include: {
       items: true,
       address: true,
-      shipment: {
-        select: {
-          courierProvider: true,
-          status: true,
-          trackingCode: true,
-          customerNote: true,
-        },
-      },
       transactions: {
         select: {
           id: true,

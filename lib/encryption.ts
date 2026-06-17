@@ -3,15 +3,13 @@ import crypto from "crypto"
 const ALGORITHM = "aes-256-gcm"
 const IV_LENGTH = 16
 
-type SecretPurpose = "payment" | "courier" | "default"
+type SecretPurpose = "payment" | "default"
 
 function getKey(purpose: SecretPurpose = "default"): Buffer {
   let secret: string | undefined
 
   if (purpose === "payment") {
     secret = process.env.PAYMENT_CREDENTIALS_SECRET || process.env.NEXTAUTH_SECRET
-  } else if (purpose === "courier") {
-    secret = process.env.COURIER_CREDENTIALS_SECRET || process.env.NEXTAUTH_SECRET
   } else {
     secret = process.env.NEXTAUTH_SECRET
   }

@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { UpdateOrderStatus } from "@/components/admin/update-order-status"
-import { OrderShipment } from "@/components/admin/order-shipment"
 import { AdminPageHeader, AdminSectionCard, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,7 +35,6 @@ export default async function AdminOrderDetailPage({
     include: {
       items: true,
       address: true,
-      shipment: true,
       transactions: {
         orderBy: { verifiedAt: "desc" },
       },
@@ -265,8 +263,6 @@ export default async function AdminOrderDetailPage({
           </div>
         </div>
       </AdminSectionCard>
-
-      <OrderShipment orderId={order.id} initialShipment={order.shipment} />
 
       <AdminSectionCard title="Order Items" description="Products ordered, variants, quantities, and line totals.">
         <AdminTableShell>

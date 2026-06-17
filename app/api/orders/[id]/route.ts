@@ -73,22 +73,6 @@ export async function PATCH(
       }
     }
 
-    const shipmentSyncMap: Record<string, string> = {
-      shipped: "DISPATCHED",
-      delivered: "DELIVERED",
-      cancelled: "CANCELLED",
-      returned: "RETURNED",
-    }
-
-    if (filtered.orderStatus && shipmentSyncMap[filtered.orderStatus as string]) {
-      const shipmentStatus = shipmentSyncMap[filtered.orderStatus as string]
-      await prisma.orderShipment.upsert({
-        where: { orderId: id },
-        create: { orderId: id, status: shipmentStatus },
-        update: { status: shipmentStatus },
-      })
-    }
-
     const order = await prisma.order.update({
       where: { id },
       data: filtered,

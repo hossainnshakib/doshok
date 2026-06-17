@@ -12,13 +12,6 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { getPhoneDisplayE164, getPhoneServerValue } from "@/lib/utils"
 
-type ShipmentInfo = {
-  courierProvider: string
-  status: string
-  trackingCode: string | null
-  customerNote: string | null
-}
-
 type Order = {
   id: string
   orderNumber: string
@@ -35,7 +28,6 @@ type Order = {
   paymentVerifiedAt: string | null
   createdAt: string
   notes: string | null
-  shipment: ShipmentInfo | null
   items: {
     id: string
     name: string
@@ -57,24 +49,6 @@ type Order = {
     amount: number
     verifiedAt: string | null
   }[]
-}
-
-const COURIER_NAMES: Record<string, string> = {
-  PATHAO: "Pathao",
-  STEADFAST: "Steadfast",
-  REDX: "RedX",
-}
-
-const SHIPMENT_STATUS_NAMES: Record<string, string> = {
-  NOT_CREATED: "Not Created",
-  SETUP_READY: "Setup Ready",
-  PENDING: "Pending",
-  DISPATCHED: "Dispatched",
-  IN_TRANSIT: "In Transit",
-  DELIVERED: "Delivered",
-  FAILED: "Failed",
-  RETURNED: "Returned",
-  CANCELLED: "Cancelled",
 }
 
 const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -310,38 +284,6 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
                   </div>
                 )}
               </div>
-
-              {order.shipment && order.shipment.status !== "NOT_CREATED" && (
-                <div className="rounded-[1.75rem] border border-black/5 bg-white p-5 shadow-sm md:p-8">
-                  <h3 className="flex items-center gap-2 font-black tracking-tight">
-                    <Truck className="h-4 w-4" />
-                    Shipment
-                  </h3>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl bg-neutral-50 p-4">
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">Courier</p>
-                      <p className="mt-1 text-sm font-bold">
-                        {COURIER_NAMES[order.shipment.courierProvider] || order.shipment.courierProvider}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-neutral-50 p-4">
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">Status</p>
-                      <p className="mt-1 text-sm font-bold">
-                        {SHIPMENT_STATUS_NAMES[order.shipment.status] || order.shipment.status}
-                      </p>
-                    </div>
-                    {order.shipment.trackingCode && (
-                      <div className="rounded-2xl bg-neutral-50 p-4">
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">Tracking</p>
-                        <p className="mt-1 font-mono text-sm font-bold">{order.shipment.trackingCode}</p>
-                      </div>
-                    )}
-                  </div>
-                  {order.shipment.customerNote && (
-                    <p className="mt-3 text-sm text-neutral-500">{order.shipment.customerNote}</p>
-                  )}
-                </div>
-              )}
 
               <div className="rounded-[1.75rem] border border-black/5 bg-white p-5 shadow-sm md:p-8">
                 <h3 className="flex items-center gap-2 font-black tracking-tight">

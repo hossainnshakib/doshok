@@ -11,7 +11,6 @@ import {
   Package,
   ShoppingCart,
   Settings,
-  Truck,
   Pin,
   PinOff,
   Users,
@@ -137,7 +136,6 @@ const navGroups: NavGroup[] = [
     permission: "operations",
     items: [
       { href: "/admin/payment-methods", label: "Payment Methods", icon: CreditCard },
-      { href: "/admin/courier-methods", label: "Courier Methods", icon: Truck },
       { href: "/admin/delivery-zones", label: "Delivery Zones", icon: MapPin },
       { href: "/admin/checkout-settings", label: "Checkout Settings", icon: ClipboardList },
     ],

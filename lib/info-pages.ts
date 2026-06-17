@@ -297,7 +297,7 @@ export const shippingPage: InfoPageData = {
         headers: ["Zone", "Estimated Time", "Notes"],
         rows: [
           ["Inside Chattogram", "1–3 business days", "Fast local delivery where available"],
-          ["Dhaka", "2–4 business days", "Timeline depends on courier capacity"],
+          ["Dhaka", "2–4 business days", "Timeline depends on delivery capacity"],
           ["Outside major cities", "3–7 business days", "Remote areas can require extra time"],
         ],
       },

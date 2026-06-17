@@ -11,7 +11,7 @@ Premium Bangladeshi fashion e-commerce platform built with Next.js 16.
 - **Email:** Resend
 - **Image Upload:** Cloudinary
 - **Payments:** Cash on Delivery (COD)
-- **Couriers:** Pathao, Steadfast, RedX (setup-ready)
+- **Delivery:** Admin-managed delivery zones and fees
 
 ## Local Setup
 
@@ -70,12 +70,11 @@ npm run cleanup:demo
 
 ## Credential Encryption
 
-Payment and courier provider credentials are encrypted at rest using AES-256-GCM.
+Payment credentials are encrypted at rest using AES-256-GCM.
 
 - **Payment credentials** use `PAYMENT_CREDENTIALS_SECRET` (falls back to `NEXTAUTH_SECRET` in local dev).
-- **Courier credentials** use `COURIER_CREDENTIALS_SECRET` (falls back to `NEXTAUTH_SECRET` in local dev).
 - Set dedicated secrets in production to isolate encryption keys from the auth secret.
 
-## Payment & Courier Integrations
+## Payment & Delivery
 
-Only **Cash on Delivery (COD)** is supported for payments. Courier APIs (Pathao, Steadfast, RedX) are **setup-ready but not live**. Configure providers in the admin panel after deployment.
+Only **Cash on Delivery (COD)** is supported for payments. Delivery zones and delivery fees remain managed in the admin panel.

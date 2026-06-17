@@ -6,28 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { CheckCircle, Package, MapPin, CreditCard, Truck, UserPlus, AlertTriangle, Clock } from "lucide-react"
+import { CheckCircle, Package, MapPin, CreditCard, UserPlus, AlertTriangle, Clock } from "lucide-react"
 import { getPhoneDisplayE164 } from "@/lib/utils"
 import { isAdminRole } from "@/lib/permissions"
 import type { Metadata } from "next"
-
-const COURIER_NAMES: Record<string, string> = {
-  PATHAO: "Pathao",
-  STEADFAST: "Steadfast",
-  REDX: "RedX",
-}
-
-const SHIPMENT_STATUS_NAMES: Record<string, string> = {
-  NOT_CREATED: "Not Created",
-  SETUP_READY: "Setup Ready",
-  PENDING: "Pending",
-  DISPATCHED: "Dispatched",
-  IN_TRANSIT: "In Transit",
-  DELIVERED: "Delivered",
-  FAILED: "Failed",
-  RETURNED: "Returned",
-  CANCELLED: "Cancelled",
-}
 
 export default async function OrderConfirmationPage({
   params,
@@ -44,14 +26,6 @@ export default async function OrderConfirmationPage({
     include: {
       items: true,
       address: true,
-      shipment: {
-        select: {
-          courierProvider: true,
-          status: true,
-          trackingCode: true,
-          customerNote: true,
-        },
-      },
     },
   })
 
@@ -61,14 +35,6 @@ export default async function OrderConfirmationPage({
       include: {
         items: true,
         address: true,
-        shipment: {
-          select: {
-            courierProvider: true,
-            status: true,
-            trackingCode: true,
-            customerNote: true,
-          },
-        },
       },
     })
   }
@@ -239,37 +205,6 @@ export default async function OrderConfirmationPage({
            </Link>
          </CardContent>
        </Card>
-
-      {order.shipment && order.shipment.status !== "NOT_CREATED" && (
-        <Card className="mb-6 border-border/50 rounded-2xl shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Truck className="h-4 w-4" /> Shipment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">Courier</p>
-                <p className="font-medium">{COURIER_NAMES[order.shipment.courierProvider] || order.shipment.courierProvider}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground">Status</p>
-                <p className="font-medium">{SHIPMENT_STATUS_NAMES[order.shipment.status] || order.shipment.status}</p>
-              </div>
-              {order.shipment.trackingCode && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground">Tracking</p>
-                  <p className="font-mono text-sm font-medium">{order.shipment.trackingCode}</p>
-                </div>
-              )}
-            </div>
-            {order.shipment.customerNote && (
-              <p className="text-sm text-muted-foreground">{order.shipment.customerNote}</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       <Card className="mb-6 border-border/50 rounded-2xl shadow-sm">
         <CardHeader className="pb-3">
