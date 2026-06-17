@@ -78,7 +78,7 @@ export default async function OrderConfirmationPage({
   if (!session?.user) {
     redirect(`/auth/login?callbackUrl=/order/${orderNumber}`)
   }
-  if (session.user.role !== "admin" && order.userId && order.userId !== session.user.id) {
+  if (session.user.role !== "admin" && (!order.userId || order.userId !== session.user.id)) {
     notFound()
   }
 

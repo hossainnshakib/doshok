@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { mapPathaoStatus, getOrderStatusFromShipment, type PathaoWebhookPayload } from "@/lib/courier/status-map"
 import { getPathaoWebhookSecret } from "@/lib/courier/webhook-verify"
 import { sendOrderStatusEmail } from "@/lib/mailer"
+import { applyInventorySideEffectsForOrderStatus } from "@/lib/services/inventory.service"
 import type { ShipmentStatus } from "@/types"
 
 export const dynamic = "force-dynamic"
@@ -68,6 +69,11 @@ async function syncOrderStatus(
     where: { id: order.id },
     data: { orderStatus: newOrderStatus },
   })
+
+  const stockResult = await applyInventorySideEffectsForOrderStatus(order.id, newOrderStatus)
+  if (!stockResult.success) {
+    throw new Error(`Stock update failed: ${stockResult.error}`)
+  }
 
   sendOrderStatusEmail(
     {
@@ -170,7 +176,18 @@ export async function POST(request: NextRequest) {
     }),
   ])
 
-  await syncOrderStatus(updatedShipment.order, mappedStatus)
+  try {
+    await syncOrderStatus(updatedShipment.order, mappedStatus)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to sync order inventory"
+    console.error("[pathao-webhook] Order status sync failed", {
+      shipmentId: shipment.id,
+      orderId: updatedShipment.orderId,
+      status: mappedStatus,
+      error: message,
+    })
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 
   console.info("[pathao-webhook] Updated shipment", {
     shipmentId: shipment.id,

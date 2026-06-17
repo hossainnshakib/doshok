@@ -546,12 +546,211 @@ export async function restoreStockForCancelledOrder(
   return { success: true }
 }
 
+export async function applyInventorySideEffectsForOrderStatus(
+  orderId: string,
+  orderStatus: string
+): Promise<{ success: boolean; error?: string }> {
+  if (orderStatus === "confirmed" || orderStatus === "processing") {
+    return finalizeStockDeductionForConfirmedOrder(orderId)
+  }
+
+  if (orderStatus === "delivered") {
+    return finalizeStockDeductionForDeliveredOrder(orderId)
+  }
+
+  if (orderStatus === "cancelled") {
+    return restoreStockForCancelledOrder(orderId)
+  }
+
+  if (orderStatus === "returned") {
+    const items = await prisma.orderItem.findMany({
+      where: { orderId, variantId: { not: null } },
+      select: { variantId: true, productId: true, quantity: true },
+    })
+
+    return restoreStockForReturnedOrder(
+      orderId,
+      items.map((item) => ({
+        variantId: item.variantId!,
+        productId: item.productId,
+        quantity: item.quantity,
+      }))
+    )
+  }
+
+  return { success: true }
+}
+
 export async function restoreStockForReturnedOrder(
   orderId: string,
   items: Array<{ variantId: string; productId: string; quantity: number }>,
   reason?: string
 ): Promise<{ success: boolean; error?: string }> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { stockRestoredAt: true },
+  })
+  if (order?.stockRestoredAt) return { success: true }
+
+  const alreadyRestored = await prisma.stockMovement.findFirst({
+    where: { orderId, type: "order_returned_restored" },
+    select: { id: true },
+  })
+  if (alreadyRestored) return { success: true }
+
+  const deliveredDeductions = await prisma.stockMovement.findMany({
+    where: { orderId, type: "order_delivered_deducted" },
+    select: { variantId: true, quantity: true, productId: true },
+  })
+  const confirmedDeductions = deliveredDeductions.length > 0
+    ? []
+    : await prisma.stockMovement.findMany({
+        where: { orderId, type: "order_confirmed_deducted" },
+        select: { variantId: true, quantity: true, productId: true },
+      })
+  const deductedMovements = deliveredDeductions.length > 0 ? deliveredDeductions : confirmedDeductions
+  const stockRestoredAt = new Date()
+
+  if (deductedMovements.length > 0) {
+    const variantRestores = new Map<string, { productId: string; quantity: number }>()
+    for (const movement of deductedMovements) {
+      if (!movement.variantId) continue
+      const existing = variantRestores.get(movement.variantId)
+      if (existing) {
+        existing.quantity += movement.quantity
+      } else {
+        variantRestores.set(movement.variantId, { productId: movement.productId, quantity: movement.quantity })
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const recheck = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { stockRestoredAt: true },
+      })
+      if (recheck?.stockRestoredAt) return
+
+      const alreadyRestoredRecheck = await tx.stockMovement.findFirst({
+        where: { orderId, type: "order_returned_restored" },
+        select: { id: true },
+      })
+      if (alreadyRestoredRecheck) return
+
+      for (const [variantId, restore] of variantRestores) {
+        const variant = await tx.productVariant.findUnique({ where: { id: variantId } })
+        if (!variant) continue
+
+        await tx.productVariant.update({
+          where: { id: variantId },
+          data: { stock: { increment: restore.quantity } },
+        })
+
+        await tx.stockMovement.create({
+          data: {
+            productId: restore.productId,
+            variantId,
+            orderId,
+            type: "order_returned_restored",
+            quantity: restore.quantity,
+            beforeStock: variant.stock,
+            afterStock: variant.stock + restore.quantity,
+            beforeReserved: variant.reservedStock,
+            afterReserved: variant.reservedStock,
+            reason: reason ?? "Order returned",
+          },
+        })
+      }
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { stockRestoredAt },
+      })
+    })
+
+    return { success: true }
+  }
+
+  const reservedMovements = await prisma.stockMovement.findMany({
+    where: { orderId, type: "order_reserved" },
+    select: { variantId: true, quantity: true, productId: true },
+  })
+
+  if (reservedMovements.length > 0) {
+    const variantReleases = new Map<string, { productId: string; quantity: number }>()
+    for (const movement of reservedMovements) {
+      if (!movement.variantId) continue
+      const existing = variantReleases.get(movement.variantId)
+      if (existing) {
+        existing.quantity += movement.quantity
+      } else {
+        variantReleases.set(movement.variantId, { productId: movement.productId, quantity: movement.quantity })
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const recheck = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { stockRestoredAt: true },
+      })
+      if (recheck?.stockRestoredAt) return
+
+      const alreadyRestoredRecheck = await tx.stockMovement.findFirst({
+        where: { orderId, type: "order_returned_restored" },
+        select: { id: true },
+      })
+      if (alreadyRestoredRecheck) return
+
+      for (const [variantId, release] of variantReleases) {
+        const variant = await tx.productVariant.findUnique({ where: { id: variantId } })
+        if (!variant) continue
+
+        const newReserved = Math.max(0, variant.reservedStock - release.quantity)
+
+        await tx.productVariant.update({
+          where: { id: variantId },
+          data: { reservedStock: newReserved },
+        })
+
+        await tx.stockMovement.create({
+          data: {
+            productId: release.productId,
+            variantId,
+            orderId,
+            type: "order_returned_restored",
+            quantity: release.quantity,
+            beforeStock: variant.stock,
+            afterStock: variant.stock,
+            beforeReserved: variant.reservedStock,
+            afterReserved: newReserved,
+            reason: reason ?? "Order returned (reservation released)",
+          },
+        })
+      }
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { stockRestoredAt },
+      })
+    })
+
+    return { success: true }
+  }
+
+  if (items.length === 0) return { success: true }
+
   await prisma.$transaction(async (tx) => {
+    const recheck = await tx.order.findUnique({
+      where: { id: orderId },
+      select: { stockRestoredAt: true },
+    })
+    if (recheck?.stockRestoredAt) return
+
+    const alreadyRestoredRecheck = await tx.stockMovement.findFirst({
+      where: { orderId, type: "order_returned_restored" },
+      select: { id: true },
+    })
+    if (alreadyRestoredRecheck) return
+
     for (const item of items) {
       if (!item.variantId) continue
 
@@ -578,6 +777,11 @@ export async function restoreStockForReturnedOrder(
         },
       })
     }
+
+    await tx.order.update({
+      where: { id: orderId },
+      data: { stockRestoredAt },
+    })
   })
 
   return { success: true }

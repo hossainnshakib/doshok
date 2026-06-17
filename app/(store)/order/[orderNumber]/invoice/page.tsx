@@ -31,7 +31,7 @@ export default async function InvoicePage({
   }
 
   // Security check: admin can view any invoice, customer can only view their own
-  if (session.user.role !== "admin" && order.userId && order.userId !== session.user.id) {
+  if (session.user.role !== "admin" && (!order.userId || order.userId !== session.user.id)) {
     notFound()
   }
 

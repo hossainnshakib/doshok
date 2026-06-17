@@ -4,11 +4,7 @@ import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
 import { sendOrderStatusEmail } from "@/lib/mailer"
 import { ORDER_STATUSES } from "@/types"
-import {
-  finalizeStockDeductionForConfirmedOrder,
-  finalizeStockDeductionForDeliveredOrder,
-  restoreStockForCancelledOrder,
-} from "@/lib/services/inventory.service"
+import { applyInventorySideEffectsForOrderStatus } from "@/lib/services/inventory.service"
 
 export async function GET(
   request: NextRequest,
@@ -122,25 +118,9 @@ export async function PATCH(
       }
       sendOrderStatusEmail(emailData, filtered.orderStatus as string).catch(() => {})
 
-      if (filtered.orderStatus === "confirmed" || filtered.orderStatus === "processing") {
-        const stockResult = await finalizeStockDeductionForConfirmedOrder(id)
-        if (!stockResult.success) {
-          return error(`Stock deduction failed: ${stockResult.error}`)
-        }
-      }
-
-      if (filtered.orderStatus === "cancelled") {
-        const stockResult = await restoreStockForCancelledOrder(id)
-        if (!stockResult.success) {
-          return error(`Stock restoration failed: ${stockResult.error}`)
-        }
-      }
-
-      if (filtered.orderStatus === "delivered") {
-        const stockResult = await finalizeStockDeductionForDeliveredOrder(id)
-        if (!stockResult.success) {
-          return error(`Stock deduction failed: ${stockResult.error}`)
-        }
+      const stockResult = await applyInventorySideEffectsForOrderStatus(id, filtered.orderStatus as string)
+      if (!stockResult.success) {
+        return error(`Stock update failed: ${stockResult.error}`)
       }
     }
 
