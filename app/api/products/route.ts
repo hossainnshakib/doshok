@@ -21,9 +21,19 @@ export async function GET(request: NextRequest) {
   const ids = searchParams.get("ids")
   const categoryId = searchParams.get("categoryId")
 
+  const canRequestInactive = status && status !== "Active"
+  if (canRequestInactive) {
+    const session = await requireAdminPermission("products")
+    if (session instanceof NextResponse) return session
+  }
+
   const where: Record<string, unknown> = {}
   if (pageType) where.pageType = pageType
-  if (status) where.status = status
+  if (status && status !== "all") {
+    where.status = status
+  } else if (!canRequestInactive) {
+    where.status = "Active"
+  }
   if (categoryId) where.categoryId = categoryId
   if (search) {
     where.OR = [
@@ -33,9 +43,6 @@ export async function GET(request: NextRequest) {
   }
   if (ids) {
     where.id = { in: ids.split(",").filter(Boolean) }
-  }
-  if (selector && !status && !search && !ids) {
-    where.status = "Active"
   }
 
   if (selector) {

@@ -43,6 +43,10 @@ export async function GET(
   })
 
   if (!product) return error("Not found", 404)
+  if (product.status !== "Active") {
+    const session = await requireAdminPermission("products")
+    if (session instanceof NextResponse) return error("Not found", 404)
+  }
 
   const groupedRelations: Record<string, unknown[]> = {
     RELATED: [],

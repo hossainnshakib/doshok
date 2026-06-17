@@ -62,11 +62,21 @@ export async function POST(request: NextRequest) {
 
     const productIds = [...new Set(items.map((i) => i.productId))]
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, status: "Active" },
       select: {
         id: true,
         name: true,
         price: true,
+        variants: {
+          select: {
+            id: true,
+            productId: true,
+            size: true,
+            color: true,
+            stock: true,
+            reservedStock: true,
+          },
+        },
         paymentRuleOverride: true,
         paymentRuleValueOverride: true,
         landingPageSetting: {
@@ -79,20 +89,45 @@ export async function POST(request: NextRequest) {
       },
     })
     const productMap = new Map(products.map((p) => [p.id, p]))
-    const productPriceMap = new Map(products.map((p) => [p.id, p.price]))
 
     const variantIds = items.map((i) => i.variantId).filter(Boolean) as string[]
     const variants = variantIds.length > 0
       ? await prisma.productVariant.findMany({
           where: { id: { in: variantIds } },
+          include: { product: { select: { id: true, status: true } } },
         })
       : []
     const variantMap = new Map(variants.map((v) => [v.id, v]))
 
     const validatedItems = items.map((item) => {
-      const dbPrice = productPriceMap.get(item.productId)
-      if (!dbPrice) throw new Error(`Product not found: ${item.productId}`)
-      return { ...item, price: dbPrice }
+      const product = productMap.get(item.productId)
+      if (!product) throw new Error(`Product not found or unavailable: ${item.productId}`)
+
+      if (product.variants.length > 0 && !item.variantId) {
+        throw new Error(`Please select a valid variant for "${product.name}"`)
+      }
+
+      if (!item.variantId) {
+        return { ...item, product, variant: null, price: product.price }
+      }
+
+      const variant = variantMap.get(item.variantId)
+      if (!variant) throw new Error(`Invalid variant selected for "${product.name}"`)
+      if (variant.productId !== item.productId) {
+        throw new Error(`Selected variant does not belong to "${product.name}"`)
+      }
+      if (variant.product.status !== "Active") {
+        throw new Error(`Product is no longer available: "${product.name}"`)
+      }
+
+      const availableStock = Math.max(0, variant.stock - variant.reservedStock)
+      if (availableStock < item.quantity) {
+        throw new Error(
+          `Insufficient stock for "${product.name}". Available: ${availableStock}, requested: ${item.quantity}`
+        )
+      }
+
+      return { ...item, product, variant, price: product.price }
     })
 
     const subtotal = validatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -232,18 +267,19 @@ export async function POST(request: NextRequest) {
       }
 
       for (const item of validatedItems) {
-        if (item.variantId) {
+        if (item.variant) {
           const result = await tx.$executeRaw`
             UPDATE "ProductVariant"
             SET "reservedStock" = "reservedStock" + ${item.quantity}
-            WHERE id = ${item.variantId}
+            WHERE id = ${item.variant.id}
+              AND "productId" = ${item.product.id}
               AND ("stock" - "reservedStock") >= ${item.quantity}
           `
           if (result === 0) {
-            const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
+            const variant = await tx.productVariant.findUnique({ where: { id: item.variant.id } })
             const availableStock = variant ? Math.max(0, variant.stock - variant.reservedStock) : 0
             throw new Error(
-              `Insufficient stock for "${productMap.get(item.productId)?.name || "Product"}". Available: ${availableStock}, requested: ${item.quantity}`
+              `Insufficient stock for "${item.product.name}". Available: ${availableStock}, requested: ${item.quantity}`
             )
           }
         }
@@ -313,13 +349,12 @@ export async function POST(request: NextRequest) {
           },
           items: {
             create: validatedItems.map((item) => {
-              const variant = item.variantId ? variantMap.get(item.variantId) : undefined
               return {
-                productId: item.productId,
-                variantId: item.variantId,
-                name: productMap.get(item.productId)?.name ?? "",
-                size: variant?.size ?? null,
-                color: variant?.color ?? null,
+                productId: item.product.id,
+                variantId: item.variant?.id ?? null,
+                name: item.product.name,
+                size: item.variant?.size ?? null,
+                color: item.variant?.color ?? null,
                 quantity: item.quantity,
                 price: item.price,
               }
@@ -358,15 +393,15 @@ if (couponCode && discount > 0) {
         }
 
         for (const item of validatedItems) {
-          if (item.variantId) {
-            const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
+          if (item.variant) {
+            const variant = await tx.productVariant.findUnique({ where: { id: item.variant.id } })
             if (variant) {
               await tx.stockMovement.create({
                 data: {
-                  productId: item.productId,
-                  variantId: item.variantId,
+                  productId: item.product.id,
+                  variantId: item.variant.id,
                   orderId: createdOrder.id,
-                  orderItemId: createdOrder.items.find(oi => oi.variantId === item.variantId)?.id,
+                  orderItemId: createdOrder.items.find(oi => oi.variantId === item.variant?.id)?.id,
                   type: "order_reserved",
                   quantity: item.quantity,
                   beforeStock: variant.stock,

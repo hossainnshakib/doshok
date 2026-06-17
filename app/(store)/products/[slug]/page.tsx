@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 import { ProductDetailClient } from "@/components/store/product-detail-client"
 import { safeJsonLd } from "@/lib/json-ld"
 
@@ -71,10 +72,11 @@ export default async function ProductDetailPage({
   const { preview } = await searchParams
 
   const isPreview = preview === "1"
-  const session = isPreview ? await auth() : null
+  const previewSession = isPreview ? await requireAdminPermission("products") : null
+  const canPreview = !!previewSession && !(previewSession instanceof NextResponse)
 
   const product = await prisma.product.findFirst({
-    where: isPreview && session?.user ? { slug } : { slug, status: "Active" },
+    where: isPreview && canPreview ? { slug } : { slug, status: "Active" },
     include: {
       variants: true,
       category: true,
