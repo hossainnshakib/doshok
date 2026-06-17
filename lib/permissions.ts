@@ -46,6 +46,9 @@ export type PermissionGroup =
   | "reviews"
   | "careers"
   | "commerce"
+  | "operations"
+  | "import_export"
+  | "short_links"
 
 export const PERMISSION_GROUPS: PermissionGroup[] = [
   "dashboard",
@@ -59,6 +62,9 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   "reviews",
   "careers",
   "commerce",
+  "operations",
+  "import_export",
+  "short_links",
 ]
 
 export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
@@ -74,6 +80,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
     "reviews",
     "careers",
     "commerce",
+    "operations",
+    "import_export",
+    "short_links",
   ],
   admin: [
     "dashboard",
@@ -82,10 +91,14 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
     "products",
     "customers",
     "cms",
+    "settings",
     "support",
     "reviews",
     "careers",
     "commerce",
+    "operations",
+    "import_export",
+    "short_links",
   ],
   manager: [
     "dashboard",
@@ -106,6 +119,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
   content_manager: [
     "dashboard",
     "cms",
+    "short_links",
   ],
   support_agent: [
     "dashboard",
@@ -121,5 +135,5 @@ export function canAccessSection(role: string, section: PermissionGroup): boolea
 }
 
 export function hasSettingsAccess(role: string): boolean {
-  return role === "super_admin" || role === "admin"
+  return canAccessSection(role, "settings")
 }

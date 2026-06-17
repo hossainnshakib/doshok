@@ -47,12 +47,12 @@ interface NavItem {
   href: string
   label: string
   icon: LucideIcon
-  permission?: PermissionGroup | "operations"
+  permission?: PermissionGroup
 }
 
 interface NavGroup {
   label: string
-  permission: PermissionGroup | "operations"
+  permission: PermissionGroup
   items: NavItem[]
 }
 
@@ -73,7 +73,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/size-charts", label: "Size Charts", icon: Ruler, permission: "products" },
       { href: "/admin/coupons", label: "Coupons", icon: Tag },
       { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp },
-      { href: "/admin/commerce/import-export", label: "Import / Export", icon: Download },
+      { href: "/admin/commerce/import-export", label: "Import / Export", icon: Download, permission: "import_export" },
     ],
   },
   {
@@ -129,7 +129,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/cms/menus", label: "Menus", icon: Menu },
       { href: "/admin/cms/pages", label: "Pages", icon: FileText },
       { href: "/admin/cms/stories", label: "Stories", icon: BookOpen },
-      { href: "/admin/cms/short-links", label: "Short Links", icon: ExternalLink },
+      { href: "/admin/cms/short-links", label: "Short Links", icon: ExternalLink, permission: "short_links" },
     ],
   },
   {
@@ -173,10 +173,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const expanded = pinned || hovered
 
-  const canAccessNavPermission = (permission: PermissionGroup | "operations") => {
-    if (permission === "operations") {
-      return userRole === "super_admin" || userRole === "admin"
-    }
+  const canAccessNavPermission = (permission: PermissionGroup) => {
     if (permission === "settings") {
       return hasSettingsAccess(userRole)
     }
