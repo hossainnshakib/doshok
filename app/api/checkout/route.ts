@@ -406,6 +406,7 @@ if (couponCode && discount > 0) {
     const paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
 
     sendOrderConfirmationEmail({
+      userId: order.userId,
       orderNumber: order.orderNumber,
       customerName: order.customerName,
       customerEmail: order.customerEmail,
