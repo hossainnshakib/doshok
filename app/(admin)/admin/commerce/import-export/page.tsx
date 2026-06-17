@@ -14,14 +14,24 @@ interface InvalidRow {
 }
 
 interface ImportResult {
-  validRows: Record<string, string>[]
+  mode?: "preview" | "execute"
+  validRows: Record<string, string | number>[]
   invalidRows: InvalidRow[]
   summary: ImportSummary
+  execution?: {
+    created: number
+    updated: number
+    variantsCreated: number
+    variantsUpdated: number
+    skipped: number
+    errors: string[]
+  }
 }
 
 export default function ImportExportPage() {
   const [csvText, setCsvText] = useState("")
   const [loading, setLoading] = useState(false)
+  const [executing, setExecuting] = useState(false)
   const [exporting, setExporting] = useState<string | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -73,6 +83,37 @@ export default function ImportExportPage() {
       setError(err instanceof Error ? err.message : "Preview failed")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleExecute() {
+    if (!csvText.trim()) {
+      setError("Please paste CSV content or upload a file.")
+      return
+    }
+    if (!result || result.summary.invalidRows > 0 || result.summary.validRows === 0) {
+      setError("Validate a clean CSV preview before executing import.")
+      return
+    }
+
+    setExecuting(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/import/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csvText, mode: "execute" }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        if (json.data) setResult(json.data)
+        throw new Error(json.error ?? "Import execution failed")
+      }
+      setResult(json.data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import execution failed")
+    } finally {
+      setExecuting(false)
     }
   }
 
@@ -202,14 +243,27 @@ export default function ImportExportPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handlePreview}
-              disabled={loading || !csvText.trim()}
+              disabled={loading || executing || !csvText.trim()}
               className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
               {loading ? "Validating..." : "Validate Preview"}
             </button>
-            {result && (
+            <button
+              onClick={handleExecute}
+              disabled={
+                loading ||
+                executing ||
+                !result ||
+                result.summary.invalidRows > 0 ||
+                result.summary.validRows === 0
+              }
+              className="rounded-lg border border-amber-300 bg-amber-50 px-5 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"
+            >
+              {executing ? "Executing..." : "Execute Import"}
+            </button>
+            {result?.mode !== "execute" && (
               <span className="text-xs text-amber-600 font-medium">
-                Import preview only &mdash; products are not created yet.
+                Execution will create/update products by slug. Existing reserved stock will not be changed.
               </span>
             )}
           </div>
@@ -252,6 +306,44 @@ export default function ImportExportPage() {
               </div>
             </div>
           </div>
+
+          {/* Execution Result */}
+          {result.execution && (
+            <div className="rounded-xl border border-amber-200 bg-white p-6">
+              <h3 className="text-base font-semibold text-amber-800">
+                Execution Result
+              </h3>
+              <div className="mt-3 grid gap-4 sm:grid-cols-5">
+                <div className="rounded-lg bg-slate-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-900">{result.execution.created}</p>
+                  <p className="text-xs text-slate-500">Created</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-900">{result.execution.updated}</p>
+                  <p className="text-xs text-slate-500">Updated</p>
+                </div>
+                <div className="rounded-lg bg-green-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-green-700">{result.execution.variantsCreated}</p>
+                  <p className="text-xs text-green-600">Variants Created</p>
+                </div>
+                <div className="rounded-lg bg-green-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-green-700">{result.execution.variantsUpdated}</p>
+                  <p className="text-xs text-green-600">Variants Updated</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-slate-900">{result.execution.skipped}</p>
+                  <p className="text-xs text-slate-500">Skipped</p>
+                </div>
+              </div>
+              {result.execution.errors.length > 0 && (
+                <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-red-600">
+                  {result.execution.errors.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {/* Invalid Rows Table */}
           {result.invalidRows.length > 0 && (
@@ -303,6 +395,7 @@ export default function ImportExportPage() {
                       <th className="pb-2 pr-4">Row</th>
                       <th className="pb-2 pr-4">Name</th>
                       <th className="pb-2 pr-4">Slug</th>
+                      <th className="pb-2 pr-4">Action</th>
                       <th className="pb-2 pr-4">Price</th>
                       <th className="pb-2">Category</th>
                     </tr>
@@ -319,6 +412,9 @@ export default function ImportExportPage() {
                         <td className="py-2 pr-4 font-mono text-xs text-slate-600">
                           {r.slug}
                         </td>
+                        <td className="py-2 pr-4 text-xs font-semibold uppercase text-slate-500">
+                          {r.action}
+                        </td>
                         <td className="py-2 pr-4 text-slate-900">
                           {r.price}
                         </td>
@@ -330,7 +426,7 @@ export default function ImportExportPage() {
                     {result.validRows.length > 50 && (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="py-3 text-center text-xs text-slate-400"
                         >
                           + {result.validRows.length - 50} more rows
