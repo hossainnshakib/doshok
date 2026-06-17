@@ -14,7 +14,6 @@ import {
 } from "@/lib/bangladesh-address"
 import { getPhoneServerValue } from "@/lib/utils"
 import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
-import { resolvePaymentRule } from "@/lib/checkout/payment-rule.service"
 import { isCheckoutVerificationTokenValid } from "@/lib/checkout/otp.service"
 import crypto from "crypto"
 
@@ -134,41 +133,23 @@ export async function POST(request: NextRequest) {
 
     const checkoutSetting = await prisma.checkoutSetting.findUnique({ where: { id: "checkout" } })
 
-    const landingProduct = products.find(p => p.landingPageSetting?.paymentOverrideEnabled)
-    const overrideProduct = products.find(p => p.paymentRuleOverride)
-
-    const paymentResult = resolvePaymentRule({
-      grandTotal: total,
-      finalDeliveryFee: finalDeliveryFeeCalc,
-      discountedProductTotal,
-      landingOverride: landingProduct
-        ? {
-            enabled: true,
-            rule: landingProduct.landingPageSetting!.paymentRuleOverride,
-            value: landingProduct.landingPageSetting!.paymentRuleValueOverride,
-          }
-        : null,
-      productOverride: overrideProduct
-        ? {
-            rule: overrideProduct.paymentRuleOverride,
-            value: overrideProduct.paymentRuleValueOverride,
-          }
-        : null,
-      globalDefault: {
-        rule: checkoutSetting?.defaultPaymentRule ?? "cod_only",
-        value: checkoutSetting?.defaultPaymentRuleValue ?? null,
-      },
-    })
+    const paymentResult = {
+      paymentRule: "cod_only",
+      paymentRuleValue: null,
+      payNow: 0,
+      dueAmount: total,
+      source: "global",
+    }
 
     const isV2 = checkoutSetting?.checkoutV2Enabled ?? false
     const otpRequired = checkoutSetting?.otpRequired ?? true
-    const onlineReservationHours = checkoutSetting?.onlineReservationHours ?? 2
     const codReservationHours = checkoutSetting?.codReservationHours ?? 24
 
     // Payment method guard — only COD is supported
     if (paymentMethod && paymentMethod.toLowerCase() !== "cod") {
       return error("Only Cash on Delivery is available at this time.")
     }
+    const normalizedPaymentMethod = "cod"
 
     // Backend COD guard: reject COD if disabled in PaymentMethodSetting
     if (paymentMethod && paymentMethod.toLowerCase() === "cod") {
@@ -217,8 +198,7 @@ export async function POST(request: NextRequest) {
     let reservationExpiresAt: Date | null = null
 
     if (isV2) {
-      const hours = paymentResult.payNow > 0 ? onlineReservationHours : codReservationHours
-      reservationExpiresAt = new Date(Date.now() + hours * 60 * 60 * 1000)
+      reservationExpiresAt = new Date(Date.now() + codReservationHours * 60 * 60 * 1000)
     }
 
     const order = await prisma.$transaction(async (tx) => {
@@ -301,7 +281,7 @@ export async function POST(request: NextRequest) {
           discount,
           total,
           paidAmount: 0,
-          paymentMethod,
+          paymentMethod: normalizedPaymentMethod,
           paymentStatus: "pending",
           orderStatus: "pending",
           couponCode: couponCode || null,

@@ -179,16 +179,8 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
     ? (finalDeliveryFeeDisplay > 0 ? finalDeliveryFeeDisplay : deliveryFee)
     : deliveryFee
 
-  const landingPayRule = product.landingPageSetting?.paymentOverrideEnabled
-    ? product.landingPageSetting?.paymentRuleOverride
-    : null
-  const productPayRule = product.paymentRuleOverride
-  const effectivePayRule: PaymentRuleType = (landingPayRule || productPayRule || checkoutSettings?.defaultPaymentRule || "cod_only") as PaymentRuleType
-  const effectivePayValue = (landingPayRule
-    ? product.landingPageSetting?.paymentRuleValueOverride
-    : productPayRule
-      ? product.paymentRuleValueOverride
-      : checkoutSettings?.defaultPaymentRuleValue) ?? null
+  const effectivePayRule: PaymentRuleType = "cod_only"
+  const effectivePayValue = null
   const computedPayment = calculatePaymentAmounts(effectiveGrandTotal, effectiveDeliveryFee, effectivePayRule, effectivePayValue)
 
   // Auto-apply coupon from URL, product default, or landing page setting
@@ -1257,9 +1249,9 @@ export function LandingPageClient({ product, slug }: LandingPageClientProps) {
                               {pm.instructions}
                             </p>
                           )}
-                          {isCod && pm.supportsCodDeliveryCharge && isSelectable && (
-                            <p className="text-xs text-amber-600 mt-1">
-                              Delivery charge prepayment will be required when online payment is activated.
+                          {isCod && isSelectable && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              No advance payment required.
                             </p>
                           )}
                         </div>

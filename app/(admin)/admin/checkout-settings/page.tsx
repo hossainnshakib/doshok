@@ -4,17 +4,10 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { AdminPageHeader, AdminSectionCard } from "@/components/admin/admin-ui"
 import { Info } from "lucide-react"
-import {
-  PAYMENT_RULE_LABELS,
-  PAYMENT_RULE_DESCRIPTIONS,
-  PAYMENT_RULE_VALUES,
-  type PaymentRuleType,
-} from "@/lib/checkout/payment-rule.service"
 
 type CheckoutSettings = {
   checkoutV2Enabled: boolean
@@ -28,8 +21,6 @@ type CheckoutSettings = {
   onlineReservationHours: number
   codReservationHours: number
 }
-
-const PAYMENT_RULE_OPTIONS: PaymentRuleType[] = [...PAYMENT_RULE_VALUES]
 
 export default function CheckoutSettingsPage() {
   const [settings, setSettings] = useState<CheckoutSettings | null>(null)
@@ -74,14 +65,12 @@ export default function CheckoutSettingsPage() {
   if (loading) return <p className="text-sm text-slate-400 py-8">Loading settings...</p>
   if (!settings) return <p className="text-sm text-red-500 py-8">Failed to load settings.</p>
 
-  const needsValue = settings.defaultPaymentRule === "partial_percent" || settings.defaultPaymentRule === "fixed_advance"
-
   return (
     <div className="space-y-5">
       <AdminPageHeader
         eyebrow="Settings"
         title="Checkout Settings"
-        description="Configure Checkout V2 behavior, OTP requirements, reservation hours, and default payment rules."
+        description="Configure Checkout V2 behavior, OTP requirements, and COD reservation settings."
         backHref="/admin/settings"
       />
 
@@ -180,18 +169,16 @@ export default function CheckoutSettingsPage() {
               <AdminSectionCard title="Reservation Hours" description="How long an order reserves stock before being released if unpaid.">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="onlineReservationHours" className="text-xs font-medium text-slate-600">
-                      Online Payment Reservation (hours)
-                      <span className="ml-1 text-slate-400 font-normal">1–168</span>
+                    <Label className="text-xs font-medium text-slate-400">
+                      Online Payment Reservation
                     </Label>
                     <Input
-                      id="onlineReservationHours"
                       type="number"
                       value={settings.onlineReservationHours}
-                      onChange={(e) => update("onlineReservationHours", parseInt(e.target.value) || 2)}
-                      className="text-xs h-9"
+                      disabled
+                      className="text-xs h-9 bg-slate-50 text-slate-400"
                     />
-                    <p className="text-[10px] text-slate-400">Stock hold time for online payment orders (default: 2).</p>
+                    <p className="text-[10px] text-slate-400">Paused while Doshok V1.1 is COD-only.</p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="codReservationHours" className="text-xs font-medium text-slate-600">
@@ -212,53 +199,17 @@ export default function CheckoutSettingsPage() {
             </>
           )}
 
-          <AdminSectionCard title="Default Payment Rule" description="The fallback rule applied when no product or landing override is set.">
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="defaultPaymentRule" className="text-xs font-medium text-slate-600">Payment Rule</Label>
-                <Select
-                  value={settings.defaultPaymentRule}
-                  onValueChange={(v) => { if (v) update("defaultPaymentRule", v) }}
-                >
-                  <SelectTrigger className="text-xs h-9">
-                    <SelectValue>
-                      {(value: string | null) => value ? (PAYMENT_RULE_LABELS[value as PaymentRuleType] ?? value) : ""}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_RULE_OPTIONS.map((value) => (
-                      <SelectItem key={value} value={value} className="text-xs">
-                        {PAYMENT_RULE_LABELS[value]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                  <Info className="h-3 w-3 shrink-0" />
-                  {PAYMENT_RULE_DESCRIPTIONS[settings.defaultPaymentRule as PaymentRuleType] ?? ""}
-                </p>
-              </div>
-              {needsValue && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="defaultPaymentRuleValue" className="text-xs font-medium text-slate-600">
-                    {settings.defaultPaymentRule === "partial_percent" ? "Percentage (%)" : "Fixed Amount (BDT)"}
-                  </Label>
-                  <Input
-                    id="defaultPaymentRuleValue"
-                    type="number"
-                    value={settings.defaultPaymentRuleValue ?? ""}
-                    onChange={(e) => update("defaultPaymentRuleValue", e.target.value ? parseInt(e.target.value) : null)}
-                    placeholder={settings.defaultPaymentRule === "partial_percent" ? "e.g. 50" : "e.g. 500"}
-                    className="text-xs h-9 max-w-xs"
-                  />
-                  {settings.defaultPaymentRule === "partial_percent" && (
-                    <p className="text-[10px] text-slate-400">Enter a value between 0 and 100. The customer pays this percentage of the total online.</p>
-                  )}
-                  {settings.defaultPaymentRule === "fixed_advance" && (
-                    <p className="text-[10px] text-slate-400">Enter a fixed BDT amount the customer must pay online.</p>
-                  )}
+          <AdminSectionCard title="Payment Rules" description="Online payment and advance collection rules are paused for the COD-only V1.1 release.">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              <div className="flex gap-2">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <div>
+                  <p className="font-semibold">Cash on Delivery Only</p>
+                  <p className="mt-1 leading-5">
+                    Checkout will collect no advance payment. Pay Now is forced to 0 and the full total remains due on delivery until online gateways are rebuilt.
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
           </AdminSectionCard>
         </div>
@@ -299,7 +250,7 @@ export default function CheckoutSettingsPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Online Reservation</span>
-                    <span className="tabular-nums text-slate-600">{settings.onlineReservationHours}h</span>
+                    <span className="text-slate-400">Paused</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">COD Reservation</span>
@@ -309,18 +260,8 @@ export default function CheckoutSettingsPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-slate-400">Payment Rule</span>
-                <span className="text-right max-w-[120px] truncate text-slate-600">
-                  {PAYMENT_RULE_LABELS[settings.defaultPaymentRule as PaymentRuleType] ?? settings.defaultPaymentRule}
-                </span>
+                <span className="text-right max-w-[120px] truncate text-slate-600">COD Only</span>
               </div>
-              {needsValue && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Rule Value</span>
-                  <span className="tabular-nums text-slate-600">
-                    {settings.defaultPaymentRule === "partial_percent" ? `${settings.defaultPaymentRuleValue ?? 0}%` : `৳${settings.defaultPaymentRuleValue ?? 0}`}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 

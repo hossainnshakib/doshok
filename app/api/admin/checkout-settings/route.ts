@@ -4,6 +4,7 @@ import { z } from "zod"
 import { requireAdminPermission } from "@/lib/auth/admin"
 
 const PAYMENT_RULES = ["cod_only", "full", "partial_percent", "fixed_advance", "delivery_charge_only"] as const
+const COD_ONLY_PAYMENT_RULE = "cod_only"
 
 const updateSchema = z.object({
   checkoutV2Enabled: z.boolean().optional(),
@@ -29,7 +30,14 @@ export async function GET() {
     if (!settings) {
       settings = await prisma.checkoutSetting.create({ data: { id: "checkout" } })
     }
-    return NextResponse.json({ success: true, data: settings })
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...settings,
+        defaultPaymentRule: COD_ONLY_PAYMENT_RULE,
+        defaultPaymentRuleValue: null,
+      },
+    })
   } catch {
     return NextResponse.json({ success: false, error: "Failed to fetch checkout settings" }, { status: 500 })
   }
@@ -46,16 +54,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message ?? "Invalid data" }, { status: 400 })
     }
 
-    if (parsed.data.defaultPaymentRule === "partial_percent" && parsed.data.defaultPaymentRuleValue != null) {
-      if (parsed.data.defaultPaymentRuleValue < 0 || parsed.data.defaultPaymentRuleValue > 100) {
-        return NextResponse.json({ success: false, error: "Partial percent must be between 0 and 100" }, { status: 400 })
-      }
+    if (parsed.data.defaultPaymentRule && parsed.data.defaultPaymentRule !== COD_ONLY_PAYMENT_RULE) {
+      return NextResponse.json(
+        { success: false, error: "Doshok V1.1 is COD-only. Advance or online payment rules are paused." },
+        { status: 400 },
+      )
+    }
+
+    const { onlineReservationHours: _onlineReservationHours, ...codCompatibleData } = parsed.data
+
+    const data = {
+      ...codCompatibleData,
+      defaultPaymentRule: COD_ONLY_PAYMENT_RULE,
+      defaultPaymentRuleValue: null,
     }
 
     const settings = await prisma.checkoutSetting.upsert({
       where: { id: "checkout" },
-      update: parsed.data,
-      create: { id: "checkout", ...parsed.data },
+      update: data,
+      create: { id: "checkout", ...data },
     })
 
     return NextResponse.json({ success: true, data: settings })

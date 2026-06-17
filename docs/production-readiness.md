@@ -21,7 +21,7 @@
 
 | Variable | Required | Status | Notes |
 |----------|----------|--------|-------|
-> **Note:** Only Cash on Delivery (COD) is currently supported. Online payment gateways have been removed.
+> **Note:** Only Cash on Delivery (COD) is currently supported. Online payment and advance-payment settings are paused until a clean bKash/Nagad rebuild is planned and implemented.
 
 ## Email (Resend-only — no SMTP/nodemailer)
 
@@ -43,7 +43,7 @@ If OTP verification is enabled, ensure Firebase project is configured for produc
 
 - [ ] All environment variables configured in production
 - [ ] Database migrations applied
-- [ ] Payment methods reviewed (COD enabled/disabled as needed)
+- [ ] Payment methods reviewed (COD enabled; online payment settings paused)
 - [ ] Cron jobs configured (order cleanup, stock release, etc.)
 - [ ] Rate limiting enabled and tuned
 - [ ] SSL/TLS enforced
@@ -70,6 +70,9 @@ curl -i "https://doshok.com/api/stories?status=all"
 
 # Checkout with disabled COD (if COD disabled)
 # Should reject with error
+
+# Checkout with COD enabled
+# Should create paymentMethod=cod, paidAmount=0, paymentStatus=pending, payNow=0, dueAmount=total
 ```
 
 > **Do not store real secrets in code or commit them to version control.**
