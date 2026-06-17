@@ -170,11 +170,20 @@ export const resetPasswordSchema = z.object({
 })
 
 export const contactSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Valid email is required"),
-  phone: z.string().optional(),
-  subject: z.string().optional(),
-  message: z.string().min(1, "Message is required"),
+  name: z.string().trim().min(1, "Name is required").max(100),
+  email: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().trim().email("Valid email is required").max(255).optional()
+  ),
+  phone: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().trim().max(40).optional()
+  ),
+  subject: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().trim().max(150).optional()
+  ),
+  message: z.string().trim().min(1, "Message is required").max(5000),
 })
 
 export const siteSettingsSchema = z.object({

@@ -477,6 +477,24 @@ model SiteSettings {
   updatedAt         DateTime @updatedAt
 }
 
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  subject   String?
+  message   String
+  status    String   @default("new")
+  source    String   @default("contact")
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
 model HomepageConfig {
   id                    String @id @default("homepage")
   heroTitle             String @default("Doshok — Style That Speaks")

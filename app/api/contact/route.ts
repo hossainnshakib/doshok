@@ -2,6 +2,13 @@ import { NextResponse } from "next/server"
 import { contactSchema } from "@/lib/validations"
 import { sendContactEmail } from "@/lib/mailer"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { prisma } from "@/lib/prisma"
+
+function getClientIp(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for")
+  if (forwardedFor) return forwardedFor.split(",")[0]?.trim() || null
+  return request.headers.get("x-real-ip") || null
+}
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +31,23 @@ export async function POST(request: Request) {
 
     const { name, email, phone, subject, message } = parsed.data
 
-    await sendContactEmail({ name, email, phone, subject, message })
+    await prisma.contactMessage.create({
+      data: {
+        name,
+        email,
+        phone,
+        subject,
+        message,
+        ipAddress: getClientIp(request),
+        userAgent: request.headers.get("user-agent"),
+      },
+    })
+
+    try {
+      await sendContactEmail({ name, email: email ?? "", phone, subject, message })
+    } catch {
+      console.warn("[contact] contact email failed after message save")
+    }
 
     return NextResponse.json({
       success: true,

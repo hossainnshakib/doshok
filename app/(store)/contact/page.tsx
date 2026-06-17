@@ -39,7 +39,7 @@ export default function ContactPage() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    if (!form.name || !form.email || !form.message) {
+    if (!form.name || !form.message) {
       toast.error("Please fill in all required fields")
       return
     }
@@ -155,8 +155,8 @@ export default function ContactPage() {
               <Input id="name" value={form.name} onChange={(event) => update("name", event.target.value)} required className="h-12 rounded-2xl" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input id="email" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} required className="h-12 rounded-2xl" />
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} className="h-12 rounded-2xl" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
