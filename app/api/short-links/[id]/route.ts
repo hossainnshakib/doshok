@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { shortLinkSchema } from "@/lib/validations"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 const RESERVED_SLUGS = [
   "admin", "api", "account", "auth", "checkout", "cart",
@@ -14,13 +13,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("short_links")
+    if (session instanceof NextResponse) return session
 
     const { id } = await params
     const body = await req.json()
@@ -63,13 +57,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("short_links")
+    if (session instanceof NextResponse) return session
 
     const { id } = await params
     await prisma.shortLink.delete({ where: { id } })

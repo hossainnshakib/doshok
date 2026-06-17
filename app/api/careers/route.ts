@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,10 +9,8 @@ export async function GET(req: NextRequest) {
     const admin = searchParams.get("admin") === "true"
 
     if (admin) {
-      const session = await auth()
-      if (!session?.user || session.user.role !== "admin") {
-        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-      }
+      const session = await requireAdminPermission("cms")
+      if (session instanceof NextResponse) return session
     }
 
     let where = {}
@@ -35,13 +33,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("cms")
+    if (session instanceof NextResponse) return session
 
     const body = await req.json()
     const {

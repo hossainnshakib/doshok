@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 import { shortLinkSchema } from "@/lib/validations"
 
 const RESERVED_SLUGS = [
@@ -11,10 +11,8 @@ const RESERVED_SLUGS = [
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("short_links")
+    if (session instanceof NextResponse) return session
 
     const links = await prisma.shortLink.findMany({
       orderBy: { createdAt: "desc" },
@@ -28,13 +26,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 })
-    }
+    const session = await requireAdminPermission("short_links")
+    if (session instanceof NextResponse) return session
 
     const body = await req.json()
     const parsed = shortLinkSchema.safeParse(body)

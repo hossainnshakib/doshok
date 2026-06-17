@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { success, error } from "@/lib/api-response"
+import { isAdminRole } from "@/lib/permissions"
 
 export async function POST(
   _request: NextRequest,
@@ -9,7 +10,7 @@ export async function POST(
 ) {
   const session = await auth()
   if (!session?.user) return error("Unauthorized", 401)
-  if (session.user.role === "admin") return error("Admins cannot use customer reorder", 403)
+  if (isAdminRole(session.user.role)) return error("Admins cannot use customer reorder", 403)
 
   const { id } = await params
 

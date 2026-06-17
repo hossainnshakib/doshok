@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle, Package, MapPin, CreditCard, Truck, UserPlus, AlertTriangle, Clock } from "lucide-react"
 import { getPhoneDisplayE164 } from "@/lib/utils"
+import { isAdminRole } from "@/lib/permissions"
 import type { Metadata } from "next"
 
 const COURIER_NAMES: Record<string, string> = {
@@ -78,7 +79,7 @@ export default async function OrderConfirmationPage({
   if (!session?.user) {
     redirect(`/auth/login?callbackUrl=/order/${orderNumber}`)
   }
-  if (session.user.role !== "admin" && (!order.userId || order.userId !== session.user.id)) {
+  if (!isAdminRole(session.user.role) && (!order.userId || order.userId !== session.user.id)) {
     notFound()
   }
 

@@ -1,7 +1,7 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 import { z } from "zod"
 
 const couponSchema = z.object({
@@ -17,9 +17,8 @@ const couponSchema = z.object({
 })
 
 export async function GET() {
-  const session = await auth()
-  if (!session?.user) return error("Unauthorized", 401)
-  if (session.user.role !== "admin") return error("Forbidden", 403)
+  const session = await requireAdminPermission("operations")
+  if (session instanceof NextResponse) return session
 
   const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } })
   return success(coupons)
@@ -27,9 +26,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return error("Unauthorized", 401)
-    if (session.user.role !== "admin") return error("Forbidden", 403)
+    const session = await requireAdminPermission("operations")
+    if (session instanceof NextResponse) return session
 
     const body = await request.json()
     const parsed = couponSchema.safeParse(body)

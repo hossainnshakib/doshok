@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { requireAdminPermission } from "@/lib/auth/admin"
 import { prisma } from "@/lib/prisma"
 import { recalculateProductRating } from "@/lib/reviews"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id || session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await requireAdminPermission("support")
+    if (session instanceof NextResponse) return session
 
     const { searchParams } = new URL(req.url)
     const status = searchParams.get("status") ?? "pending"
@@ -59,10 +57,8 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id || session.user.role !== "admin") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await requireAdminPermission("support")
+    if (session instanceof NextResponse) return session
 
     const body = await req.json()
     const { action, reviewId, reviewIds } = body
