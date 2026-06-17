@@ -78,6 +78,7 @@ export async function getFeedProducts(): Promise<FeedProduct[]> {
     .map((p) => {
       const availableStock = calculateAvailableStock(p.variants)
       const hasSale = p.oldPrice != null && p.oldPrice > p.price
+      const feedPrice = hasSale ? p.oldPrice! : p.price
       const description =
         p.seoDescription || p.shortDescription || p.description || ""
 
@@ -94,7 +95,7 @@ export async function getFeedProducts(): Promise<FeedProduct[]> {
         imageLink: toAbsoluteUrl(p.images[0]),
         additionalImageLinks: p.images.slice(1).map(toAbsoluteUrl),
         availability: "in stock",
-        price: p.price,
+        price: feedPrice,
         salePrice: hasSale ? p.price : null,
         brand,
         productType: p.category?.name ?? null,

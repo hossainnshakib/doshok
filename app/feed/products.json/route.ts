@@ -18,7 +18,7 @@ export async function GET() {
       additional_image_link: p.additionalImageLinks,
       availability: p.availability,
       price: p.price,
-      sale_price: p.salePrice,
+      ...(p.salePrice !== null ? { sale_price: p.salePrice } : {}),
       condition: "new",
       brand: p.brand,
       product_type: p.productType,

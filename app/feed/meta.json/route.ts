@@ -18,8 +18,16 @@ export async function GET() {
       additional_image_link: p.additionalImageLinks,
       availability: p.availability === "in stock" ? "in stock" : "out of stock",
       price: formatPrice(p.price),
-      sale_price: p.salePrice !== null ? formatPrice(p.salePrice) : null,
-      sale_price_effective_date: p.salePrice !== null ? new Date().toISOString().split("T")[0] + "T00:00:00Z/" + new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] + "T23:59:59Z" : null,
+      ...(p.salePrice !== null
+        ? {
+            sale_price: formatPrice(p.salePrice),
+            sale_price_effective_date:
+              new Date().toISOString().split("T")[0] +
+              "T00:00:00Z/" +
+              new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] +
+              "T23:59:59Z",
+          }
+        : {}),
       condition: "new",
       brand: p.brand,
       product_type: p.productType,
