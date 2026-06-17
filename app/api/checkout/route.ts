@@ -26,7 +26,16 @@ export async function POST(request: NextRequest) {
     const parsed = checkoutSchema.safeParse(body)
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
-    const { items, paymentMethod, couponCode, notes, checkoutVerificationToken, idempotencyKey, ...customer } = parsed.data
+    const {
+      items,
+      paymentMethod,
+      couponCode,
+      notes,
+      checkoutVerificationToken,
+      idempotencyKey,
+      abandonedCheckoutToken,
+      ...customer
+    } = parsed.data
 
     const customerPhone = getPhoneServerValue(customer.phone)
     const session = await auth()
@@ -419,6 +428,20 @@ if (couponCode && discount > 0) {
     })
 
     const paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
+
+    if (abandonedCheckoutToken) {
+      prisma.abandonedCheckout.updateMany({
+        where: {
+          token: abandonedCheckoutToken,
+          status: { in: ["active", "recovered"] },
+        },
+        data: {
+          status: "converted",
+          orderId: order.id,
+          lastActivityAt: new Date(),
+        },
+      }).catch(() => {})
+    }
 
     sendOrderConfirmationEmail({
       userId: order.userId,

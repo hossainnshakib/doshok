@@ -72,6 +72,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/size-charts", label: "Size Charts", icon: Ruler, permission: "products" },
       { href: "/admin/coupons", label: "Coupons", icon: Tag, permission: "operations" },
       { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp, permission: "products" },
+      { href: "/admin/commerce/abandoned-checkouts", label: "Abandoned Checkouts", icon: ClipboardList, permission: "orders" },
       { href: "/admin/commerce/import-export", label: "Import / Export", icon: Download, permission: "import_export" },
     ],
   },

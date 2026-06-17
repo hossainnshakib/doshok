@@ -26,6 +26,7 @@ import { normalizePhoneToE164, isValidBdPhone } from "@/lib/checkout/phone"
 import { calculatePaymentAmounts, type PaymentRuleType } from "@/lib/checkout/payment-amount-client"
 import { FirebaseOtpPanel } from "@/components/store/firebase-otp-panel"
 import {
+  ABANDONED_CHECKOUT_TOKEN_KEY,
   saveCheckoutPersistence,
   loadCheckoutPersistence,
   clearCheckoutPersistence,
@@ -524,6 +525,65 @@ export function CheckoutForm() {
           timestamp: new Date().toISOString(),
         },
       })
+
+      try {
+        const token = localStorage.getItem(ABANDONED_CHECKOUT_TOKEN_KEY) || undefined
+        const phone = draft.phone && isValidBdPhone(draft.phone) ? normalizePhoneToE164(draft.phone) : draft.phone
+        const abandonedSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+        const abandonedDeliveryFee = finalDeliveryFeeDisplay || deliveryFee
+        const abandonedDiscount = productDiscount || couponDiscount
+        const abandonedTotal = grandTotal || (abandonedSubtotal + deliveryFee - couponDiscount)
+
+        fetch("/api/checkout/abandoned", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            cartItems: items,
+            checkoutData: {
+              customer: {
+                name: draft.name,
+                email: draft.email,
+                phone: draft.phone,
+              },
+              address: {
+                divisionId: draft.divisionId,
+                divisionName: draft.divisionName,
+                districtId: draft.districtId,
+                districtName: draft.districtName,
+                upazilaId: draft.upazilaId,
+                upazilaName: draft.upazilaName,
+                address: draft.fullAddress,
+                notes: draft.note,
+                deliveryZone,
+              },
+              checkout: {
+                selectedAddressId,
+                currentStep: step,
+                couponCode,
+              },
+            },
+            email: draft.email,
+            phone,
+            name: draft.name,
+            couponCode,
+            subtotal: abandonedSubtotal,
+            deliveryFee: abandonedDeliveryFee,
+            discount: abandonedDiscount,
+            total: abandonedTotal,
+            lastStep: STEPS[step]?.label ?? "Checkout",
+          }),
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success && d.data?.token) {
+              localStorage.setItem(ABANDONED_CHECKOUT_TOKEN_KEY, d.data.token)
+            }
+          })
+          .catch(() => {})
+      } catch {
+        // Abandoned checkout tracking is best-effort and must never block checkout.
+      }
     }, 1500)
 
     return () => {
@@ -550,6 +610,10 @@ export function CheckoutForm() {
     paymentMethod,
     selectedAddressId,
     couponCode,
+    finalDeliveryFeeDisplay,
+    productDiscount,
+    couponDiscount,
+    grandTotal,
     items,
     isBuyNow,
   ])
@@ -908,6 +972,11 @@ export function CheckoutForm() {
         })),
       }
 
+      const abandonedCheckoutToken = localStorage.getItem(ABANDONED_CHECKOUT_TOKEN_KEY)
+      if (abandonedCheckoutToken) {
+        payload.abandonedCheckoutToken = abandonedCheckoutToken
+      }
+
       if (isV2) {
         payload.idempotencyKey = idempotencyKeyRef.current
         if (checkoutVerificationToken) {
@@ -953,6 +1022,7 @@ export function CheckoutForm() {
           }).catch(() => {})
         }
         clearCheckoutPersistence()
+        localStorage.removeItem(ABANDONED_CHECKOUT_TOKEN_KEY)
         if (!isBuyNow) clearCart()
         resetDraft()
         window.dispatchEvent(new Event("cart-update"))

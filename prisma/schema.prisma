@@ -29,7 +29,6 @@ model User {
   reviews       ProductReview[]
   emailTokens   EmailVerificationToken[]
   resetTokens   PasswordResetToken[]
-  recoveryTokensCreated RecoveryCheckoutToken[] @relation("CreatedRecoveryTokens")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -528,47 +527,33 @@ model PaymentMethodSetting {
 }
 
 model AbandonedCheckout {
-  id           String   @id @default(cuid())
-  draftToken   String   @unique
-  landingSlug  String?
-  name         String?
-  email        String?
-  phone        String?
-  address      String?
-  productId    String?
-  variantId    String?
-  quantity     Int?
-  size         String?
-  color        String?
-  deliveryZone String?
-  step         String   @default("started")
-  couponCode   String?
-  subtotal     Int      @default(0)
-  discount     Int      @default(0)
-  total        Int      @default(0)
-  contacted    Boolean  @default(false)
-  notes        String?
-  data         String   @default("{}")
-  source       String?
-  lastSeenAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  recoveryTokens RecoveryCheckoutToken[]
+  id             String   @id @default(cuid())
+  token          String   @unique
+  userId         String?
+  email          String?
+  phone          String?
+  name           String?
+  cartItems      String
+  checkoutData   String?
+  couponCode     String?
+  subtotal       Int      @default(0)
+  deliveryFee    Int      @default(0)
+  discount       Int      @default(0)
+  total          Int      @default(0)
+  status         String   @default("active")
+  orderId        String?
+  lastStep       String?
+  lastActivityAt DateTime @default(now())
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
+  @@index([status])
   @@index([email])
-  @@index([draftToken])
-}
-
-model RecoveryCheckoutToken {
-  id                  String   @id @default(cuid())
-  token               String   @unique
-  abandonedCheckoutId String
-  abandonedCheckout   AbandonedCheckout @relation(fields: [abandonedCheckoutId], references: [id], onDelete: Cascade)
-  expiresAt           DateTime
-  usedAt              DateTime?
-  createdAt           DateTime @default(now())
-  createdByAdminId    String?
-  createdByAdmin      User?    @relation("CreatedRecoveryTokens", fields: [createdByAdminId], references: [id])
+  @@index([phone])
+  @@index([userId])
+  @@index([lastActivityAt])
+  @@index([expiresAt])
 }
 
 model SizeChart {
