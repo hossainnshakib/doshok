@@ -35,6 +35,7 @@ import {
   MapPin,
   Ruler,
   ExternalLink,
+  Download,
 } from "lucide-react"
 
 const STORAGE_KEY = "doshok_admin_sidebar_pinned"
@@ -65,6 +66,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/size-charts", label: "Size Charts", icon: Ruler },
       { href: "/admin/coupons", label: "Coupons", icon: Tag },
       { href: "/admin/landing-pages", label: "Landing Pages", icon: TrendingUp },
+      { href: "/admin/commerce/import-export", label: "Import / Export", icon: Download },
     ],
   },
   {
