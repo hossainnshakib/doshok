@@ -123,10 +123,10 @@ export default function CartPage() {
                       <span className="flex h-9 w-10 items-center justify-center border-x border-input text-sm font-bold tabular-nums">{item.quantity}</span>
                       <button
                         className="h-9 w-10 flex items-center justify-center hover:bg-muted transition-colors active:bg-muted/80 disabled:opacity-40"
-                        onClick={async () => {
+                        onClick={() => {
                           const key = `${item.productId}::${item.variantId ?? ""}`
-                          const maxStock = stockMap[key] ?? 1
-                          const newQty = Math.min(item.quantity + 1, maxStock)
+                          const maxStock = stockMap[key]
+                          const newQty = maxStock !== undefined ? Math.min(item.quantity + 1, maxStock) : item.quantity + 1
                           updateCartQuantity(item.productId, item.variantId, newQty)
                           refresh()
                         }}
