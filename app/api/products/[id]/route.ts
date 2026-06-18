@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { requireAdminPermission } from "@/lib/auth/admin"
+import { normalizeLandingPageSetting } from "@/lib/landing-page-settings"
 
 export async function GET(
   _request: NextRequest,
@@ -16,8 +17,15 @@ export async function GET(
       category: true,
       specifications: { orderBy: { position: "asc" } },
       sizeCharts: { include: { sizeChart: true } },
-      landingPageSetting: true,
-      relatedProducts: {
+        landingPageSetting: {
+          include: {
+            benefits: { orderBy: { sortOrder: "asc" } },
+            faqItems: { orderBy: { sortOrder: "asc" } },
+            testimonials: { orderBy: { sortOrder: "asc" } },
+            galleryImages: { orderBy: { sortOrder: "asc" } },
+          },
+        },
+        relatedProducts: {
         include: {
           relatedProduct: {
             include: {
@@ -86,6 +94,28 @@ export async function PATCH(
     const body = await request.json()
 
     const { variants, specifications, sizeChartIds, relatedProductIds, crossSellProductIds, upsellProductIds, landingPageSetting, ...productData } = body
+    const existingProductForPrice = await prisma.product.findUnique({
+      where: { id },
+      select: { price: true, oldPrice: true, pageType: true },
+    })
+
+    // Guard: once LANDING, pageType is immutable
+    if (existingProductForPrice?.pageType === "LANDING" && body.pageType && body.pageType !== "LANDING") {
+      return error("Landing page type is locked and cannot be changed")
+    }
+    if (!existingProductForPrice) return error("Not found", 404)
+
+    const nextPrice = typeof productData.price === "number" ? productData.price : existingProductForPrice.price
+    const nextOldPrice = productData.oldPrice === undefined ? existingProductForPrice.oldPrice : productData.oldPrice
+    if (typeof nextPrice !== "number" || nextPrice <= 0) {
+      return error("Price must be a positive number")
+    }
+    if (nextOldPrice !== null && nextOldPrice !== undefined && nextOldPrice <= nextPrice) {
+      return error("Compare price must be greater than the current price")
+    }
+
+    const normalizedLandingPageSetting = normalizeLandingPageSetting(landingPageSetting, nextPrice)
+    if (!normalizedLandingPageSetting.success) return error(normalizedLandingPageSetting.error)
 
     if (variants && Array.isArray(variants)) {
       const existingVariants = await prisma.productVariant.findMany({
@@ -200,12 +230,72 @@ export async function PATCH(
     }
 
     if (landingPageSetting !== undefined) {
-      if (landingPageSetting && typeof landingPageSetting === "object" && Object.keys(landingPageSetting).length > 0) {
-        await prisma.landingPageSetting.upsert({
+      if (Object.keys(normalizedLandingPageSetting.data).length > 0) {
+        const lpsData = { ...normalizedLandingPageSetting.data }
+
+        const { benefits, faqItems, testimonials, galleryImages, ...lpsFields } = lpsData
+
+        const lpsRecord = await prisma.landingPageSetting.upsert({
           where: { productId: id },
-          update: landingPageSetting,
-          create: { productId: id, ...landingPageSetting },
+          update: lpsFields,
+          create: { productId: id, ...lpsFields },
         })
+
+        if (benefits !== undefined) {
+          const benefitList = benefits as { icon?: string; title: string; description?: string; enabled?: boolean; sortOrder?: number; id?: string }[]
+          const existingBenefits = await prisma.landingBenefit.findMany({ where: { landingPageSettingId: lpsRecord.id }, select: { id: true } })
+          const benefitIds = benefitList.filter((b) => b.id).map((b) => b.id as string)
+          await prisma.landingBenefit.deleteMany({ where: { landingPageSettingId: lpsRecord.id, id: { notIn: benefitIds } } })
+          for (const benefit of benefitList) {
+            await prisma.landingBenefit.upsert({
+              where: benefit.id ? { id: benefit.id } : { id: "__new__" },
+              update: { icon: benefit.icon ?? null, title: benefit.title, description: benefit.description ?? null, enabled: benefit.enabled ?? true, sortOrder: benefit.sortOrder ?? 0 },
+              create: { landingPageSettingId: lpsRecord.id, icon: benefit.icon ?? null, title: benefit.title, description: benefit.description ?? null, enabled: benefit.enabled ?? true, sortOrder: benefit.sortOrder ?? 0 },
+            })
+          }
+        }
+
+        if (faqItems !== undefined) {
+          const faqList = faqItems as { question: string; answer: string; enabled?: boolean; sortOrder?: number; id?: string }[]
+          const existingFaqs = await prisma.landingFaqItem.findMany({ where: { landingPageSettingId: lpsRecord.id }, select: { id: true } })
+          const faqIds = faqList.filter((f) => f.id).map((f) => f.id as string)
+          await prisma.landingFaqItem.deleteMany({ where: { landingPageSettingId: lpsRecord.id, id: { notIn: faqIds } } })
+          for (const faq of faqList) {
+            await prisma.landingFaqItem.upsert({
+              where: faq.id ? { id: faq.id } : { id: "__new__" },
+              update: { question: faq.question, answer: faq.answer, enabled: faq.enabled ?? true, sortOrder: faq.sortOrder ?? 0 },
+              create: { landingPageSettingId: lpsRecord.id, question: faq.question, answer: faq.answer, enabled: faq.enabled ?? true, sortOrder: faq.sortOrder ?? 0 },
+            })
+          }
+        }
+
+        if (testimonials !== undefined) {
+          const testimonialList = testimonials as { name: string; rating?: number; text: string; image?: string; enabled?: boolean; sortOrder?: number; id?: string }[]
+          const existingTestimonials = await prisma.landingTestimonial.findMany({ where: { landingPageSettingId: lpsRecord.id }, select: { id: true } })
+          const testimonialIds = testimonialList.filter((t) => t.id).map((t) => t.id as string)
+          await prisma.landingTestimonial.deleteMany({ where: { landingPageSettingId: lpsRecord.id, id: { notIn: testimonialIds } } })
+          for (const testimonial of testimonialList) {
+            await prisma.landingTestimonial.upsert({
+              where: testimonial.id ? { id: testimonial.id } : { id: "__new__" },
+              update: { name: testimonial.name, rating: testimonial.rating ?? 5, text: testimonial.text, image: testimonial.image ?? null, enabled: testimonial.enabled ?? true, sortOrder: testimonial.sortOrder ?? 0 },
+              create: { landingPageSettingId: lpsRecord.id, name: testimonial.name, rating: testimonial.rating ?? 5, text: testimonial.text, image: testimonial.image ?? null, enabled: testimonial.enabled ?? true, sortOrder: testimonial.sortOrder ?? 0 },
+            })
+          }
+        }
+
+        if (galleryImages !== undefined) {
+          const imageList = galleryImages as { url: string; sortOrder?: number; id?: string }[]
+          const existingImages = await prisma.landingGalleryImage.findMany({ where: { landingPageSettingId: lpsRecord.id }, select: { id: true } })
+          const imageIds = imageList.filter((i) => i.id).map((i) => i.id as string)
+          await prisma.landingGalleryImage.deleteMany({ where: { landingPageSettingId: lpsRecord.id, id: { notIn: imageIds } } })
+          for (const img of imageList) {
+            await prisma.landingGalleryImage.upsert({
+              where: img.id ? { id: img.id } : { id: "__new__" },
+              update: { url: img.url, sortOrder: img.sortOrder ?? 0 },
+              create: { landingPageSettingId: lpsRecord.id, url: img.url, sortOrder: img.sortOrder ?? 0 },
+            })
+          }
+        }
       } else {
         await prisma.landingPageSetting.deleteMany({ where: { productId: id } })
       }
@@ -219,7 +309,14 @@ export async function PATCH(
         category: true,
         specifications: { orderBy: { position: "asc" } },
         sizeCharts: { include: { sizeChart: true } },
-        landingPageSetting: true,
+      landingPageSetting: {
+        include: {
+          benefits: { orderBy: { sortOrder: "asc" } },
+          faqItems: { orderBy: { sortOrder: "asc" } },
+          testimonials: { orderBy: { sortOrder: "asc" } },
+          galleryImages: { orderBy: { sortOrder: "asc" } },
+        },
+      },
         relatedProducts: {
           include: {
             relatedProduct: {

@@ -13,10 +13,10 @@ export default async function AdminLandingPagesPage() {
 
   return (
     <div className="space-y-5">
-      <AdminPageHeader eyebrow="Commerce" title="Landing Pages" description={`${landingProducts.length} landing page${landingProducts.length === 1 ? "" : "s"} for campaign traffic.`} action={{ label: "New Landing Page", href: "/admin/products/new" }} backHref="/admin/products" />
+      <AdminPageHeader eyebrow="Commerce" title="Landing Pages" description={`${landingProducts.length} landing page${landingProducts.length === 1 ? "" : "s"} for campaign traffic.`} action={{ label: "New Landing Page", href: "/admin/landing-pages/new" }} backHref="/admin/products" />
 
       {landingProducts.length === 0 ? (
-        <AdminEmptyState title="No landing pages yet" description="Create a product with page type set to Landing to use it for ad traffic." action={{ label: "Create Landing Page", href: "/admin/products/new" }} />
+        <AdminEmptyState title="No landing pages yet" description="Create a focused sales page from an existing product or new landing product/content." action={{ label: "Create Landing Page", href: "/admin/landing-pages/new" }} />
       ) : (
         <AdminTableShell>
         <Table>
@@ -52,7 +52,7 @@ export default async function AdminLandingPagesPage() {
                       <ExternalLink className="h-3.5 w-3.5" />
                       Preview
                     </Link>
-                    <Link href={`/admin/products/${product.id}`} className="inline-flex items-center justify-center rounded-md text-[11px] font-semibold h-7 px-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <Link href={`/admin/landing-pages/${product.id}`} className="inline-flex items-center justify-center rounded-md text-[11px] font-semibold h-7 px-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
                       Edit
                     </Link>
                   </div>
