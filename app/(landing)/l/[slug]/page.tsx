@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAdminPermission } from "@/lib/auth/admin"
-import { LandingPageClient } from "@/components/store/landing-page-client"
+import { LandingPageClient, LandingPageClientProps } from "@/components/store/landing-page-client"
 
 export async function generateMetadata({
   params,
@@ -68,11 +68,19 @@ export default async function LandingPage({
     include: {
       variants: true,
       category: true,
-      landingPageSetting: true,
+      specifications: { orderBy: { position: "asc" } },
+      landingPageSetting: {
+        include: {
+          benefits: { orderBy: { sortOrder: "asc" } },
+          faqItems: { orderBy: { sortOrder: "asc" } },
+          testimonials: { orderBy: { sortOrder: "asc" } },
+          galleryImages: { orderBy: { sortOrder: "asc" } },
+        },
+      },
     },
   })
 
   if (!product) notFound()
 
-  return <LandingPageClient product={product} slug={slug} />
+  return <LandingPageClient product={product as LandingPageClientProps["product"]} slug={slug} />
 }

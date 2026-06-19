@@ -1,3 +1,4 @@
+import { Fragment } from "react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { ProductCard } from "@/components/store/product-card"
@@ -520,7 +521,8 @@ export default async function HomePage() {
 
       {sections.map((section) => {
         const renderFn = sectionRenderers[section.type]
-        return renderFn ? renderFn(section) : null
+        const node = renderFn ? renderFn(section) : null
+        return node ? <Fragment key={section.type}>{node}</Fragment> : null
       })}
     </>
   )

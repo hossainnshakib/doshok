@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,8 @@ import { toast } from "sonner"
 import { AdminBackLink, AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
 import { ProductRelationSelector } from "@/components/admin/product-relation-selector"
-import { AlertTriangle, Archive, EyeOff, Layers, Plus, Ruler, Save, SendHorizonal, Trash2 } from "lucide-react"
+import { AlertTriangle, Archive, EyeOff, Layers, Ruler, Save, SendHorizonal, Trash2 } from "lucide-react"
+import { LandingCampaignSettings, type LandingCampaignSettingsHandle } from "@/components/admin/landing-campaign-settings"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 import { slugifyName } from "@/lib/slug"
 import {
@@ -37,6 +38,7 @@ type SpecInput = {
 
 export default function NewProductPage() {
   const router = useRouter()
+  const campaignRef = useRef<LandingCampaignSettingsHandle>(null)
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [variants, setVariants] = useState<VariantInput[]>([])
@@ -58,24 +60,9 @@ export default function NewProductPage() {
   const [landingSubheadline, setLandingSubheadline] = useState("")
   const [landingCopy, setLandingCopy] = useState("")
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
-
   const [paymentRuleOverride, setPaymentRuleOverride] = useState("")
   const [paymentRuleValueOverride, setPaymentRuleValueOverride] = useState("")
-  const [lpPaymentOverrideEnabled, setLpPaymentOverrideEnabled] = useState(false)
-  const [lpPaymentRuleOverride, setLpPaymentRuleOverride] = useState("")
-  const [lpPaymentRuleValueOverride, setLpPaymentRuleValueOverride] = useState("")
-  const [lpOtpOverrideEnabled, setLpOtpOverrideEnabled] = useState(false)
-  const [lpOtpOverride, setLpOtpOverride] = useState(false)
-  const [lpCouponOverrideEnabled, setLpCouponOverrideEnabled] = useState(false)
-  const [lpAutoCouponCode, setLpAutoCouponCode] = useState("")
-  const [lpDeliveryOverrideEnabled, setLpDeliveryOverrideEnabled] = useState(false)
-  const [lpDeliveryFeeOverride, setLpDeliveryFeeOverride] = useState("")
-  const [lpQuantityLimit, setLpQuantityLimit] = useState("")
-  const [lpCustomCta, setLpCustomCta] = useState("")
-  const [lpCustomThankYouMessage, setLpCustomThankYouMessage] = useState("")
-  const [lpCustomQuestionField, setLpCustomQuestionField] = useState("")
-  const [lpUrgencyCounterEnabled, setLpUrgencyCounterEnabled] = useState(false)
-  const [lpHideNormalNavigation, setLpHideNormalNavigation] = useState(false)
+
   const [material, setMaterial] = useState("")
   const [careInstructions, setCareInstructions] = useState("")
   const [seoTitle, setSeoTitle] = useState("")
@@ -152,6 +139,23 @@ export default function NewProductPage() {
     setLoading(true)
     setStatus(publishStatus)
 
+    const currentPrice = Number(price)
+    const comparePrice = oldPrice ? Number(oldPrice) : null
+    if (comparePrice !== null && comparePrice <= currentPrice) {
+      toast.error("Compare price must be greater than the current price")
+      setLoading(false)
+      return
+    }
+
+    const campaignVals = campaignRef.current?.getValue()
+    const landingDisplayPrice = campaignVals?.landingDisplayPrice ?? null
+    const landingDisplayOldPrice = campaignVals?.landingDisplayOldPrice ?? null
+    if (landingDisplayOldPrice !== null && landingDisplayOldPrice <= (landingDisplayPrice ?? currentPrice)) {
+      toast.error("Landing compare price must be greater than the landing/current price")
+      setLoading(false)
+      return
+    }
+
     const body: Record<string, unknown> = {
       name,
       slug,
@@ -190,23 +194,7 @@ export default function NewProductPage() {
     body.paymentRuleValueOverride = paymentRuleValueOverride ? parseInt(paymentRuleValueOverride) : null
 
     if (pageType === "LANDING") {
-      body.landingPageSetting = {
-        paymentOverrideEnabled: lpPaymentOverrideEnabled,
-        paymentRuleOverride: lpPaymentOverrideEnabled ? (lpPaymentRuleOverride || null) : null,
-        paymentRuleValueOverride: lpPaymentOverrideEnabled && lpPaymentRuleValueOverride ? parseInt(lpPaymentRuleValueOverride) : null,
-        otpOverrideEnabled: lpOtpOverrideEnabled,
-        otpOverride: lpOtpOverrideEnabled ? lpOtpOverride : null,
-        couponOverrideEnabled: lpCouponOverrideEnabled,
-        autoCouponCode: lpCouponOverrideEnabled ? (lpAutoCouponCode.toUpperCase() || null) : null,
-        deliveryOverrideEnabled: lpDeliveryOverrideEnabled,
-        deliveryFeeOverride: lpDeliveryOverrideEnabled && lpDeliveryFeeOverride ? parseInt(lpDeliveryFeeOverride) : null,
-        quantityLimit: lpQuantityLimit ? parseInt(lpQuantityLimit) : null,
-        customCta: lpCustomCta || null,
-        customThankYouMessage: lpCustomThankYouMessage || null,
-        customQuestionField: lpCustomQuestionField || null,
-        urgencyCounterEnabled: lpUrgencyCounterEnabled,
-        hideNormalNavigation: lpHideNormalNavigation,
-      }
+      body.landingPageSetting = campaignRef.current?.getValue() ?? {}
     }
 
     const res = await fetch("/api/products", {
@@ -553,108 +541,7 @@ export default function NewProductPage() {
                 </div>
               </div>
 
-              <div className="mt-8 border-t pt-6 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-700">Payment Override</h4>
-                <div className="space-y-1.5">
-                  <Label>Enable Payment Override</Label>
-                  <Switch checked={lpPaymentOverrideEnabled} onCheckedChange={setLpPaymentOverrideEnabled} />
-                </div>
-                {lpPaymentOverrideEnabled && (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label>Payment Rule</Label>
-                      <Select value={lpPaymentRuleOverride} onValueChange={(value) => value != null && setLpPaymentRuleOverride(value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select rule">
-                            {(value: string | null) => value ? (PAYMENT_RULE_LABELS[value as PaymentRuleType] ?? value) : "Select rule"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PAYMENT_RULE_VALUES.map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {PAYMENT_RULE_LABELS[value]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Payment Value</Label>
-                      <Input type="number" min={0} value={lpPaymentRuleValueOverride} onChange={(e) => setLpPaymentRuleValueOverride(e.target.value)} />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="mt-4 border-t pt-4 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-700">OTP Override</h4>
-                <div className="space-y-1.5">
-                  <Label>Enable OTP Override</Label>
-                  <Switch checked={lpOtpOverrideEnabled} onCheckedChange={setLpOtpOverrideEnabled} />
-                </div>
-                {lpOtpOverrideEnabled && (
-                  <div className="space-y-1.5">
-                    <Label>Require OTP</Label>
-                    <Switch checked={lpOtpOverride} onCheckedChange={setLpOtpOverride} />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 border-t pt-4 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-700">Coupon Override</h4>
-                <div className="space-y-1.5">
-                  <Label>Enable Coupon Override</Label>
-                  <Switch checked={lpCouponOverrideEnabled} onCheckedChange={setLpCouponOverrideEnabled} />
-                </div>
-                {lpCouponOverrideEnabled && (
-                  <div className="space-y-1.5">
-                    <Label>Auto-Apply Coupon</Label>
-                    <Input value={lpAutoCouponCode} onChange={(e) => setLpAutoCouponCode(e.target.value)} placeholder="e.g. SUMMER20" className="uppercase" />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 border-t pt-4 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-700">Delivery Override</h4>
-                <div className="space-y-1.5">
-                  <Label>Enable Delivery Override</Label>
-                  <Switch checked={lpDeliveryOverrideEnabled} onCheckedChange={setLpDeliveryOverrideEnabled} />
-                </div>
-                {lpDeliveryOverrideEnabled && (
-                  <div className="space-y-1.5">
-                    <Label>Delivery Fee Override</Label>
-                    <Input type="number" min={0} value={lpDeliveryFeeOverride} onChange={(e) => setLpDeliveryFeeOverride(e.target.value)} />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 border-t pt-4 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-700">Campaign Settings</h4>
-                <div className="space-y-1.5">
-                  <Label>Quantity Limit</Label>
-                  <Input type="number" min={0} value={lpQuantityLimit} onChange={(e) => setLpQuantityLimit(e.target.value)} placeholder="Max per order" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Custom CTA</Label>
-                  <Input value={lpCustomCta} onChange={(e) => setLpCustomCta(e.target.value)} placeholder="e.g. Get Yours Now" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Custom Thank You Message</Label>
-                  <Textarea value={lpCustomThankYouMessage} onChange={(e) => setLpCustomThankYouMessage(e.target.value)} placeholder="Post-purchase message" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Custom Question Field</Label>
-                  <Input value={lpCustomQuestionField} onChange={(e) => setLpCustomQuestionField(e.target.value)} placeholder="e.g. What colour do you prefer?" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Urgency Counter</Label>
-                  <Switch checked={lpUrgencyCounterEnabled} onCheckedChange={setLpUrgencyCounterEnabled} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Hide Normal Navigation</Label>
-                  <Switch checked={lpHideNormalNavigation} onCheckedChange={setLpHideNormalNavigation} />
-                </div>
-              </div>
+              <LandingCampaignSettings ref={campaignRef} showCheckoutOverrides />
             </AdminSectionCard>
           )}
 

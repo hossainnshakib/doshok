@@ -3,6 +3,7 @@ import { success, error } from "@/lib/api-response"
 import { productSchema } from "@/lib/validations"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { NextRequest, NextResponse } from "next/server"
+import { normalizeLandingPageSetting } from "@/lib/landing-page-settings"
 
 type SortOption = "newest" | "price-low" | "price-high"
 
@@ -102,6 +103,8 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return error(parsed.error.issues[0]?.message ?? "Invalid input")
 
     const { variants, specifications, sizeChartIds, ...productData } = parsed.data
+    const normalizedLandingPageSetting = normalizeLandingPageSetting(landingPageSetting, productData.price)
+    if (!normalizedLandingPageSetting.success) return error(normalizedLandingPageSetting.error)
 
     const extraFields: Record<string, unknown> = {}
     if (body.paymentRuleOverride !== undefined) extraFields.paymentRuleOverride = body.paymentRuleOverride
@@ -134,9 +137,47 @@ export async function POST(request: NextRequest) {
       include: { variants: true, category: true, specifications: true, sizeCharts: { include: { sizeChart: true } } },
     })
 
-    if (landingPageSetting && typeof landingPageSetting === "object" && Object.keys(landingPageSetting).length > 0) {
+    if (Object.keys(normalizedLandingPageSetting.data).length > 0) {
+      const { benefits, faqItems, testimonials, galleryImages, ...lpsFields } = normalizedLandingPageSetting.data as Record<string, unknown>
+
       await prisma.landingPageSetting.create({
-        data: { productId: product.id, ...landingPageSetting },
+        data: {
+          productId: product.id,
+          ...lpsFields,
+          benefits: benefits ? {
+            create: (benefits as { icon?: string; title: string; description?: string; enabled?: boolean; sortOrder?: number }[]).map((b) => ({
+              icon: b.icon ?? null,
+              title: b.title,
+              description: b.description ?? null,
+              enabled: b.enabled ?? true,
+              sortOrder: b.sortOrder ?? 0,
+            })),
+          } : undefined,
+          faqItems: faqItems ? {
+            create: (faqItems as { question: string; answer: string; enabled?: boolean; sortOrder?: number }[]).map((f) => ({
+              question: f.question,
+              answer: f.answer,
+              enabled: f.enabled ?? true,
+              sortOrder: f.sortOrder ?? 0,
+            })),
+          } : undefined,
+          testimonials: testimonials ? {
+            create: (testimonials as { name: string; rating?: number; text: string; image?: string; enabled?: boolean; sortOrder?: number }[]).map((t) => ({
+              name: t.name,
+              rating: t.rating ?? 5,
+              text: t.text,
+              image: t.image ?? null,
+              enabled: t.enabled ?? true,
+              sortOrder: t.sortOrder ?? 0,
+            })),
+          } : undefined,
+          galleryImages: galleryImages ? {
+            create: (galleryImages as { url: string; sortOrder?: number }[]).map((g) => ({
+              url: g.url,
+              sortOrder: g.sortOrder ?? 0,
+            })),
+          } : undefined,
+        },
       })
     }
 
