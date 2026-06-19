@@ -64,6 +64,9 @@ export const productSchema = z.object({
     sku: z.string().optional(),
   })).optional(),
   sizeChartIds: z.array(z.string()).optional(),
+}).refine((data) => data.oldPrice === undefined || data.oldPrice > data.price, {
+  message: "Compare price must be greater than the current price",
+  path: ["oldPrice"],
 })
 
 export const variantSchema = z.object({
@@ -119,6 +122,7 @@ export const checkoutSchema = z.object({
   notes: z.string().optional(),
   checkoutVerificationToken: z.string().optional(),
   idempotencyKey: z.string().optional(),
+  abandonedCheckoutToken: z.string().optional(),
   items: z.array(z.object({
     productId: z.string(),
     variantId: z.string().optional(),

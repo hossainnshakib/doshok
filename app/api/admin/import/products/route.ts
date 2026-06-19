@@ -237,6 +237,9 @@ async function validateCsv(csvText: string) {
     if (data.oldPrice && (oldPrice === null || oldPrice <= 0)) {
       rowErrors.push("oldPrice must be a positive whole number")
     }
+    if (price !== null && oldPrice !== null && oldPrice <= price) {
+      rowErrors.push("oldPrice must be greater than price")
+    }
 
     const featured = parseOptionalBoolean(data.featured)
     if (data.featured && featured === undefined) {

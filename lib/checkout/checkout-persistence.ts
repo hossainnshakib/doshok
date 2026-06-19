@@ -1,4 +1,5 @@
 const STORAGE_KEY = "doshok_checkout_v2"
+export const ABANDONED_CHECKOUT_TOKEN_KEY = "doshok_abandoned_checkout_token"
 const MAX_AGE_DAYS = 7
 const CURRENT_VERSION = 1
 
