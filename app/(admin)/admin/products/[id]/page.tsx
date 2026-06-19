@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,6 @@ import { toast } from "sonner"
 import { AdminBackLink, AdminPageHeader, AdminSectionCard, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { ImageUploader } from "@/components/admin/image-uploader"
 import { AlertTriangle, Archive, ExternalLink, EyeOff, Layers, Plus, Ruler, Save, SendHorizonal, Trash2 } from "lucide-react"
-import { LandingCampaignSettings, type LandingCampaignSettingsHandle } from "@/components/admin/landing-campaign-settings"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 import { slugifyName } from "@/lib/slug"
 import { ProductRelationSelector } from "@/components/admin/product-relation-selector"
@@ -37,29 +36,16 @@ type SpecInput = {
   value: string
 }
 
-const DEFAULT_SECTION_ORDER = [
-  { key: "hero", enabled: true, order: 0 },
-  { key: "benefits", enabled: true, order: 1 },
-  { key: "gallery", enabled: true, order: 2 },
-  { key: "variant", enabled: true, order: 3 },
-  { key: "testimonials", enabled: true, order: 4 },
-  { key: "checkout", enabled: true, order: 5 },
-  { key: "faq", enabled: true, order: 6 },
-]
-
 export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
   const productId = params.id as string
-  const campaignRef = useRef<LandingCampaignSettingsHandle>(null)
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [variants, setVariants] = useState<VariantInput[]>([])
   const [specifications, setSpecifications] = useState<SpecInput[]>([])
-  const [pageType, setPageType] = useState("NORMAL")
   const [productImages, setProductImages] = useState<string[]>([])
-  const [landingHeroImage, setLandingHeroImage] = useState("")
   const [slug, setSlug] = useState("")
   const [name, setName] = useState("")
   const [price, setPrice] = useState("")
@@ -70,9 +56,6 @@ export default function EditProductPage() {
   const [oldPrice, setOldPrice] = useState("")
   const [featured, setFeatured] = useState(false)
   const [defaultCouponCode, setDefaultCouponCode] = useState("")
-  const [landingHeadline, setLandingHeadline] = useState("")
-  const [landingSubheadline, setLandingSubheadline] = useState("")
-  const [landingCopy, setLandingCopy] = useState("")
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [material, setMaterial] = useState("")
   const [careInstructions, setCareInstructions] = useState("")
@@ -110,13 +93,8 @@ export default function EditProductPage() {
         setCategoryId(p.categoryId ?? "")
         setFeatured(p.featured ?? false)
         setStatus(p.status ?? "Draft")
-        setPageType(p.pageType ?? "NORMAL")
         setProductImages(p.images ?? [])
-        setLandingHeroImage(p.landingHeroImage ?? "")
         setDefaultCouponCode(p.defaultCouponCode ?? "")
-        setLandingHeadline(p.landingHeadline ?? "")
-        setLandingSubheadline(p.landingSubheadline ?? "")
-        setLandingCopy(p.landingCopy ?? "")
         setMaterial(p.material ?? "")
         setCareInstructions(p.careInstructions ?? "")
         setSeoTitle(p.seoTitle ?? "")
@@ -139,10 +117,6 @@ export default function EditProductPage() {
         setUpsellProductIds((p.relations?.UPSELL ?? []).map((r: { id: string }) => r.id))
         setPaymentRuleOverride(p.paymentRuleOverride ?? "")
         setPaymentRuleValueOverride(p.paymentRuleValueOverride?.toString() ?? "")
-        const ls = p.landingPageSetting
-        if (ls && campaignRef.current) {
-          campaignRef.current.setValue(ls as Parameters<LandingCampaignSettingsHandle["setValue"]>[0])
-        }
       }
       setFetching(false)
     }).catch(() => setFetching(false))
@@ -206,15 +180,6 @@ export default function EditProductPage() {
       return
     }
 
-    const campaignVals = campaignRef.current?.getValue()
-    const landingDisplayPrice = campaignVals?.landingDisplayPrice ?? null
-    const landingDisplayOldPrice = campaignVals?.landingDisplayOldPrice ?? null
-    if (landingDisplayOldPrice !== null && landingDisplayOldPrice <= (landingDisplayPrice ?? currentPrice)) {
-      toast.error("Landing compare price must be greater than the landing/current price")
-      setLoading(false)
-      return
-    }
-
     const body: Record<string, unknown> = {
       name,
       slug,
@@ -226,7 +191,6 @@ export default function EditProductPage() {
       categoryId,
       featured,
       status: publishStatus,
-      pageType,
       defaultCouponCode: defaultCouponCode?.toUpperCase() || undefined,
       variants: variants.filter((v) => v.size && v.color),
       material: material || undefined,
@@ -242,19 +206,8 @@ export default function EditProductPage() {
       upsellProductIds,
     }
 
-    if (pageType === "LANDING") {
-      body.landingHeadline = landingHeadline || undefined
-      body.landingSubheadline = landingSubheadline || undefined
-      body.landingCopy = landingCopy || undefined
-      body.landingHeroImage = landingHeroImage || undefined
-    }
-
     body.paymentRuleOverride = paymentRuleOverride || null
     body.paymentRuleValueOverride = paymentRuleValueOverride ? parseInt(paymentRuleValueOverride) : null
-
-    if (pageType === "LANDING") {
-      body.landingPageSetting = campaignRef.current?.getValue() ?? {}
-    }
 
     const res = await fetch(`/api/products/${productId}`, {
       method: "PATCH",
@@ -281,7 +234,7 @@ export default function EditProductPage() {
     )
   }
 
-  const previewUrl = pageType === "LANDING" ? `/l/${slug}?preview=1` : `/products/${slug}?preview=1`
+  const previewUrl = `/products/${slug}?preview=1`
 
   return (
     <div className="max-w-6xl space-y-5">
@@ -323,23 +276,7 @@ export default function EditProductPage() {
                   </Select>
                   {noCategory && <p className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Required</p>}
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pageType">Page type</Label>
-                  {pageType === "LANDING" ? (
-                    <div className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs">
-                      <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Landing Page</span>
-                      <span className="text-slate-400">— type is locked and cannot be changed</span>
-                    </div>
-                  ) : (
-                    <Select value={pageType} onValueChange={(v) => v && setPageType(v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NORMAL">Normal</SelectItem>
-                        <SelectItem value="LANDING">Landing</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+
               </div>
             </div>
           </AdminSectionCard>
@@ -583,44 +520,6 @@ export default function EditProductPage() {
             </div>
           </AdminSectionCard>
 
-          {pageType === "LANDING" && (
-            <AdminSectionCard title="Landing Campaign">
-              <div className="space-y-4">
-                <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs text-slate-500">
-                  <p className="font-semibold text-slate-700 mb-1">Recommended copy structure</p>
-                  <p><strong>Headline</strong> — Single bold offer line.</p>
-                  <p><strong>Subheadline</strong> — One-line value prop.</p>
-                  <p><strong>Copy</strong> — 3–5 lines: what, why, benefits, CTA.</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="landingHeadline">Landing headline</Label>
-                  <Input id="landingHeadline" value={landingHeadline} onChange={(e) => setLandingHeadline(e.target.value)} placeholder="Limited Edition Drop" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="landingSubheadline">Landing subheadline</Label>
-                  <Input id="landingSubheadline" value={landingSubheadline} onChange={(e) => setLandingSubheadline(e.target.value)} placeholder="Crafted for the season" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="landingCopy">Landing copy</Label>
-                  <Textarea id="landingCopy" rows={4} value={landingCopy} onChange={(e) => setLandingCopy(e.target.value)} placeholder="Write the campaign copy customers will see on the landing page." />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Landing hero image</Label>
-                  <ImageUploader
-                    images={landingHeroImage ? [landingHeroImage] : []}
-                    onChange={(imgs) => setLandingHeroImage(imgs[0] || "")}
-                    single
-                    label=""
-                    helperText="Recommended size: 1200x800px."
-                    folder="landing"
-                  />
-                </div>
-              </div>
-
-              <LandingCampaignSettings ref={campaignRef} showCheckoutOverrides />
-            </AdminSectionCard>
-          )}
-
           <AdminSectionCard title="Publishing">
             <div className="space-y-4">
               <p className="text-xs text-slate-500">Control who can see this product on the storefront.</p>
@@ -779,7 +678,7 @@ export default function EditProductPage() {
                 className="inline-flex items-center justify-center gap-2 w-full h-9 rounded-lg border border-slate-200/60 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Preview {pageType === "LANDING" ? "Landing" : "Product"}
+                Preview
               </Link>
             )}
           </div>

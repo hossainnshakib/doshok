@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,6 @@ import { AdminBackLink, AdminPageHeader, AdminSectionCard, AdminStatusBadge } fr
 import { ImageUploader } from "@/components/admin/image-uploader"
 import { ProductRelationSelector } from "@/components/admin/product-relation-selector"
 import { AlertTriangle, Archive, EyeOff, Layers, Ruler, Save, SendHorizonal, Trash2 } from "lucide-react"
-import { LandingCampaignSettings, type LandingCampaignSettingsHandle } from "@/components/admin/landing-campaign-settings"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 import { slugifyName } from "@/lib/slug"
 import {
@@ -38,14 +37,11 @@ type SpecInput = {
 
 export default function NewProductPage() {
   const router = useRouter()
-  const campaignRef = useRef<LandingCampaignSettingsHandle>(null)
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [variants, setVariants] = useState<VariantInput[]>([])
   const [specifications, setSpecifications] = useState<SpecInput[]>([])
-  const [pageType, setPageType] = useState("NORMAL")
   const [productImages, setProductImages] = useState<string[]>([])
-  const [landingHeroImage, setLandingHeroImage] = useState("")
   const [slug, setSlug] = useState("")
   const [name, setName] = useState("")
   const [price, setPrice] = useState("")
@@ -56,9 +52,6 @@ export default function NewProductPage() {
   const [oldPrice, setOldPrice] = useState("")
   const [featured, setFeatured] = useState(false)
   const [defaultCouponCode, setDefaultCouponCode] = useState("")
-  const [landingHeadline, setLandingHeadline] = useState("")
-  const [landingSubheadline, setLandingSubheadline] = useState("")
-  const [landingCopy, setLandingCopy] = useState("")
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [paymentRuleOverride, setPaymentRuleOverride] = useState("")
   const [paymentRuleValueOverride, setPaymentRuleValueOverride] = useState("")
@@ -147,15 +140,6 @@ export default function NewProductPage() {
       return
     }
 
-    const campaignVals = campaignRef.current?.getValue()
-    const landingDisplayPrice = campaignVals?.landingDisplayPrice ?? null
-    const landingDisplayOldPrice = campaignVals?.landingDisplayOldPrice ?? null
-    if (landingDisplayOldPrice !== null && landingDisplayOldPrice <= (landingDisplayPrice ?? currentPrice)) {
-      toast.error("Landing compare price must be greater than the landing/current price")
-      setLoading(false)
-      return
-    }
-
     const body: Record<string, unknown> = {
       name,
       slug,
@@ -167,7 +151,6 @@ export default function NewProductPage() {
       categoryId,
       featured,
       status: publishStatus,
-      pageType,
       defaultCouponCode: defaultCouponCode?.toUpperCase() || undefined,
       variants: variants.filter((v) => v.size && v.color),
       material: material || undefined,
@@ -183,19 +166,8 @@ export default function NewProductPage() {
       upsellProductIds,
     }
 
-    if (pageType === "LANDING") {
-      body.landingHeadline = landingHeadline || undefined
-      body.landingSubheadline = landingSubheadline || undefined
-      body.landingCopy = landingCopy || undefined
-      body.landingHeroImage = landingHeroImage || undefined
-    }
-
     body.paymentRuleOverride = paymentRuleOverride || null
     body.paymentRuleValueOverride = paymentRuleValueOverride ? parseInt(paymentRuleValueOverride) : null
-
-    if (pageType === "LANDING") {
-      body.landingPageSetting = campaignRef.current?.getValue() ?? {}
-    }
 
     const res = await fetch("/api/products", {
       method: "POST",
@@ -254,16 +226,7 @@ export default function NewProductPage() {
                   </Select>
                   {noCategory && <p className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Required</p>}
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pageType">Page type</Label>
-                  <Select value={pageType} onValueChange={(v) => v && setPageType(v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NORMAL">Normal</SelectItem>
-                      <SelectItem value="LANDING">Landing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
               </div>
             </div>
           </AdminSectionCard>
@@ -506,44 +469,6 @@ export default function NewProductPage() {
               </div>
             </div>
           </AdminSectionCard>
-
-          {pageType === "LANDING" && (
-            <AdminSectionCard title="Landing Campaign">
-              <div className="space-y-4">
-                <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs text-slate-500">
-                  <p className="font-semibold text-slate-700 mb-1">Recommended copy structure</p>
-                  <p><strong>Headline</strong> — Single bold offer line.</p>
-                  <p><strong>Subheadline</strong> — One-line value prop.</p>
-                  <p><strong>Copy</strong> — 3–5 lines: what, why, benefits, CTA.</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="landingHeadline">Landing headline</Label>
-                  <Input id="landingHeadline" value={landingHeadline} onChange={(e) => setLandingHeadline(e.target.value)} placeholder="Limited Edition Drop" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="landingSubheadline">Landing subheadline</Label>
-                  <Input id="landingSubheadline" value={landingSubheadline} onChange={(e) => setLandingSubheadline(e.target.value)} placeholder="Premium cotton, crafted for the season" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="landingCopy">Landing copy</Label>
-                  <Textarea id="landingCopy" rows={4} value={landingCopy} onChange={(e) => setLandingCopy(e.target.value)} placeholder="What it is, why it matters, key benefits, and CTA." />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Landing hero image</Label>
-                  <ImageUploader
-                    images={landingHeroImage ? [landingHeroImage] : []}
-                    onChange={(imgs) => setLandingHeroImage(imgs[0] || "")}
-                    single
-                    label=""
-                    helperText="Recommended size: 1200x800px."
-                    folder="landing"
-                  />
-                </div>
-              </div>
-
-              <LandingCampaignSettings ref={campaignRef} showCheckoutOverrides />
-            </AdminSectionCard>
-          )}
 
           <AdminSectionCard title="Publishing">
             <div className="space-y-4">

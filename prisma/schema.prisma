@@ -130,12 +130,7 @@ model Product {
   reviews            ProductReview[]
   featured           Boolean          @default(false)
   status             String           @default("Draft")
-  pageType           String           @default("NORMAL")
   defaultCouponCode  String?
-  landingHeadline    String?
-  landingSubheadline String?
-  landingCopy        String?
-  landingHeroImage   String?
   paymentRuleOverride     String?
   paymentRuleValueOverride Int?
   material           String?
@@ -151,110 +146,6 @@ model Product {
 
   relatedProducts    ProductRelation[] @relation("ProductRelations")
   targetRelations    ProductRelation[] @relation("ProductTargets")
-  landingPageSetting LandingPageSetting?
-}
-
-model LandingPageSetting {
-  id                          String   @id @default(cuid())
-  productId                   String   @unique
-  product                     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  paymentOverrideEnabled      Boolean  @default(false)
-  paymentRuleOverride         String?
-  paymentRuleValueOverride    Int?
-  otpOverrideEnabled          Boolean  @default(false)
-  otpOverride                 Boolean?
-  couponOverrideEnabled       Boolean  @default(false)
-  autoCouponCode              String?
-  deliveryOverrideEnabled     Boolean  @default(false)
-  deliveryFeeOverride         Int?
-  quantityLimit               Int?
-  customCta                   String?
-  customThankYouMessage       String?
-  landingGalleryPrimaryImage  String?
-  landingGallerySecondaryImage String?
-  landingGalleryTertiaryImage String?
-  landingGalleryVideoUrl      String?
-  landingOfferText           String?
-  landingDisplayPrice        Int?
-  landingDisplayOldPrice     Int?
-  landingTestimonials        Json?
-  landingGalleryEnabled      Boolean  @default(true)
-  landingReviewsEnabled      Boolean  @default(true)
-  landingFaqEnabled          Boolean  @default(true)
-  landingHighlightsEnabled   Boolean  @default(true)
-  urgencyCounterEnabled       Boolean  @default(false)
-  hideNormalNavigation        Boolean  @default(false)
-  landingGalleryLayout        String?  @default("grid")
-  landingVariantSectionEnabled Boolean @default(true)
-  landingProductSummaryEnabled Boolean @default(true)
-  landingCheckoutTitle        String?
-  landingCheckoutSubtitle     String?
-  landingCheckoutCta          String?
-  landingSectionOrder         Json?
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
-
-  benefits      LandingBenefit[]
-  faqItems      LandingFaqItem[]
-  testimonials  LandingTestimonial[]
-  galleryImages LandingGalleryImage[]
-}
-
-model LandingBenefit {
-  id              String             @id @default(cuid())
-  landingPageSettingId String
-  landingPageSetting LandingPageSetting @relation(fields: [landingPageSettingId], references: [id], onDelete: Cascade)
-  icon            String?
-  title           String
-  description     String?
-  enabled         Boolean            @default(true)
-  sortOrder       Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  @@index([landingPageSettingId])
-}
-
-model LandingFaqItem {
-  id              String             @id @default(cuid())
-  landingPageSettingId String
-  landingPageSetting LandingPageSetting @relation(fields: [landingPageSettingId], references: [id], onDelete: Cascade)
-  question        String
-  answer          String
-  enabled         Boolean            @default(true)
-  sortOrder       Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  @@index([landingPageSettingId])
-}
-
-model LandingTestimonial {
-  id              String             @id @default(cuid())
-  landingPageSettingId String
-  landingPageSetting LandingPageSetting @relation(fields: [landingPageSettingId], references: [id], onDelete: Cascade)
-  name            String
-  rating          Int                @default(5)
-  text            String
-  image           String?
-  enabled         Boolean            @default(true)
-  sortOrder       Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  @@index([landingPageSettingId])
-}
-
-model LandingGalleryImage {
-  id              String             @id @default(cuid())
-  landingPageSettingId String
-  landingPageSetting LandingPageSetting @relation(fields: [landingPageSettingId], references: [id], onDelete: Cascade)
-  url             String
-  sortOrder       Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  @@index([landingPageSettingId])
 }
 
 model ProductSpecification {

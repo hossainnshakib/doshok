@@ -84,7 +84,6 @@ export async function getFeedProducts(): Promise<FeedProduct[]> {
 
       const labels: string[] = []
       if (p.featured) labels.push("Featured")
-      if (p.pageType === "LANDING") labels.push("Landing")
       if (hasSale) labels.push("Sale")
 
       return {

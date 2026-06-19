@@ -8,7 +8,7 @@ const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
 const REQUIRED_COLUMNS = ["name", "slug", "price", "categoryslug"]
 const VALID_STATUSES = new Set(["Draft", "Active"])
-const VALID_PAGE_TYPES = new Set(["NORMAL", "LANDING"])
+const VALID_PAGE_TYPES = new Set(["NORMAL"])
 
 type ImportMode = "preview" | "execute"
 
@@ -52,7 +52,6 @@ type ProductImportData = {
   price: number
   categoryId: string
   status?: string
-  pageType?: string
   oldPrice?: number | null
   featured?: boolean
   images?: string[]
@@ -230,7 +229,7 @@ async function validateCsv(csvText: string) {
     }
 
     if (data.pageType && !VALID_PAGE_TYPES.has(data.pageType)) {
-      rowErrors.push("pageType must be NORMAL or LANDING")
+      rowErrors.push("pageType must be NORMAL")
     }
 
     const oldPrice = parseInteger(data.oldPrice)
@@ -346,7 +345,6 @@ async function executeRows(rows: RowResult[], categoryBySlug: Map<string, string
       }
 
       if (row.data.status) productData.status = row.data.status
-      if (row.data.pageType) productData.pageType = row.data.pageType
       if (row.providedColumns.has("oldprice")) productData.oldPrice = oldPrice
       if (row.providedColumns.has("featured")) productData.featured = featured ?? false
       if (row.providedColumns.has("description")) productData.description = row.data.description || null
@@ -374,7 +372,6 @@ async function executeRows(rows: RowResult[], categoryBySlug: Map<string, string
             data: {
               ...productData,
               status: row.data.status || "Draft",
-              pageType: row.data.pageType || "NORMAL",
               images: Array.isArray(productData.images) ? productData.images : [],
             },
             select: { id: true },

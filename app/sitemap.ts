@@ -73,21 +73,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch {}
 
   try {
-    const landingProducts = await prisma.product.findMany({
-      where: { pageType: "LANDING", status: "Active" },
-      select: { slug: true, updatedAt: true },
-    })
-    for (const product of landingProducts) {
-      entries.push({
-        url: `${SITE_URL}/l/${product.slug}`,
-        lastModified: product.updatedAt,
-        changeFrequency: "weekly",
-        priority: 0.6,
-      })
-    }
-  } catch {}
-
-  try {
     const categories = await prisma.category.findMany({
       select: { slug: true, updatedAt: true },
     })

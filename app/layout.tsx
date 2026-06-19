@@ -53,7 +53,7 @@ export default function RootLayout({
       lang="en"
       className={`${manrope.variable} ${jakarta.variable} ${hindSiliguri.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <OrganizationSchema />
         <Providers>{children}</Providers>
         <Toaster richColors closeButton />

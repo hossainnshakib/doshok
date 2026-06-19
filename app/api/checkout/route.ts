@@ -89,13 +89,6 @@ export async function POST(request: NextRequest) {
         },
         paymentRuleOverride: true,
         paymentRuleValueOverride: true,
-        landingPageSetting: {
-          select: {
-            paymentOverrideEnabled: true,
-            paymentRuleOverride: true,
-            paymentRuleValueOverride: true,
-          },
-        },
       },
     })
     const productMap = new Map(products.map((p) => [p.id, p]))

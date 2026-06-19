@@ -196,8 +196,8 @@ export function InfoPage({ page }: { page: InfoPageData }) {
               )}
               {section.faqs && (
                 <div className="mt-6 space-y-3">
-                  {section.faqs.map((faq) => (
-                    <details key={faq.question} className="group rounded-2xl border border-black/5 bg-[#fbfaf7]">
+                  {section.faqs.map((faq, i) => (
+                    <details key={`faq-${i}`} className="group rounded-2xl border border-black/5 bg-[#fbfaf7]">
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 text-sm font-bold">
                         {faq.question}
                         <span className="text-lg transition group-open:rotate-45">+</span>

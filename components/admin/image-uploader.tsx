@@ -134,7 +134,7 @@ export function ImageUploader({
       {images.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">{images.length} image{images.length > 1 ? "s" : ""} {!single && "— drag to reorder"}</p>
-          <div className={`grid gap-3 ${single ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"}`}>
+          <div className={`grid gap-3 ${single ? "grid-cols-1 max-w-[200px]" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"}`}>
             {images.map((url, i) => (
               <div
                 key={i}

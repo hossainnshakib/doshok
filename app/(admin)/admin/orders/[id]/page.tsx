@@ -11,7 +11,6 @@ import { getPhoneDisplayE164 } from "@/lib/utils"
 import { getPaymentRuleLabel } from "@/lib/checkout/payment-rule.service"
 
 const PAYMENT_RULE_SOURCE_LABELS: Record<string, string> = {
-  landing: "Landing Page",
   product: "Product",
   global: "Global",
 }

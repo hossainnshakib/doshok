@@ -120,7 +120,6 @@ export default async function AdminProductsPage({
               <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Name</TableHead>
               <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Category</TableHead>
               <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Price</TableHead>
-              <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Type</TableHead>
               <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold text-center">Variants</TableHead>
               <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold text-center">Stock</TableHead>
               <TableHead className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Status</TableHead>
@@ -145,9 +144,6 @@ export default async function AdminProductsPage({
                   <TableCell className="text-xs font-medium text-slate-800 max-w-[180px] truncate">{product.name}</TableCell>
                   <TableCell className="text-xs text-slate-500">{product.category.name}</TableCell>
                   <TableCell className="text-xs font-semibold tabular-nums text-slate-800">৳{product.price.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <AdminStatusBadge status={product.pageType} />
-                  </TableCell>
                   <TableCell className="text-center text-xs tabular-nums text-slate-600">{product.variants.length}</TableCell>
                   <TableCell className="text-center">
                     <span className={`text-xs tabular-nums font-semibold ${hasLowStock ? "text-amber-500" : totalStock === 0 ? "text-slate-400" : "text-slate-700"}`}>

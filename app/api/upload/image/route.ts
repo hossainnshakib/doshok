@@ -10,7 +10,6 @@ const MAX_SIZE = 5 * 1024 * 1024
 const FOLDER_MAP: Record<string, string> = {
   products: "doshok/products",
   homepage: "doshok/homepage",
-  landing: "doshok/landing",
   categories: "doshok/categories",
   branding: "doshok/branding",
   pages: "doshok/pages",
@@ -21,7 +20,6 @@ const FOLDER_MAP: Record<string, string> = {
 
 const FOLDER_PERMISSIONS: Record<string, PermissionGroup> = {
   products: "products",
-  landing: "products",
   categories: "products",
   seo: "products",
   homepage: "cms",

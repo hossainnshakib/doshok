@@ -42,7 +42,7 @@ export function getPaymentRuleShortLabel(value: string | null | undefined): stri
   return PAYMENT_RULE_SHORT_LABELS[value as PaymentRuleType] ?? value
 }
 
-export type PaymentRuleSource = "landing" | "product" | "global"
+export type PaymentRuleSource = "product" | "global"
 
 export type PaymentRuleInput = {
   grandTotal: number
@@ -106,19 +106,10 @@ export function calculatePaymentAmounts(input: PaymentRuleInput): PaymentRuleOut
 }
 
 export function resolvePaymentRuleSource(params: {
-  landingOverride?: { enabled: boolean; rule: string | null; value: number | null } | null
   productOverride?: { rule: string | null; value: number | null } | null
   globalDefault: { rule: string; value: number | null }
 }): ResolvedPaymentRule {
-  const { landingOverride, productOverride, globalDefault } = params
-
-  if (landingOverride?.enabled && landingOverride.rule) {
-    return {
-      source: "landing",
-      rule: landingOverride.rule as PaymentRuleType,
-      value: landingOverride.value,
-    }
-  }
+  const { productOverride, globalDefault } = params
 
   if (productOverride?.rule) {
     return {
@@ -139,7 +130,6 @@ export function resolvePaymentRule(params: {
   grandTotal: number
   finalDeliveryFee: number
   discountedProductTotal: number
-  landingOverride?: { enabled: boolean; rule: string | null; value: number | null } | null
   productOverride?: { rule: string | null; value: number | null } | null
   globalDefault: { rule: string; value: number | null }
 }): PaymentRuleOutput & { source: PaymentRuleSource } {
