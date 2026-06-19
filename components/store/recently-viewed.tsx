@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/store/product-card"
 import { Eye } from "lucide-react"
 
 const RECENTLY_VIEWED_KEY = "doshok_recently_viewed"
-const MAX_ITEMS = 6
+const MAX_ITEMS = 8
 
 type ProductSummary = {
   id: string
@@ -51,14 +51,18 @@ export function RecentlyViewed() {
 
   return (
     <section className="mt-10 pb-10">
-      <div className="mb-5 flex items-center gap-2">
-        <Eye className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-xl font-black">Recently Viewed</h2>
+      <div className="mb-4 flex items-center gap-2">
+        <Eye className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-base font-black">Recently Viewed</h2>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-5 lg:grid-cols-6">
-        {items.map((item) => (
-          <ProductCard key={item.id} product={item} />
-        ))}
+      <div className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-none">
+        <div className="flex gap-3" style={{ minWidth: "max-content" }}>
+          {items.slice(0, 6).map((item) => (
+            <div key={item.id} className="w-36 shrink-0 sm:w-40">
+              <ProductCard product={item} compact />
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )

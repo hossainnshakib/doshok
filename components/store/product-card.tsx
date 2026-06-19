@@ -16,9 +16,10 @@ type ProductCardProps = {
     averageRating?: number | null
     reviewCount?: number | null
   }
+  compact?: boolean
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, compact }: ProductCardProps) {
   const totalStock = product.variants.reduce((sum, v) => sum + Math.max(0, v.stock - v.reservedStock), 0)
   const image = product.images[0]
   const isSoldOut = totalStock === 0
@@ -27,6 +28,49 @@ export function ProductCard({ product }: ProductCardProps) {
   const discountPercent = hasDiscount && product.oldPrice
     ? Math.round((1 - product.price / product.oldPrice) * 100)
     : 0
+
+  if (compact) {
+    return (
+      <Link
+        href={`/products/${product.slug}`}
+        className={`group block overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-border hover:shadow-md ${isSoldOut ? "opacity-70" : ""}`}
+      >
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          {image ? (
+            <img
+              src={image}
+              alt={product.name}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              <PackageCheck className="h-6 w-6 text-muted-foreground/50" />
+            </div>
+          )}
+          {isSoldOut && (
+            <Badge variant="destructive" className="absolute left-2 top-2 rounded-full text-[9px] px-2 py-0 font-medium uppercase shadow-sm">
+              Sold Out
+            </Badge>
+          )}
+          {!isSoldOut && hasDiscount && (
+            <Badge variant="secondary" className="absolute left-2 top-2 rounded-full bg-red-50 text-red-600 border-red-200 text-[9px] px-2 py-0 font-medium shadow-sm">
+              -{discountPercent}%
+            </Badge>
+          )}
+        </div>
+        <div className="p-2.5">
+          <h3 className="line-clamp-1 text-xs font-semibold leading-snug">{product.name}</h3>
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="text-sm font-black">৳{product.price.toLocaleString()}</span>
+            {hasDiscount && product.oldPrice && (
+              <span className="text-[10px] font-medium text-red-400 line-through">৳{product.oldPrice.toLocaleString()}</span>
+            )}
+          </div>
+        </div>
+      </Link>
+    )
+  }
 
   return (
     <Link

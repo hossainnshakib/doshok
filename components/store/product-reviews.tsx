@@ -50,74 +50,71 @@ export function ProductReviews({ productId, initialSummary }: ProductReviewsProp
   }
 
   if (loading && reviews.length === 0) {
-    return <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-24 rounded-xl bg-muted/50 animate-pulse" />)}</div>
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 rounded-xl bg-muted/50 animate-pulse" />
+        ))}
+      </div>
+    )
   }
 
   if (reviews.length === 0) {
     return (
-      <div className="text-center py-10">
-        <Star className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-        <p className="font-semibold text-muted-foreground">No reviews yet</p>
-        <p className="text-sm text-muted-foreground mt-1">Be the first to review this product.</p>
+      <div className="py-8 text-center">
+        <Star className="mx-auto mb-2 h-6 w-6 text-muted-foreground/30" />
+        <p className="text-sm font-medium text-muted-foreground">No reviews yet</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {summary.averageRating && (
-        <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
-          <div className="text-center">
-            <p className="text-4xl font-black">{Number(summary.averageRating).toFixed(1)}</p>
-            <div className="flex gap-0.5 mt-1 justify-center">
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-lg font-black">{Number(summary.averageRating).toFixed(1)}</span>
+          <div className="flex gap-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={cn(
+                  "h-3.5 w-3.5",
+                  star <= Math.round(summary.averageRating!)
+                    ? "fill-amber-400 text-amber-400"
+                    : "text-muted"
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-muted-foreground">({summary.reviewCount} review{summary.reviewCount !== 1 ? "s" : ""})</span>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {reviews.map((review) => (
+          <div key={review.id} className="rounded-xl border border-border/50 p-3">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold">{review.user.name}</span>
+              {review.isVerifiedBuyer && (
+                <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                  Verified
+                </span>
+              )}
+              <span className="text-muted-foreground ml-auto">{new Date(review.createdAt).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-1 mt-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <Star
                   key={star}
                   className={cn(
-                    "h-3.5 w-3.5",
-                    star <= Math.round(summary.averageRating!)
-                      ? "fill-amber-400 text-amber-400"
-                      : "text-muted"
+                    "h-3 w-3",
+                    star <= review.rating ? "fill-amber-400 text-amber-400" : "text-muted"
                   )}
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{summary.reviewCount} review{summary.reviewCount !== 1 ? "s" : ""}</p>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {reviews.map((review) => (
-          <div key={review.id} className="border-b border-border/50 pb-4 last:border-0">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm">{review.user.name}</span>
-                  {review.isVerifiedBuyer && (
-                    <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                      Verified Buyer
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={cn(
-                        "h-3 w-3",
-                        star <= review.rating ? "fill-amber-400 text-amber-400" : "text-muted"
-                      )}
-                    />
-                  ))}
-                  <span className="text-xs text-muted-foreground ml-1">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-            {review.title && <p className="font-semibold text-sm mt-2">{review.title}</p>}
-            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{review.content}</p>
+            {review.title && <p className="mt-1 text-xs font-semibold">{review.title}</p>}
+            <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{review.content}</p>
           </div>
         ))}
       </div>
@@ -126,7 +123,7 @@ export function ProductReviews({ productId, initialSummary }: ProductReviewsProp
         <div className="text-center">
           <button
             onClick={() => fetchReviews(page + 1)}
-            className="text-sm font-semibold text-primary hover:underline"
+            className="text-xs font-semibold text-primary hover:underline"
           >
             {loading ? "Loading..." : "Load More Reviews"}
           </button>
