@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { PackageCheck, Star } from "lucide-react"
+import { ImageIcon, Star } from "lucide-react"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 
 type ProductCardProps = {
@@ -33,9 +33,9 @@ export function ProductCard({ product, compact }: ProductCardProps) {
     return (
       <Link
         href={`/products/${product.slug}`}
-        className={`group block overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-border hover:shadow-md ${isSoldOut ? "opacity-70" : ""}`}
+        className="group block overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-all hover:-translate-y-1 hover:border-border hover:shadow-md"
       >
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-b from-muted to-muted/60">
           {image ? (
             <img
               src={image}
@@ -44,8 +44,9 @@ export function ProductCard({ product, compact }: ProductCardProps) {
               loading="lazy"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              <PackageCheck className="h-6 w-6 text-muted-foreground/50" />
+            <div className="flex h-full flex-col items-center justify-center gap-1 bg-gradient-to-b from-muted to-muted/60">
+              <ImageIcon className="h-5 w-5 text-muted-foreground/30" />
+              <span className="text-[9px] font-medium text-muted-foreground/40">No image</span>
             </div>
           )}
           {isSoldOut && (
@@ -75,37 +76,38 @@ export function ProductCard({ product, compact }: ProductCardProps) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className={`group block overflow-hidden rounded-[1.35rem] border border-border/70 bg-card shadow-sm shadow-black/[0.02] transition-all duration-500 hover:-translate-y-1.5 hover:border-border hover:shadow-lg hover:shadow-black/10 ${isSoldOut ? "opacity-70" : ""}`}
+      className="group block overflow-hidden rounded-[1.35rem] border border-border/70 bg-card shadow-sm shadow-black/[0.02] transition-all duration-500 hover:-translate-y-1.5 hover:border-border hover:shadow-lg hover:shadow-black/10"
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-muted to-muted/40">
         {image ? (
           <img
             src={image}
             alt={product.name}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 ease-out"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-            <PackageCheck className="h-8 w-8 text-muted-foreground/50" />
+          <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-b from-muted to-muted/60">
+            <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+            <span className="text-[10px] font-medium text-muted-foreground/50">No image</span>
           </div>
         )}
         {isSoldOut && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute left-3 top-3 z-10">
             <Badge variant="destructive" className="rounded-full text-[10px] px-2.5 py-0.5 font-medium tracking-wide uppercase shadow-sm">
               Sold Out
             </Badge>
           </div>
         )}
         {!isSoldOut && hasDiscount && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute left-3 top-3 z-10">
             <Badge variant="secondary" className="rounded-full bg-red-50 text-red-600 border-red-200 text-[10px] px-2.5 py-0.5 font-medium shadow-sm">
               -{discountPercent}%
             </Badge>
           </div>
         )}
         {isLowStock && !isSoldOut && !hasDiscount && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute left-3 top-3 z-10">
             <Badge variant="secondary" className="rounded-full bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-2.5 py-0.5 font-medium shadow-sm">
               Low Stock
             </Badge>
