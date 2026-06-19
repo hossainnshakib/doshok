@@ -338,8 +338,13 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
   const landingOfferText = product.landingPageSetting?.landingOfferText || ""
   const landingReviewsEnabled = product.landingPageSetting?.landingReviewsEnabled ?? true
   const landingFaqEnabled = product.landingPageSetting?.landingFaqEnabled ?? true
+  const landingHighlightsEnabled = product.landingPageSetting?.landingHighlightsEnabled ?? true
   const landingVariantEnabled = product.landingPageSetting?.landingVariantSectionEnabled ?? true
+  const landingGalleryLayout = product.landingPageSetting?.landingGalleryLayout || "grid"
   const landingProductSummaryEnabled = product.landingPageSetting?.landingProductSummaryEnabled ?? true
+  const landingCheckoutTitle = product.landingPageSetting?.landingCheckoutTitle || ""
+  const landingCheckoutSubtitle = product.landingPageSetting?.landingCheckoutSubtitle || ""
+  const landingCheckoutCtaLabel = product.landingPageSetting?.landingCheckoutCta || ctaLabel
   const landingFaqs = useMemo(() => {
     const items = product.landingPageSetting?.faqItems ?? []
     return items
@@ -1331,24 +1336,24 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
             case "hero":
               return (
                 <div key={section.key}>
-                  <div className="relative overflow-hidden rounded-lg border border-zinc-200 bg-white">
-                    {heroImage && <img src={heroImage} alt="" className="absolute inset-y-0 right-0 h-full w-3/5 object-cover opacity-55" />}
+                  <div className="relative overflow-hidden rounded-lg border border-zinc-200 bg-white max-h-[420px] lg:max-h-[500px]">
+                    {heroImage && <img src={heroImage} alt="" className="absolute inset-y-0 right-0 h-full w-3/5 max-h-full object-cover opacity-55" />}
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_32%,rgba(249,115,22,0.14),transparent_30%),linear-gradient(90deg,#f8f6f1_0%,rgba(248,246,241,0.96)_46%,rgba(248,246,241,0.68)_100%)]" />
-                    <div className="relative min-h-[360px] px-4 py-5 sm:min-h-[520px] sm:px-8 sm:py-8">
-                      {subtitle && <p className="mt-24 text-[10px] uppercase tracking-[0.22em] text-zinc-500 sm:mt-36">{subtitle}</p>}
-                      <h1 className="mt-2 max-w-[320px] text-3xl font-semibold leading-[0.98] tracking-tight text-zinc-950 sm:text-5xl">
+                    <div className="relative min-h-[280px] px-4 py-5 sm:min-h-[360px] sm:px-8 sm:py-8">
+                      {subtitle && <p className="mt-16 text-[10px] uppercase tracking-[0.22em] text-zinc-500 sm:mt-24">{subtitle}</p>}
+                      <h1 className="mt-3 max-w-[400px] text-3xl font-semibold leading-[1.05] tracking-tight text-zinc-950 sm:text-5xl sm:leading-[1.02]">
                         {product.landingHeadline || product.name}
                       </h1>
-                      <p className="mt-3 max-w-sm text-xs leading-5 text-zinc-400 sm:text-sm">
+                      <p className="mt-4 max-w-md text-xs leading-6 text-zinc-500 sm:text-sm sm:leading-7">
                         {product.landingSubheadline || product.shortDescription || product.description}
                       </p>
-                      <div className="mt-6 flex items-end gap-3">
-                        <span className="text-3xl font-semibold">{formatTk(landingDisplayPrice)}</span>
-                        {comparePrice > 0 && <span className="pb-1 text-sm text-zinc-500 line-through">{formatTk(comparePrice)}</span>}
-                        {savings > 0 && <span className="mb-1 rounded-full bg-orange-500 px-2 py-1 text-[10px] text-white">Save {formatTk(savings)}</span>}
+                      <div className="mt-8 flex items-end gap-4">
+                        <span className="text-4xl font-bold tracking-tight text-zinc-950 sm:text-5xl">{formatTk(landingDisplayPrice)}</span>
+                        {comparePrice > 0 && <span className="pb-1 text-base text-zinc-400 line-through sm:text-lg">{formatTk(comparePrice)}</span>}
+                        {savings > 0 && <span className="mb-0.5 rounded-full bg-orange-500 px-3 py-1 text-[11px] font-semibold text-white">Save {formatTk(savings)}</span>}
                       </div>
-                      {landingOfferText && <p className="mt-2 text-xs font-medium text-orange-700">{landingOfferText}</p>}
-                      <div className="mt-6 flex flex-wrap items-center gap-3">
+                      {landingOfferText && <p className="mt-3 text-xs font-medium text-orange-700">{landingOfferText}</p>}
+                      <div className="mt-8 flex flex-wrap items-center gap-3">
                         {ctaLabel && (
                           <button type="button" onClick={scrollToCheckout} className="rounded-full bg-orange-500 px-5 py-2 text-xs font-semibold text-white hover:bg-orange-400">{ctaLabel}</button>
                         )}
@@ -1361,7 +1366,7 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
                     </div>
                   </div>
 
-                  {benefits.length > 0 && (
+                  {benefits.length > 0 && landingHighlightsEnabled && (
                     <div className="grid grid-cols-4 border-b border-zinc-200 text-center">
                       {benefits.slice(0, 4).map((benefit) => (
                         <div key={benefit.title} className="border-r border-zinc-200 px-2 py-5 last:border-r-0">
@@ -1377,20 +1382,23 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
 
             case "benefits":
               if (benefits.length === 0) return null
+              if (!landingHighlightsEnabled) return null
               return (
-                <section key={section.key} className="py-8">
+                <section key={section.key} className="py-10">
                   {subtitle && <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400">{subtitle}</p>}
                   {title && <h2 className="mt-1 text-2xl font-semibold">{title}</h2>}
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {benefits.map((item, index) => (
-                      <div key={`${item.title}-${index}`} className="rounded-md border border-zinc-200 bg-white p-4">
+                      <div key={`${item.title}-${index}`} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:shadow-md">
                         {item.icon ? (
-                          <span className="block text-lg">{item.icon}</span>
+                          <span className="block text-xl">{item.icon}</span>
                         ) : (
-                          <Package className="h-4 w-4 text-zinc-500" />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-orange-50">
+                            <Package className="h-4 w-4 text-orange-600" />
+                          </div>
                         )}
-                        <p className="mt-3 text-sm font-medium text-zinc-800">{item.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-zinc-500">{item.description || ""}</p>
+                        <p className="mt-4 text-sm font-semibold text-zinc-900">{item.title}</p>
+                        <p className="mt-2 text-xs leading-6 text-zinc-500">{item.description || ""}</p>
                       </div>
                     ))}
                   </div>
@@ -1399,53 +1407,134 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
 
             case "gallery":
               if (!landingGalleryEnabled) return null
-              const allGalleryImages = galleryImages.filter((img) => img !== selectedImage)
               return (
                 <section key={section.key} className="py-8">
                   {subtitle && <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400">{subtitle}</p>}
                   {title && <h2 className="mt-1 text-2xl font-semibold leading-tight text-zinc-950 sm:text-3xl">{title}</h2>}
                   <div className="mt-5">
-                    {/* Main large image */}
-                    <div className="aspect-[16/9] overflow-hidden rounded-lg border border-zinc-200 bg-white sm:aspect-[2/1]">
-                      {selectedImage ? (
-                        <img src={selectedImage} alt={product.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-zinc-400">Image unavailable</div>
-                      )}
-                    </div>
-                    {/* Thumbnail strip */}
-                    {(galleryImages.length > 1 || Boolean(galleryVideoUrl)) && (
-                      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                        {galleryImages.map((image, index) => (
-                          <button
-                            key={image}
-                            type="button"
-                            onClick={() => setSelectedImage(image)}
-                            className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-md border ${
-                              selectedImage === image ? "border-orange-500 ring-2 ring-orange-500/20" : "border-zinc-200"
-                            }`}
-                          >
-                            <img src={image} alt="" className="h-full w-full object-cover" />
-                          </button>
+                    {landingGalleryLayout === "grid" && (
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {galleryImages.map((image) => (
+                          <div key={image} className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                            <div className="aspect-[4/3]">
+                              <img src={image} alt="" className="h-full w-full object-cover" />
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/10">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedImage(image)}
+                                className="rounded-md bg-white/90 px-3 py-1.5 text-xs font-medium text-zinc-700 opacity-0 shadow-sm transition hover:bg-white group-hover:opacity-100"
+                              >
+                                View
+                              </button>
+                            </div>
+                          </div>
                         ))}
                         {galleryVideoUrl && (
-                          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100">
-                            {galleryVideoEmbedUrl ? (
-                              <iframe
-                                src={galleryVideoEmbedUrl}
-                                title={`${product.name} video`}
-                                className="h-full w-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                              />
-                            ) : (
-                              <video
-                                src={galleryVideoUrl}
-                                className="h-full w-full object-cover"
-                                controls
-                                playsInline
-                                preload="metadata"
-                              />
+                          <div className="relative overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                            <div className="aspect-[4/3]">
+                              {galleryVideoEmbedUrl ? (
+                                <iframe
+                                  src={galleryVideoEmbedUrl}
+                                  title={`${product.name} video`}
+                                  className="h-full w-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  allowFullScreen
+                                />
+                              ) : (
+                                <video
+                                  src={galleryVideoUrl}
+                                  className="h-full w-full object-cover"
+                                  controls
+                                  playsInline
+                                  preload="metadata"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {landingGalleryLayout === "stacked" && (
+                      <div className="space-y-4">
+                        {galleryImages.map((image) => (
+                          <div key={image} className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+                            <div className="max-h-[400px]">
+                              <img src={image} alt="" className="w-full max-h-[400px] object-contain" />
+                            </div>
+                            <div className="border-t border-zinc-100 px-4 py-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedImage(image)}
+                                className="text-xs text-zinc-500 hover:text-zinc-800"
+                              >
+                                View full size
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {galleryVideoUrl && (
+                          <div className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                            <div className="aspect-video max-h-[400px]">
+                              {galleryVideoEmbedUrl ? (
+                                <iframe
+                                  src={galleryVideoEmbedUrl}
+                                  title={`${product.name} video`}
+                                  className="h-full w-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  allowFullScreen
+                                />
+                              ) : (
+                                <video
+                                  src={galleryVideoUrl}
+                                  className="h-full w-full object-cover"
+                                  controls
+                                  playsInline
+                                  preload="metadata"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {landingGalleryLayout === "carousel" && (
+                      <div>
+                        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white max-h-[460px]">
+                          {selectedImage ? (
+                            <img src={selectedImage} alt={product.name} className="h-full max-h-[460px] w-full object-contain sm:object-cover" />
+                          ) : (
+                            <div className="flex h-full min-h-[200px] items-center justify-center text-zinc-400">Image unavailable</div>
+                          )}
+                        </div>
+                        {(galleryImages.length > 1 || Boolean(galleryVideoUrl)) && (
+                          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                            {galleryImages.map((image) => (
+                              <button
+                                key={image}
+                                type="button"
+                                onClick={() => setSelectedImage(image)}
+                                className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-md border ${
+                                  selectedImage === image ? "border-orange-500 ring-2 ring-orange-500/20" : "border-zinc-200"
+                                }`}
+                              >
+                                <img src={image} alt="" className="h-full w-full object-cover" />
+                              </button>
+                            ))}
+                            {galleryVideoUrl && (
+                              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100">
+                                {galleryVideoEmbedUrl ? (
+                                  <div className="absolute inset-0 flex items-center justify-center text-[18px]">▶</div>
+                                ) : (
+                                  <video
+                                    src={galleryVideoUrl}
+                                    className="h-full w-full object-cover"
+                                    controls
+                                    playsInline
+                                    preload="metadata"
+                                  />
+                                )}
+                              </div>
                             )}
                           </div>
                         )}
@@ -1496,20 +1585,20 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
             case "testimonials":
               if (!landingReviewsEnabled || landingTestimonials.length === 0) return null
               return (
-                <section key={section.key} className="border-y border-zinc-200 py-8">
+                <section key={section.key} className="border-y border-zinc-200 py-10">
                   {subtitle && <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400">{subtitle}</p>}
                   {title && <h2 className="mt-1 text-2xl font-semibold">{title}</h2>}
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {landingTestimonials.map((testimonial) => (
-                      <article key={`${testimonial.name}-${testimonial.sortOrder}`} className="rounded-md border border-zinc-200 bg-white p-4">
-                        <div className="flex items-center gap-2">
-                          {testimonial.image && <img src={testimonial.image} alt="" className="h-8 w-8 rounded-full object-cover" />}
+                      <article key={`${testimonial.name}-${testimonial.sortOrder}`} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          {testimonial.image && <img src={testimonial.image} alt="" className="h-10 w-10 rounded-full object-cover" />}
                           <div>
                             <p className="text-sm font-semibold text-zinc-900">{testimonial.name}</p>
                             <div className="mt-0.5 flex text-orange-400">{Array.from({ length: testimonial.rating }).map((_, item) => <Star key={item} className="h-3 w-3 fill-current" />)}</div>
                           </div>
                         </div>
-                        <p className="mt-3 text-xs leading-5 text-zinc-600">{testimonial.text}</p>
+                        <p className="mt-4 text-xs leading-6 text-zinc-600">{testimonial.text}</p>
                       </article>
                     ))}
                   </div>
@@ -1517,34 +1606,42 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
               )
 
             case "checkout":
+              const checkoutTitle = landingCheckoutTitle || title
+              const checkoutSubtitle = landingCheckoutSubtitle || subtitle
               return (
-                <section key={section.key} id="landing-checkout" className="py-8">
-                  {subtitle && <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400">{subtitle}</p>}
-                  {title && <h2 className="mt-1 text-2xl font-semibold">{title}</h2>}
-                  <div className="mt-4 rounded-md border border-zinc-200 bg-white p-4">
-                    <div className="mb-4 grid grid-cols-4 gap-1">
+                <section key={section.key} id="landing-checkout" className="py-10">
+                  {checkoutSubtitle && <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400">{checkoutSubtitle}</p>}
+                  {checkoutTitle && <h2 className="mt-1 text-2xl font-semibold">{checkoutTitle}</h2>}
+                  <div className="mt-5 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+                    <div className="mb-5 grid grid-cols-4 gap-1.5">
                       {STEPS.map((item) => (
-                        <button key={item.index} type="button" onClick={() => goToStep(item.index)} className={`rounded-md border px-2 py-2 text-[10px] ${step === item.index ? "border-orange-500 bg-orange-100 text-orange-700" : item.index < step ? "border-zinc-300 text-zinc-700" : "border-zinc-200 text-zinc-400"}`}>{item.label}</button>
+                        <button key={item.index} type="button" onClick={() => goToStep(item.index)} className={`rounded-md border px-2 py-2.5 text-[10px] font-medium transition ${
+                          step === item.index
+                            ? "border-orange-500 bg-orange-100 text-orange-700"
+                            : item.index < step
+                              ? "border-zinc-300 bg-zinc-50 text-zinc-700"
+                              : "border-zinc-200 text-zinc-400 hover:border-zinc-300"
+                        }`}>{item.label}</button>
                       ))}
                     </div>
                     {validationErrors.length > 0 && (
-                      <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                      <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-700">
                         {validationErrors.map((error) => <p key={error}>{error}</p>)}
                       </div>
                     )}
                     {renderCheckoutStep()}
-                    <div className="mt-5 rounded-md border border-zinc-200 bg-[#f8f6f1] p-3 text-xs">
-                      <div className="flex justify-between text-zinc-500"><span>Subtotal</span><span>{formatTk(subtotal)}</span></div>
-                      {couponApplied && <div className="mt-2 flex justify-between text-emerald-700"><span>Discount</span><span>-{formatTk(couponDiscount)}</span></div>}
-                      <div className="mt-2 flex justify-between text-zinc-500"><span>Delivery</span><span>{formatTk(deliveryFee)}</span></div>
-                      <Separator className="my-3 bg-zinc-200" />
+                    <div className="mt-6 rounded-lg border border-zinc-200 bg-[#f8f6f1] p-4 text-xs sm:p-5">
+                      <div className="flex justify-between text-zinc-500"><span>Subtotal</span><span className="font-medium text-zinc-700">{formatTk(subtotal)}</span></div>
+                      {couponApplied && <div className="mt-2.5 flex justify-between text-emerald-700"><span>Discount</span><span>-{formatTk(couponDiscount)}</span></div>}
+                      <div className="mt-2.5 flex justify-between text-zinc-500"><span>Delivery</span><span className="font-medium text-zinc-700">{formatTk(deliveryFee)}</span></div>
+                      <Separator className="my-4 bg-zinc-200" />
                       <div className="flex justify-between text-base font-semibold text-zinc-950"><span>Total</span><span>{formatTk(displayTotal)}</span></div>
-                      {isV2 && <p className="mt-1 text-[11px] text-zinc-500">Due on delivery: {formatTk(computedPayment.dueAmount)}</p>}
+                      {isV2 && <p className="mt-2 text-[11px] text-zinc-500">Due on delivery: {formatTk(computedPayment.dueAmount)}</p>}
                     </div>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <button type="button" onClick={handleBack} disabled={step === 0 || loading} className="inline-flex h-10 items-center gap-1 rounded-md px-3 text-xs text-zinc-400 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" />Back</button>
-                      <button type="button" onClick={handleNext} disabled={loading} className="h-10 rounded-md border border-orange-500 bg-orange-50 px-4 text-xs font-semibold text-orange-700 hover:bg-orange-500/20 disabled:opacity-50">
-                        {step === 3 ? (loading ? "Confirming..." : `Confirm order · ${formatTk(displayTotal)}`) : "Next"}
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <button type="button" onClick={handleBack} disabled={step === 0 || loading} className="inline-flex h-10 items-center gap-1 rounded-md px-4 text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" />Back</button>
+                      <button type="button" onClick={handleNext} disabled={loading} className="h-10 rounded-lg border border-orange-500 bg-orange-500 px-5 text-xs font-semibold text-white shadow-sm hover:bg-orange-400 disabled:opacity-50">
+                        {step === 3 ? (loading ? "Confirming..." : `${landingCheckoutCtaLabel || "Confirm order"} · ${formatTk(displayTotal)}`) : "Next"}
                       </button>
                     </div>
                   </div>
@@ -1554,15 +1651,15 @@ export function LandingPageClient({ product }: LandingPageClientProps) {
             case "faq":
               if (!landingFaqEnabled || landingFaqs.length === 0) return null
               return (
-                <section key={section.key} className="border-t border-zinc-200 py-8">
+                <section key={section.key} className="border-t border-zinc-200 py-10">
                   {subtitle && <p className="text-[10px] uppercase tracking-[0.24em] text-zinc-400">{subtitle}</p>}
                   {title && <h2 className="mt-1 text-2xl font-semibold">{title}</h2>}
-                  <div className="mt-4 divide-y divide-zinc-200">
+                  <div className="mt-5 divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
                     {landingFaqs.map((faq) => (
-                      <details key={faq.question} className="group py-4">
-                        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-zinc-800">
+                      <details key={faq.question} className="group px-5 py-4 first:rounded-t-lg last:rounded-b-lg">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-zinc-800 hover:text-zinc-950">
                           {faq.question}
-                          <Plus className="h-4 w-4 shrink-0 text-zinc-400 group-open:rotate-45" />
+                          <Plus className="h-4 w-4 shrink-0 text-zinc-400 transition group-open:rotate-45" />
                         </summary>
                         <p className="mt-3 text-xs leading-6 text-zinc-500">{faq.answer}</p>
                       </details>

@@ -586,32 +586,35 @@ export const LandingCampaignSettings = forwardRef<LandingCampaignSettingsHandle,
               <p className="text-xs text-slate-500">No additional gallery images.</p>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {galleryImageList.map((g, i) => (
                 <div key={g.id || i} className="space-y-1.5">
-                  <div className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                    {g.url ? (
-                      <img src={g.url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-[10px] text-slate-400">Empty</div>
-                    )}
-                    <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                  <div className="flex items-start gap-3">
+                    <div className="relative h-[120px] w-[120px] shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                      {g.url ? (
+                        <img src={g.url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[10px] text-slate-400">No image</div>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <LandingHeroImage image={g.url} onChange={(url) => {
+                        const next = [...galleryImageList]
+                        next[i] = { ...next[i], url }
+                        setGalleryImageList(next)
+                      }} />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 rounded-full bg-white/80 p-0 text-red-500 hover:bg-white hover:text-red-600"
+                        className="h-6 rounded-md text-[10px] px-2 text-red-400 hover:text-red-600"
                         onClick={() => setGalleryImageList(galleryImageList.filter((_, idx) => idx !== i))}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Remove
                       </Button>
                     </div>
                   </div>
-                  <LandingHeroImage image={g.url} onChange={(url) => {
-                    const next = [...galleryImageList]
-                    next[i] = { ...next[i], url }
-                    setGalleryImageList(next)
-                  }} />
                 </div>
               ))}
             </div>
