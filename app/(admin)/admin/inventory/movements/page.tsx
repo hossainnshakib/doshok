@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { AdminPageHeader, AdminTableShell, AdminStatusBadge } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminTableShell, AdminStatusBadge, AdminEmptyState } from "@/components/admin/admin-ui"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ClipboardList } from "lucide-react"
+
 
 const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   manual_adjustment: "Manual Adjustment",
@@ -103,15 +103,10 @@ export default function InventoryMovementsPage() {
       {loading ? (
         <div className="flex items-center justify-center py-16 text-sm text-slate-400">Loading...</div>
       ) : movements.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-            <ClipboardList className="h-6 w-6 text-slate-400" />
-          </div>
-          <h2 className="text-lg font-bold text-slate-800">No stock movements yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Stock movements will appear here when orders are placed, cancelled, or delivered.
-          </p>
-        </div>
+        <AdminEmptyState
+          title="No stock movements yet"
+          description="Stock movements will appear here when orders are placed, cancelled, or delivered."
+        />
       ) : (
         <AdminTableShell>
           <Table>
@@ -171,7 +166,7 @@ export default function InventoryMovementsPage() {
                     {m.orderId ? (
                       <Link
                         href={`/admin/orders/${m.orderId}`}
-                        className="font-mono text-[11px] text-indigo-600 hover:text-indigo-800"
+                        className="font-mono text-[11px] text-slate-600 hover:text-slate-900"
                       >
                         View
                       </Link>

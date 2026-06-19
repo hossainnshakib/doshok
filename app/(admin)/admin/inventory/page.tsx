@@ -1,10 +1,9 @@
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { getAllStockOverview, getInventoryStats } from "@/lib/services/inventory.service"
-import { AdminPageHeader, AdminStatCard, AdminTableShell, AdminStatusBadge } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminStatCard, AdminTableShell, AdminStatusBadge, AdminEmptyState } from "@/components/admin/admin-ui"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Package, AlertTriangle, TrendingDown, PackageSearch } from "lucide-react"
-import { ImageIcon, Pencil } from "lucide-react"
+import { Package, AlertTriangle, TrendingDown, PackageSearch, ImageIcon, Pencil } from "lucide-react"
 
 export default async function InventoryStockOverviewPage() {
   const [stockData, stats] = await Promise.all([
@@ -28,15 +27,10 @@ export default async function InventoryStockOverviewPage() {
       </div>
 
       {stockData.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-            <PackageSearch className="h-6 w-6 text-slate-400" />
-          </div>
-          <h2 className="text-lg font-bold text-slate-800">No products yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Create products with variants to see stock overview here.
-          </p>
-        </div>
+        <AdminEmptyState
+          title="No products yet"
+          description="Create products with variants to see stock overview here."
+        />
       ) : (
         <AdminTableShell>
           <Table>

@@ -95,10 +95,10 @@ export default function AdminCouponsPage() {
                 </TableCell>
                 <TableCell className="text-xs text-slate-500">{c.type}</TableCell>
                 <TableCell className="text-xs">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                     c.scope === "delivery"
-                      ? "bg-amber-50 text-amber-700"
-                      : "bg-blue-50 text-blue-700"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-blue-100 text-blue-700"
                   }`}>
                     {c.scope === "delivery" ? "Delivery" : "Product"}
                   </span>

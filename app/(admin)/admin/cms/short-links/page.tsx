@@ -118,7 +118,7 @@ export default function AdminShortLinksPage() {
         <div />
         <Button
           size="sm"
-          className="h-8 rounded-md text-xs font-semibold bg-emerald-500 hover:bg-emerald-600"
+          className="h-8 rounded-md text-xs font-semibold bg-slate-900 hover:bg-slate-800"
           onClick={() => { setEditing(null); setModal("create") }}
         >
           <Plus className="h-3.5 w-3.5 mr-1" /> New Short Link
@@ -152,8 +152,8 @@ export default function AdminShortLinksPage() {
                   <td className="px-4 py-3 text-xs text-slate-500 max-w-[180px] truncate" title={link.destinationUrl}>{link.destinationUrl}</td>
                   <td className="px-4 py-3">
                     <span className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                      link.type === "internal" ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+                      "inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold",
+                      link.type === "internal" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
                     )}>
                       {link.type}
                     </span>
@@ -317,7 +317,7 @@ function ShortLinkModal({
           </div>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-600" disabled={saving}>
+            <Button type="submit" className="flex-1 rounded-lg bg-slate-900 hover:bg-slate-800" disabled={saving}>
               {saving ? "Saving..." : link ? "Update" : "Create"}
             </Button>
           </div>

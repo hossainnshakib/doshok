@@ -5,11 +5,10 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { AdminBackLink, AdminPageHeader } from "@/components/admin/admin-ui"
+import { AdminBackLink, AdminPageHeader, AdminFormSection } from "@/components/admin/admin-ui"
 
 type Coupon = {
   id: string
@@ -95,8 +94,7 @@ export default function EditCouponPage() {
       <AdminBackLink href="/admin/coupons" label="Back to Coupons" />
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Card className="rounded-xl border-slate-200/60 shadow-sm">
-          <CardContent className="pt-5 space-y-4">
+        <AdminFormSection>
             <div className="space-y-1.5">
               <Label htmlFor="code">Coupon code</Label>
               <Input id="code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. SAVE20" className="font-mono uppercase" required />
@@ -150,8 +148,7 @@ export default function EditCouponPage() {
               <Switch id="active" checked={active} onCheckedChange={setActive} />
               <Label htmlFor="active" className="text-xs font-medium text-slate-700">Active</Label>
             </div>
-          </CardContent>
-        </Card>
+        </AdminFormSection>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading} className="h-9 rounded-lg px-5 text-xs font-semibold">

@@ -1,8 +1,8 @@
 import Link from "next/link"
 import { getLowStockItems } from "@/lib/services/inventory.service"
-import { AdminPageHeader, AdminTableShell } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminTableShell, AdminEmptyState, AdminStatusBadge } from "@/components/admin/admin-ui"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertTriangle, ImageIcon, Pencil } from "lucide-react"
+import { ImageIcon, Pencil } from "lucide-react"
 
 export default async function InventoryLowStockPage() {
   const lowStockItems = await getLowStockItems(50)
@@ -16,17 +16,10 @@ export default async function InventoryLowStockPage() {
       />
 
       {lowStockItems.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/30 p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-            <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold text-emerald-800">All stock levels look good</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-emerald-600">
-            No products are currently below their low stock threshold.
-          </p>
-        </div>
+        <AdminEmptyState
+          title="All stock levels look good"
+          description="No products are currently below their low stock threshold."
+        />
       ) : (
         <AdminTableShell>
           <Table>
@@ -83,14 +76,9 @@ export default async function InventoryLowStockPage() {
                     {item.reservedStock}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                      <span className={`text-[11px] font-bold ${
-                        item.availableStock === 0 ? "text-red-500" : "text-amber-500"
-                      }`}>
-                        {item.availableStock === 0 ? "Out of Stock" : "Low Stock"}
-                      </span>
-                    </div>
+                    <AdminStatusBadge
+                      status={item.availableStock === 0 ? "Out of Stock" : "Low Stock"}
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <Link

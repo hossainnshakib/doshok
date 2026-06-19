@@ -116,7 +116,7 @@ export default function AdminPagesPage() {
         </div>
         <Button
           size="sm"
-          className="h-8 rounded-md text-xs font-semibold bg-emerald-500 hover:bg-emerald-600"
+          className="h-8 rounded-md text-xs font-semibold bg-slate-900 hover:bg-slate-800"
           onClick={() => { setEditing(null); setModal("create") }}
         >
           <Plus className="h-3.5 w-3.5 mr-1" /> New Page
@@ -303,7 +303,7 @@ function PageModal({
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" className="flex-1 rounded-lg" onClick={onClose}>Cancel</Button>
-              <Button type="submit" className="flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-600" disabled={saving}>
+              <Button type="submit" className="flex-1 rounded-lg bg-slate-900 hover:bg-slate-800" disabled={saving}>
                 {saving ? "Saving..." : page ? "Update" : "Create"}
               </Button>
             </div>

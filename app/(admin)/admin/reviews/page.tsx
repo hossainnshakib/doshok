@@ -188,7 +188,7 @@ export default function AdminReviewsPage() {
                       <p className="font-medium">{review.user.name ?? review.user.firstName ?? "Guest"}</p>
                       {review.user.email && <p className="text-xs text-slate-400">{review.user.email}</p>}
                       {review.isVerifiedBuyer && (
-                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Verified</span>
+                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md">Verified</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
