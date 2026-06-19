@@ -1049,18 +1049,13 @@ export function CheckoutForm() {
           } else if (isLoggedIn) {
             router.push(`/order/${orderNumber}`)
           } else {
-            router.push(`/order/${orderNumber}`)
+            router.push("/")
           }
         } else {
           router.push("/")
         }
       } else {
-        const errMsg = data.error ?? "Order failed"
-        if (errMsg.includes("Verification token") || errMsg.includes("OTP") || errMsg.includes("idempotency")) {
-          toast.error(errMsg)
-        } else {
-          toast.error(errMsg)
-        }
+        toast.error(data.error ?? "Order failed")
       }
     } catch {
       toast.error("Something went wrong")
