@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { getPhoneDisplayE164 } from "@/lib/utils"
+import { generateSuccessToken } from "@/lib/checkout/success-token"
 
 const resendApiKey = process.env.RESEND_API_KEY
 const adminEmail = process.env.ADMIN_EMAIL || "admin@doshok.com"
@@ -98,6 +99,8 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
       )
       .join("")
 
+    const successToken = generateSuccessToken(order.orderNumber)
+    const successUrl = `${appUrl}/order/success/${encodeURIComponent(order.orderNumber)}?token=${encodeURIComponent(successToken)}`
     const trackUrl = `${appUrl}/track-order?order=${encodeURIComponent(order.orderNumber)}`
     const invoiceUrl = order.userId ? `${appUrl}/order/${encodeURIComponent(order.orderNumber)}/invoice` : null
 
@@ -119,10 +122,11 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
             <p style="display:flex;justify-content:space-between;margin:4px 0;font-size:18px;font-weight:bold;"><span>Total</span><span>৳${order.total.toLocaleString()}</span></p>
           </div>
           <p style="color:#888;margin-top:24px;font-size:14px;">We will contact you at ${getPhoneDisplayE164(order.customerPhone)} for delivery confirmation.</p>
-          <div style="margin-top:24px;padding:16px;background:#f5f5f5;border-radius:8px;">
-            <p style="margin:0 0 12px 0;font-weight:bold;color:#111;">Track & Manage Your Order</p>
+            <div style="margin-top:24px;padding:16px;background:#f5f5f5;border-radius:8px;">
+            <p style="margin:0 0 12px 0;font-weight:bold;color:#111;">Manage Your Order</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <a href="${trackUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;">Track Order</a>
+              <a href="${successUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;">View Order Summary</a>
+              <a href="${trackUrl}" style="display:inline-block;background:#555;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;">Track Order</a>
               ${invoiceUrl ? `<a href="${invoiceUrl}" style="display:inline-block;background:#555;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:600;">View Invoice</a>` : ""}
             </div>
           </div>

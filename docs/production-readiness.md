@@ -16,6 +16,7 @@
 | `OTP_FROM_EMAIL` | Yes | | Sender for OTP emails; must match a verified Resend domain |
 | `CRON_SECRET` | Yes | | Shared secret for cron job authentication |
 | `NEXTAUTH_URL` | Yes | | Must match production deployment URL |
+| `SUCCESS_TOKEN_SECRET` | Yes | | Used to sign order success page access tokens. Generate with `openssl rand -base64 48`. Do not reuse `NEXTAUTH_SECRET`. Rotate with care — old success links may become invalid. Token links expire after 24 hours. |
 
 ## Payment Credentials
 

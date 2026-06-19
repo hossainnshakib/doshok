@@ -15,6 +15,7 @@ import {
 import { getPhoneServerValue } from "@/lib/utils"
 import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
 import { isCheckoutVerificationTokenValid } from "@/lib/checkout/otp.service"
+import { generateSuccessToken } from "@/lib/checkout/success-token"
 import crypto from "crypto"
 
 export async function POST(request: NextRequest) {
@@ -482,7 +483,9 @@ if (couponCode && discount > 0) {
       })),
     }).catch(() => {})
 
-    return success({ order, paymentInitData }, 201)
+    const successToken = generateSuccessToken(order.orderNumber)
+
+    return success({ order, paymentInitData, successToken }, 201)
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create order"
     return error(message)

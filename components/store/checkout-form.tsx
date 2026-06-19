@@ -1042,11 +1042,14 @@ export function CheckoutForm() {
         }
 
         const orderNumber = order?.orderNumber
+        const successToken = data.data?.successToken as string | undefined
         if (orderNumber) {
-          if (isLoggedIn) {
+          if (successToken) {
+            router.push(`/order/success/${orderNumber}?token=${encodeURIComponent(successToken)}`)
+          } else if (isLoggedIn) {
             router.push(`/order/${orderNumber}`)
           } else {
-            router.push(`/track-order?order=${orderNumber}`)
+            router.push(`/order/${orderNumber}`)
           }
         } else {
           router.push("/")

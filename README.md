@@ -45,6 +45,7 @@ See `.env.example` for the full list. Critical vars:
 | `NEXTAUTH_SECRET` | **Min 32 chars in production.** Generate with `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | App URL (e.g. `http://localhost:3000`) |
 | `RESEND_API_KEY` | Resend API key for transactional emails |
+| `SUCCESS_TOKEN_SECRET` | **Required in production.** Signs order success page access tokens. Generate with `openssl rand -base64 48` |
 
 ## Database Commands
 
