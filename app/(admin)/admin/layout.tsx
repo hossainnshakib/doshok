@@ -306,13 +306,14 @@ function NavLink({ href, icon: Icon, children, expanded }: { href: string; icon:
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
+      className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
         active
           ? "bg-slate-800 text-white shadow-sm"
           : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
       } ${!expanded ? "justify-center px-2" : ""}`}
       title={typeof children === "string" ? children : undefined}
     >
+      {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-white" />}
       <Icon className="size-4 shrink-0" />
       {expanded && <span className="truncate">{children}</span>}
     </Link>

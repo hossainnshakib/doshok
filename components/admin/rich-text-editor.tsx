@@ -47,6 +47,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     },
   })
 
+  const [sourceContent, setSourceContent] = useState("")
+
   const sanitize = useCallback((html: string): string => {
     if (typeof window === "undefined") return html
     try {
@@ -123,8 +125,6 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     }
     editor.chain().focus().setLink({ href: url }).run()
   }
-
-  const [sourceContent, setSourceContent] = useState("")
 
   return (
     <div className="rich-text-editor border border-border rounded-lg overflow-hidden bg-white">
