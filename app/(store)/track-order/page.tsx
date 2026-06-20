@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { CreditCard, MapPin, Package, Search, Truck, RefreshCw, Clock, AlertTriangle } from "lucide-react"
+import { CreditCard, MapPin, Package, Search, Truck, RefreshCw, Clock, AlertTriangle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { getPhoneDisplayE164, getPhoneServerValue } from "@/lib/utils"
+import { getEffectiveDeliveryFee, getOrderProductSubtotal, inferDeliveryZoneLabelFromDistrictName } from "@/lib/order-delivery"
 
 type Order = {
   id: string
@@ -19,8 +20,14 @@ type Order = {
   customerPhone: string
   subtotal: number
   deliveryFee: number
+  productSubtotal?: number
+  productDiscount?: number
+  deliveryDiscount?: number
+  finalDeliveryFee?: number
+  discount?: number
   total: number
   paidAmount: number
+  dueAmount?: number
   paymentMethod: string
   paymentStatus: string
   orderStatus: string
@@ -61,7 +68,7 @@ const statusColors: Record<string, "default" | "secondary" | "destructive" | "ou
   returned: "destructive",
 }
 
-export default function TrackOrderPage() {
+function TrackOrderContent() {
   const searchParams = useSearchParams()
   const [orderNumber, setOrderNumber] = useState(searchParams.get("order") ?? "")
   const [phone, setPhone] = useState("")
@@ -241,7 +248,14 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
           </div>
         )}
 
-        {order && (
+        {order && (() => {
+          const productSubtotal = getOrderProductSubtotal(order)
+          const effectiveDeliveryFee = getEffectiveDeliveryFee(order)
+          const deliveryZoneLabel = order.address
+            ? inferDeliveryZoneLabelFromDistrictName(order.address.district)
+            : null
+
+          return (
           <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
             <div className="space-y-6">
               <div className="rounded-[1.75rem] border border-black/5 bg-white p-5 shadow-sm md:p-8">
@@ -299,6 +313,9 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
                       <p className="text-neutral-500">
                         {order.address.thana}, {order.address.district}, {order.address.division}
                       </p>
+                      {deliveryZoneLabel && (
+                        <p className="text-neutral-500">Delivery area: {deliveryZoneLabel}</p>
+                      )}
                     </>
                   )}
                 </div>
@@ -333,22 +350,61 @@ function Timeline({ currentStatus }: { currentStatus: string }) {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Subtotal</span>
-                  <span>৳{order.subtotal.toLocaleString()}</span>
+                  <span>৳{productSubtotal.toLocaleString()}</span>
                 </div>
+                {(order.productDiscount ?? 0) > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Product Discount</span>
+                    <span>-৳{(order.productDiscount ?? 0).toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Delivery</span>
                   <span>৳{order.deliveryFee.toLocaleString()}</span>
                 </div>
+                {(order.deliveryDiscount ?? 0) > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Delivery Discount</span>
+                    <span>-৳{(order.deliveryDiscount ?? 0).toLocaleString()}</span>
+                  </div>
+                )}
+                {effectiveDeliveryFee !== order.deliveryFee && (
+                  <div className="flex justify-between text-neutral-500">
+                    <span>Final Delivery</span>
+                    <span>৳{effectiveDeliveryFee.toLocaleString()}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-lg font-black">
                   <span>Total</span>
                   <span>৳{order.total.toLocaleString()}</span>
                 </div>
+                {(order.dueAmount ?? order.total) > 0 && order.paymentStatus !== "paid" && (
+                  <div className="flex justify-between text-sm text-amber-700">
+                    <span>Due on Delivery</span>
+                    <span>৳{(order.dueAmount ?? order.total).toLocaleString()}</span>
+                  </div>
+                )}
+                {order.paidAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Paid</span>
+                    <span>৳{order.paidAmount.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             </aside>
           </div>
-        )}
+          )
+        })()}
       </section>
     </main>
+  )
+}
+
+export default function TrackOrderPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-20 text-center text-muted-foreground"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}>
+      <TrackOrderContent />
+    </Suspense>
   )
 }

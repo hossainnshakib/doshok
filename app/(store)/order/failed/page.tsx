@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { AlertTriangle, RefreshCw, ArrowLeft, Clock, RotateCcw } from "lucide-react"
+import { AlertTriangle, RefreshCw, ArrowLeft, Clock, RotateCcw, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 type PendingOrder = {
@@ -81,7 +81,7 @@ function getExpiryInfo(expiresAt: string | null): { expired: boolean; remaining:
   return { expired: false, remaining: `${minutes}m remaining` }
 }
 
-export default function PaymentFailedPage() {
+function PaymentFailedContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get("orderId")
   const reason = searchParams.get("reason") || "unknown"
@@ -189,5 +189,13 @@ export default function PaymentFailedPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-20 text-center text-muted-foreground"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}>
+      <PaymentFailedContent />
+    </Suspense>
   )
 }

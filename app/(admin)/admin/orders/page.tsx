@@ -1,12 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { getPhoneDisplayE164 } from "@/lib/utils"
 
 const STATUS_FILTERS = [
@@ -20,7 +20,7 @@ const STATUS_FILTERS = [
   { value: "returned", label: "Returned" },
 ]
 
-export default function AdminOrdersPage() {
+function AdminOrdersContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [data, setData] = useState<{
@@ -165,5 +165,13 @@ export default function AdminOrdersPage() {
         </>
       )}
     </div>
+  )
+}
+
+export default function AdminOrdersPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-16 text-slate-400"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <AdminOrdersContent />
+    </Suspense>
   )
 }

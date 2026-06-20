@@ -242,23 +242,26 @@ export async function POST(request: NextRequest) {
       console.warn(`[checkout] No idempotencyKey provided. Generated server-side: ${resolvedIdempotencyKey}`)
     }
 
-    if (resolvedIdempotencyKey) {
-      const existingOrder = await prisma.order.findUnique({
-        where: { idempotencyKey: resolvedIdempotencyKey },
-        include: { items: true, address: true },
-      })
-      if (existingOrder) {
-        return success({ order: existingOrder, paymentInitData: null }, 200)
-      }
-    }
-
     let reservationExpiresAt: Date | null = null
 
     if (isV2) {
       reservationExpiresAt = new Date(Date.now() + codReservationHours * 60 * 60 * 1000)
     }
 
+    let reusedExistingOrder = false
+
     const order = await prisma.$transaction(async (tx) => {
+      if (resolvedIdempotencyKey) {
+        const existingOrder = await tx.order.findUnique({
+          where: { idempotencyKey: resolvedIdempotencyKey },
+          include: { items: true, address: true },
+        })
+        if (existingOrder) {
+          reusedExistingOrder = true
+          return existingOrder
+        }
+      }
+
       if (isV2 && otpRequired) {
         const result = await tx.phoneOtpVerification.updateMany({
           where: {
@@ -441,6 +444,10 @@ if (couponCode && discount > 0) {
     })
 
     const paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
+
+    if (reusedExistingOrder) {
+      return success({ order, paymentInitData }, 200)
+    }
 
     if (abandonedCheckoutToken) {
       prisma.abandonedCheckout.updateMany({

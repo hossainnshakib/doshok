@@ -73,6 +73,16 @@ export async function PATCH(
       }
     }
 
+    if (
+      filtered.orderStatus &&
+      filtered.orderStatus !== currentOrder.orderStatus
+    ) {
+      const stockResult = await applyInventorySideEffectsForOrderStatus(id, filtered.orderStatus as string)
+      if (!stockResult.success) {
+        return error(`Stock update failed: ${stockResult.error}`)
+      }
+    }
+
     const order = await prisma.order.update({
       where: { id },
       data: filtered,
@@ -102,11 +112,6 @@ export async function PATCH(
         })),
       }
       sendOrderStatusEmail(emailData, filtered.orderStatus as string).catch(() => {})
-
-      const stockResult = await applyInventorySideEffectsForOrderStatus(id, filtered.orderStatus as string)
-      if (!stockResult.success) {
-        return error(`Stock update failed: ${stockResult.error}`)
-      }
     }
 
     return success(order)

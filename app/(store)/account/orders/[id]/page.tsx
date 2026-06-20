@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Package, MapPin, CreditCard, ShoppingCart, RotateCcw, AlertTriangle, RefreshCw, Clock, Star } from "lucide-react"
+import { ArrowLeft, Package, MapPin, CreditCard, ShoppingCart, RotateCcw, AlertTriangle, RefreshCw, Clock, Star, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { addToCart } from "@/lib/cart"
 import { OrderTimeline } from "@/components/store/order-timeline"
@@ -89,7 +89,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   returned: { label: "Returned", variant: "destructive" },
 }
 
-export default function AccountOrderDetailPage() {
+function AccountOrderDetailContent() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
@@ -431,5 +431,13 @@ export default function AccountOrderDetailPage() {
         />
       )}
     </div>
+  )
+}
+
+export default function AccountOrderDetailPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-20 text-center text-muted-foreground"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}>
+      <AccountOrderDetailContent />
+    </Suspense>
   )
 }
