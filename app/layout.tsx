@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Hind_Siliguri, Manrope, Plus_Jakarta_Sans } from "next/font/google"
+import Script from "next/script"
 import { Toaster } from "@/components/ui/sonner"
 import { Providers } from "@/components/providers/session-provider"
 import { OrganizationSchema } from "@/components/json-ld/organization-schema"
@@ -57,6 +58,19 @@ export default function RootLayout({
         <OrganizationSchema />
         <Providers>{children}</Providers>
         <Toaster richColors closeButton />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-D11HZ86XK5"
+          strategy="beforeInteractive"
+        />
+        <Script id="google-analytics" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-D11HZ86XK5');
+          `}
+        </Script>
       </body>
     </html>
   )
