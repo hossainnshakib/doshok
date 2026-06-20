@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { startTransition, useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -151,12 +151,10 @@ export function CheckoutForm() {
   const [saveToAccount, setSaveToAccount] = useState(false)
   const [addressesLoading, setAddressesLoading] = useState(false)
 
-  const [calculatedPayNow, setCalculatedPayNow] = useState(0)
-  const [calculatedDueAmount, setCalculatedDueAmount] = useState(0)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const formRef = useRef<HTMLDivElement>(null)
 
-  const [divisions, setDivisions] = useState<Awaited<ReturnType<typeof getDivisions>>>([])
+  const [divisions] = useState<Awaited<ReturnType<typeof getDivisions>>>(() => getDivisions())
   const [districts, setDistricts] = useState<Awaited<ReturnType<typeof getDistrictsByDivision>>>([])
   const [upazilas, setUpazilas] = useState<Awaited<ReturnType<typeof getUpazilasByDistrict>>>([])
 
@@ -206,7 +204,9 @@ export function CheckoutForm() {
   useEffect(() => {
     const urlCoupon = searchParams.get("coupon")
     if (urlCoupon) {
-      setCouponCode(urlCoupon)
+      startTransition(() => {
+        setCouponCode(urlCoupon)
+      })
     }
   }, [searchParams])
 
@@ -217,10 +217,6 @@ export function CheckoutForm() {
       validateCoupon(couponCode)
     }
   }, [items])
-
-  useEffect(() => {
-    setDivisions(getDivisions())
-  }, [])
 
   useEffect(() => {
     fetch("/api/checkout/settings")
@@ -250,7 +246,9 @@ export function CheckoutForm() {
 
   useEffect(() => {
     if (otpState === "verified" && verifiedPhone && draft.phone !== verifiedPhone) {
-      clearPhoneVerification()
+      startTransition(() => {
+        clearPhoneVerification()
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.phone, otpState, verifiedPhone])
@@ -281,7 +279,9 @@ export function CheckoutForm() {
           })
           .catch(() => setItems([item]))
       } else {
-        setItems([item])
+        startTransition(() => {
+          setItems([item])
+        })
       }
     } else {
       const cart = getCart()
@@ -289,7 +289,9 @@ export function CheckoutForm() {
         router.push("/cart")
         return
       }
-      setItems(cart)
+      startTransition(() => {
+        setItems(cart)
+      })
     }
   }, [isBuyNow, searchParams, router])
 
@@ -339,29 +341,31 @@ export function CheckoutForm() {
       if (saved.checkout.paymentMethod) updates.selectedPaymentMethod = saved.checkout.paymentMethod
     }
 
-    if (Object.keys(updates).length > 0) {
-      updateFields(updates)
-    }
-
-    if (saved.checkout) {
-      setStep(saved.checkout.currentStep)
-      setPaymentMethod(saved.checkout.paymentMethod)
-      setSelectedAddressId(saved.checkout.selectedAddressId ?? null)
-      setCouponCode(saved.checkout.couponCode ?? "")
-    }
-
-    if (saved.address?.deliveryZone) {
-      setDeliveryZone(saved.address.deliveryZone as DeliveryZone)
-    }
-
-    if (saved.address?.divisionId) {
-      const restoredDistricts = getDistrictsByDivision(saved.address.divisionId)
-      setDistricts(restoredDistricts)
-      if (saved.address.districtId) {
-        const restoredUpazilas = getUpazilasByDistrict(saved.address.districtId)
-        setUpazilas(restoredUpazilas)
+    startTransition(() => {
+      if (Object.keys(updates).length > 0) {
+        updateFields(updates)
       }
-    }
+
+      if (saved.checkout) {
+        setStep(saved.checkout.currentStep)
+        setPaymentMethod(saved.checkout.paymentMethod)
+        setSelectedAddressId(saved.checkout.selectedAddressId ?? null)
+        setCouponCode(saved.checkout.couponCode ?? "")
+      }
+
+      if (saved.address?.deliveryZone) {
+        setDeliveryZone(saved.address.deliveryZone as DeliveryZone)
+      }
+
+      if (saved.address?.divisionId) {
+        const restoredDistricts = getDistrictsByDivision(saved.address.divisionId)
+        setDistricts(restoredDistricts)
+        if (saved.address.districtId) {
+          const restoredUpazilas = getUpazilasByDistrict(saved.address.districtId)
+          setUpazilas(restoredUpazilas)
+        }
+      }
+    })
 
     restoredRef.current = true
   }, [isBuyNow])
@@ -669,6 +673,23 @@ export function CheckoutForm() {
     if (addrDistrictId) setUpazilas(getUpazilasByDistrict(addrDistrictId))
   }
 
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+  const displayDeliveryFee = finalDeliveryFeeDisplay || deliveryFee
+  const displayProductDiscount = productDiscount || couponDiscount
+  const displayTotal = grandTotal || (subtotal + displayDeliveryFee - couponDiscount)
+
+  const effectiveGrandTotal = displayTotal
+  const effectiveDeliveryFee = finalDeliveryFeeDisplay || deliveryFee
+  const effectivePayRule: PaymentRuleType = (checkoutSettings?.defaultPaymentRule || "cod_only") as PaymentRuleType
+  const effectivePayValue = checkoutSettings?.defaultPaymentRuleValue ?? null
+  const computedPayment = calculatePaymentAmounts(effectiveGrandTotal, effectiveDeliveryFee, effectivePayRule, effectivePayValue)
+
+  const calculatedPayNow = computedPayment.payNow
+  const calculatedDueAmount = computedPayment.dueAmount
+  const payNowForDisplay = isV2 ? calculatedPayNow : (computedPayment.payNow)
+  const dueAmountForDisplay = isV2 ? calculatedDueAmount : (computedPayment.dueAmount)
+  const isOnlinePaymentRequired = isV2 && payNowForDisplay > 0
+
   const scrollToTop = useCallback(() => {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }, [])
@@ -737,38 +758,22 @@ export function CheckoutForm() {
     scrollToTop()
   }, [step, validateCurrentStep, scrollToTop])
 
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
-  const displayDeliveryFee = finalDeliveryFeeDisplay || deliveryFee
-  const displayProductDiscount = productDiscount || couponDiscount
-  const displayTotal = grandTotal || (subtotal + displayDeliveryFee - couponDiscount)
-
-  const effectiveGrandTotal = displayTotal
-  const effectiveDeliveryFee = finalDeliveryFeeDisplay || deliveryFee
-  const effectivePayRule: PaymentRuleType = (checkoutSettings?.defaultPaymentRule || "cod_only") as PaymentRuleType
-  const effectivePayValue = checkoutSettings?.defaultPaymentRuleValue ?? null
-  const computedPayment = calculatePaymentAmounts(effectiveGrandTotal, effectiveDeliveryFee, effectivePayRule, effectivePayValue)
-
-  const payNowForDisplay = isV2 ? calculatedPayNow : (computedPayment.payNow)
-  const dueAmountForDisplay = isV2 ? calculatedDueAmount : (computedPayment.dueAmount)
-  const isOnlinePaymentRequired = isV2 && payNowForDisplay > 0
-
-  useEffect(() => {
-    setCalculatedPayNow(computedPayment.payNow)
-    setCalculatedDueAmount(computedPayment.dueAmount)
-  }, [computedPayment.payNow, computedPayment.dueAmount])
-
   useEffect(() => {
     if (isOnlinePaymentRequired) {
       if (paymentMethod === "cod" || paymentMethod === "" || !paymentMethod) {
-        setPaymentMethod("")
-        updateField("selectedPaymentMethod", "")
+        startTransition(() => {
+          setPaymentMethod("")
+          updateField("selectedPaymentMethod", "")
+        })
       }
     } else {
       if (paymentMethod === "") {
         const cod = paymentMethods.find((p) => p.provider === "COD" && p.enabled)
         if (cod) {
-          setPaymentMethod("cod")
-          updateField("selectedPaymentMethod", "cod")
+          startTransition(() => {
+            setPaymentMethod("cod")
+            updateField("selectedPaymentMethod", "cod")
+          })
         }
       }
     }

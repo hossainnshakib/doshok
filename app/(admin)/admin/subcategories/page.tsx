@@ -10,7 +10,7 @@ export default function SubcategoriesPage() {
         <FolderTree className="mx-auto mb-4 h-10 w-10 text-neutral-300" />
         <h2 className="text-lg font-black tracking-[-0.02em]">Subcategories are managed inside Categories</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-neutral-500">
-          Create sub-categories by checking "This is a subcategory" in the Categories module and selecting a parent category.
+          Create sub-categories by checking &quot;This is a subcategory&quot; in the Categories module and selecting a parent category.
         </p>
         <Link
           href="/admin/categories"

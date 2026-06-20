@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { startTransition, useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
@@ -153,19 +153,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const { data: session } = useSession()
-  const [pinned, setPinned] = useState(true)
+  const [pinned, setPinned] = useState(() => {
+    if (typeof window === "undefined") return true
+    return localStorage.getItem(STORAGE_KEY) !== "false"
+  })
   const [hovered, setHovered] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const userRole = session?.user?.role ?? "customer"
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === "false") setPinned(false)
-  }, [])
-
-  useEffect(() => {
-    setMobileOpen(false)
+    startTransition(() => {
+      setMobileOpen(false)
+    })
   }, [pathname])
 
   const expanded = pinned || hovered

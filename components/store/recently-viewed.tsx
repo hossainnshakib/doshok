@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 import { ProductCard } from "@/components/store/product-card"
 import { Eye } from "lucide-react"
 
@@ -44,7 +44,9 @@ export function RecentlyViewed() {
   const [items, setItems] = useState<ProductSummary[]>([])
 
   useEffect(() => {
-    setItems(safeGet<ProductSummary>(RECENTLY_VIEWED_KEY))
+    startTransition(() => {
+      setItems(safeGet<ProductSummary>(RECENTLY_VIEWED_KEY))
+    })
   }, [])
 
   if (items.length === 0) return null

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AdminPageHeader, AdminPageShell } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
@@ -35,7 +35,9 @@ export default function EditCustomPagePage() {
   const isReserved = RESERVED_INFO_SLUGS.has(slugClean)
 
   useEffect(() => {
-    setLoading(true)
+    startTransition(() => {
+      setLoading(true)
+    })
     fetch(`/api/pages/${id}`)
       .then((r) => r.json())
       .then((d) => {

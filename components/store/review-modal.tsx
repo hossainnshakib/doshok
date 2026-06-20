@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 import { Star, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -36,18 +36,22 @@ export function ReviewModal({
 
   useEffect(() => {
     if (existingReview) {
-      setRating(existingReview.rating)
-      setTitle(existingReview.title)
-      setContent(existingReview.content)
+      startTransition(() => {
+        setRating(existingReview.rating)
+        setTitle(existingReview.title)
+        setContent(existingReview.content)
+      })
     }
   }, [existingReview])
 
   useEffect(() => {
     if (open) {
-      setRating(existingReview?.rating ?? 0)
-      setHoverRating(0)
-      setTitle(existingReview?.title ?? "")
-      setContent(existingReview?.content ?? "")
+      startTransition(() => {
+        setRating(existingReview?.rating ?? 0)
+        setHoverRating(0)
+        setTitle(existingReview?.title ?? "")
+        setContent(existingReview?.content ?? "")
+      })
     }
   }, [open, existingReview])
 

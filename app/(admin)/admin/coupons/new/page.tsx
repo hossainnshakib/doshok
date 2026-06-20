@@ -19,6 +19,7 @@ export default function NewCouponPage() {
   const [scope, setScope] = useState("product")
   const [minOrder, setMinOrder] = useState("0")
   const [maxUses, setMaxUses] = useState("")
+  const [maxUsesPerCustomer, setMaxUsesPerCustomer] = useState("")
   const [expiresAt, setExpiresAt] = useState("")
   const [active, setActive] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -36,6 +37,7 @@ export default function NewCouponPage() {
         scope,
         minOrder: Number(minOrder),
         maxUses: maxUses ? Number(maxUses) : undefined,
+        maxUsesPerCustomer: maxUsesPerCustomer ? Number(maxUsesPerCustomer) : undefined,
         expiresAt: expiresAt || undefined,
         active,
       }),
@@ -99,6 +101,12 @@ export default function NewCouponPage() {
                 <Label htmlFor="maxUses">Maximum uses <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
                 <Input id="maxUses" type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="e.g. 100" />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="maxUsesPerCustomer">Maximum uses per customer <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+              <Input id="maxUsesPerCustomer" type="number" value={maxUsesPerCustomer} onChange={(e) => setMaxUsesPerCustomer(e.target.value)} placeholder="e.g. 1" />
+              <p className="text-[10px] text-slate-400">Leave blank for unlimited per-customer use.</p>
             </div>
 
             <div className="space-y-1.5">

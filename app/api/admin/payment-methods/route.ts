@@ -12,6 +12,7 @@ export async function GET() {
     if (session instanceof NextResponse) return session
 
     const methods = await prisma.paymentMethodSetting.findMany({
+      where: { provider: "COD" },
       orderBy: { createdAt: "asc" },
     })
 

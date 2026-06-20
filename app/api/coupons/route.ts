@@ -14,6 +14,14 @@ const couponSchema = z.object({
   maxUsesPerCustomer: z.number().int().positive().optional(),
   expiresAt: z.string().optional(),
   active: z.boolean().default(true),
+}).superRefine((data, ctx) => {
+  if (data.type === "percent" && data.discount > 100) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Percent discount cannot exceed 100",
+      path: ["discount"],
+    })
+  }
 })
 
 export async function GET() {

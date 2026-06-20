@@ -121,7 +121,7 @@ const ORDER_STEP_LABELS: Record<string, string> = {
 function Timeline({ currentStatus }: { currentStatus: string }) {
   const normalized = currentStatus.toLowerCase()
 
-  if (TERMINAL_STATUSES.includes(normalized as any)) {
+  if ((TERMINAL_STATUSES as readonly string[]).includes(normalized)) {
     return (
       <div className="py-6">
         <div className="flex items-center justify-center">

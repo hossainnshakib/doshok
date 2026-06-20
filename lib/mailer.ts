@@ -103,6 +103,7 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
     const successUrl = `${appUrl}/order/success/${encodeURIComponent(order.orderNumber)}?token=${encodeURIComponent(successToken)}`
     const trackUrl = `${appUrl}/track-order?order=${encodeURIComponent(order.orderNumber)}`
     const invoiceUrl = order.userId ? `${appUrl}/order/${encodeURIComponent(order.orderNumber)}/invoice` : null
+    const paymentLabel = order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod
 
     await resend.emails.send({
       from: fromEmail,
@@ -120,6 +121,7 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
             <p style="display:flex;justify-content:space-between;margin:4px 0;"><span>Subtotal</span><span>৳${order.subtotal.toLocaleString()}</span></p>
             <p style="display:flex;justify-content:space-between;margin:4px 0;"><span>Delivery Fee</span><span>৳${order.deliveryFee.toLocaleString()}</span></p>
             <p style="display:flex;justify-content:space-between;margin:4px 0;font-size:18px;font-weight:bold;"><span>Total</span><span>৳${order.total.toLocaleString()}</span></p>
+            <p style="display:flex;justify-content:space-between;margin:4px 0;font-size:14px;color:#555;"><span>Payment</span><span>${paymentLabel} — ৳${order.total.toLocaleString()} due on delivery</span></p>
           </div>
           <p style="color:#888;margin-top:24px;font-size:14px;">We will contact you at ${getPhoneDisplayE164(order.customerPhone)} for delivery confirmation.</p>
             <div style="margin-top:24px;padding:16px;background:#f5f5f5;border-radius:8px;">

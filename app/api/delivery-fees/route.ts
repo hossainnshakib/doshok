@@ -26,14 +26,17 @@ export async function GET(request: NextRequest) {
       return success({ zone, fee: deliveryZone?.fee ?? 100 })
     }
 
-    if (zoneParam && ZONE_MAP[zoneParam]) {
+    if (zoneParam) {
+      if (!ZONE_MAP[zoneParam]) {
+        return error("Invalid delivery zone")
+      }
       const deliveryZone = await prisma.deliveryZone.findUnique({
         where: { name: ZONE_MAP[zoneParam] },
       })
       return success({ zone: zoneParam, fee: deliveryZone?.fee ?? 100 })
     }
 
-    const allZones = await prisma.deliveryZone.findMany()
+    const allZones = await prisma.deliveryZone.findMany({ orderBy: { name: "asc" } })
     const feeMap: Record<string, number> = {}
     for (const [key, name] of Object.entries(ZONE_MAP)) {
       const dbZone = allZones.find((z) => z.name === name)

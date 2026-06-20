@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { startTransition, useState, useRef, useEffect, useCallback } from "react"
+import type { ConfirmationResult } from "firebase/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Smartphone, CheckCircle, Clock } from "lucide-react"
@@ -31,7 +32,7 @@ export function FirebaseOtpPanel({
   const [errorMessage, setErrorMessage] = useState("")
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const confirmationResultRef = useRef<any>(null)
+  const confirmationResultRef = useRef<ConfirmationResult | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const verifierRef = useRef<{ clear: () => void } | null>(null)
 
@@ -58,31 +59,37 @@ export function FirebaseOtpPanel({
 
   useEffect(() => {
     if (resetSignal === 0) return
-    setState("idle")
-    setCode("")
-    setErrorMessage("")
-    confirmationResultRef.current = null
-    if (cooldownRef.current) {
-      clearInterval(cooldownRef.current)
-      cooldownRef.current = null
-    }
-    setCooldownRemaining(0)
-  }, [resetSignal])
-
-  useEffect(() => {
-    if (!phone) {
+    startTransition(() => {
       setState("idle")
       setCode("")
       setErrorMessage("")
       confirmationResultRef.current = null
+      if (cooldownRef.current) {
+        clearInterval(cooldownRef.current)
+        cooldownRef.current = null
+      }
+      setCooldownRemaining(0)
+    })
+  }, [resetSignal])
+
+  useEffect(() => {
+    if (!phone) {
+      startTransition(() => {
+        setState("idle")
+        setCode("")
+        setErrorMessage("")
+        confirmationResultRef.current = null
+      })
       return
     }
     if (state !== "verified" && phone) {
-      setState("idle")
-      setCode("")
-      setErrorMessage("")
+      startTransition(() => {
+        setState("idle")
+        setCode("")
+        setErrorMessage("")
+      })
     }
-  }, [phone])
+  }, [phone, state])
 
   async function handleSendOtp() {
     if (!phone.trim() || !isValidBdPhone(phone.trim())) {

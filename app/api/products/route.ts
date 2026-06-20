@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
             colorHex: v.colorHex,
             stock: v.stock,
             sku: v.sku,
+            lowStockThreshold: v.lowStockThreshold ?? 5,
           })) ?? [],
         },
         sizeCharts: sizeChartIds ? {

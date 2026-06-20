@@ -18,6 +18,7 @@ type Coupon = {
   scope: string
   minOrder: number
   maxUses: number | null
+  maxUsesPerCustomer: number | null
   usedCount: number
   expiresAt: string | null
   active: boolean
@@ -34,6 +35,7 @@ export default function EditCouponPage() {
   const [scope, setScope] = useState("product")
   const [minOrder, setMinOrder] = useState("0")
   const [maxUses, setMaxUses] = useState("")
+  const [maxUsesPerCustomer, setMaxUsesPerCustomer] = useState("")
   const [expiresAt, setExpiresAt] = useState("")
   const [active, setActive] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -51,6 +53,7 @@ export default function EditCouponPage() {
           setScope(c.scope)
           setMinOrder(String(c.minOrder))
           setMaxUses(c.maxUses ? String(c.maxUses) : "")
+          setMaxUsesPerCustomer(c.maxUsesPerCustomer ? String(c.maxUsesPerCustomer) : "")
           setExpiresAt(c.expiresAt ? c.expiresAt.split("T")[0] : "")
           setActive(c.active)
         }
@@ -72,6 +75,7 @@ export default function EditCouponPage() {
         scope,
         minOrder: Number(minOrder),
         maxUses: maxUses ? Number(maxUses) : null,
+        maxUsesPerCustomer: maxUsesPerCustomer ? Number(maxUsesPerCustomer) : null,
         expiresAt: expiresAt || null,
         active,
       }),
@@ -137,6 +141,12 @@ export default function EditCouponPage() {
                 <Label htmlFor="maxUses">Maximum uses <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
                 <Input id="maxUses" type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="e.g. 100" />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="maxUsesPerCustomer">Maximum uses per customer <span className="text-slate-400 font-normal text-[10px]">(optional)</span></Label>
+              <Input id="maxUsesPerCustomer" type="number" value={maxUsesPerCustomer} onChange={(e) => setMaxUsesPerCustomer(e.target.value)} placeholder="e.g. 1" />
+              <p className="text-[10px] text-slate-400">Leave blank for unlimited per-customer use.</p>
             </div>
 
             <div className="space-y-1.5">

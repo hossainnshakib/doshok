@@ -99,7 +99,7 @@ export default function AdminPaymentMethodsPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { queueMicrotask(() => { void load() }) }, [])
 
   function updateMethod(provider: string, field: string, value: unknown) {
     setMethods((prev) => prev.map((m) => (m.provider === provider ? { ...m, [field]: value } : m)))
@@ -148,7 +148,7 @@ export default function AdminPaymentMethodsPage() {
   if (loading) {
     return (
       <div className="space-y-5">
-        <AdminPageHeader eyebrow="Operations" title="Payment Methods" description="Configure payment gateways. Credentials are encrypted." />
+        <AdminPageHeader eyebrow="Operations" title="Payment Methods" description="V1.1 is COD-only. Configure Cash on Delivery availability and customer-facing instructions." />
         <p className="text-sm text-slate-400 py-8">Loading...</p>
       </div>
     )
@@ -156,7 +156,7 @@ export default function AdminPaymentMethodsPage() {
 
   return (
     <div className="space-y-5">
-      <AdminPageHeader eyebrow="Operations" title="Payment Methods" description="Configure payment gateways. Credentials are encrypted." backHref="/admin/operations" />
+      <AdminPageHeader eyebrow="Operations" title="Payment Methods" description="V1.1 is COD-only. Configure Cash on Delivery availability and customer-facing instructions." backHref="/admin/operations" />
 
       <div className="grid gap-3">
         {methods.map((method) => {

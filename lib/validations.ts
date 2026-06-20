@@ -57,6 +57,7 @@ export const productSchema = z.object({
     colorHex: z.string().optional(),
     stock: z.number().int().nonnegative().default(0),
     sku: z.string().optional(),
+    lowStockThreshold: z.number().int().nonnegative().optional().default(5),
   })).optional(),
   sizeChartIds: z.array(z.string()).optional(),
 }).refine((data) => data.oldPrice === undefined || data.oldPrice > data.price, {
@@ -70,6 +71,7 @@ export const variantSchema = z.object({
   colorHex: z.string().optional(),
   stock: z.number().int().nonnegative().default(0),
   sku: z.string().optional(),
+  lowStockThreshold: z.number().int().nonnegative().optional().default(5),
 })
 
 export const categorySchema = z.object({
@@ -112,7 +114,7 @@ export const checkoutSchema = z.object({
   upazilaId: z.string().min(1),
   upazilaName: z.string().min(1),
   fullAddress: z.string().min(1),
-  paymentMethod: z.string().min(1),
+  paymentMethod: z.enum(["cod"]),
   couponCode: z.string().optional(),
   notes: z.string().optional(),
   checkoutVerificationToken: z.string().optional(),
@@ -131,6 +133,18 @@ export const couponValidateSchema = z.object({
   deliveryFee: z.number().nonnegative().optional(),
   userId: z.string().optional(),
   email: z.string().email().optional(),
+})
+
+export const deliveryZoneCreateSchema = z.object({
+  name: z.string().trim().min(1, "Zone name is required").max(100),
+  fee: z.number().int().nonnegative("Fee cannot be negative"),
+})
+
+export const deliveryZoneUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  fee: z.number().int().nonnegative("Fee cannot be negative").optional(),
+}).refine((data) => data.name !== undefined || data.fee !== undefined, {
+  message: "At least one field is required",
 })
 
 export const verifyEmailSchema = z.object({

@@ -30,7 +30,7 @@ export default function AdminCouponsPage() {
     if (d.success) setCoupons(d.data)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { queueMicrotask(() => { void load() }) }, [])
 
   async function handleDelete(id: string, code: string) {
     if (!confirm(`Delete coupon "${code}"?`)) return

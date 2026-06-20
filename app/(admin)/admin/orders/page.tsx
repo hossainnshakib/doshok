@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Suspense, useState, useEffect } from "react"
+import { Suspense, startTransition, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AdminEmptyState, AdminPageHeader, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
@@ -47,7 +47,9 @@ function AdminOrdersContent() {
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
 
   useEffect(() => {
-    setLoading(true)
+    startTransition(() => {
+      setLoading(true)
+    })
     fetch(`/api/orders?status=${status}&page=${page}`)
       .then((r) => r.json())
       .then((d) => {

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getPhoneDisplayE164 } from "@/lib/utils"
 import { getPaymentRuleLabel } from "@/lib/checkout/payment-rule.service"
+import { getEffectiveDeliveryFee, getOrderProductSubtotal, inferDeliveryZoneLabelFromDistrictName } from "@/lib/order-delivery"
 
 const PAYMENT_RULE_SOURCE_LABELS: Record<string, string> = {
   product: "Product",
@@ -41,6 +42,12 @@ export default async function AdminOrderDetailPage({
   })
 
   if (!order) notFound()
+
+  const productSubtotal = getOrderProductSubtotal(order)
+  const effectiveDeliveryFee = getEffectiveDeliveryFee(order)
+  const deliveryZoneLabel = order.address
+    ? inferDeliveryZoneLabelFromDistrictName(order.address.district)
+    : null
 
   return (
     <div className="space-y-5">
@@ -97,6 +104,12 @@ export default async function AdminOrderDetailPage({
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">District</p>
                 <p className="font-semibold text-slate-800">{order.address.district}</p>
               </div>
+              {deliveryZoneLabel && (
+                <div className="rounded-lg bg-slate-50/60 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Delivery Area</p>
+                  <p className="font-semibold text-slate-800">{deliveryZoneLabel}</p>
+                </div>
+              )}
               <div className="rounded-lg bg-slate-50/60 p-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Thana / Area</p>
                 <p className="font-semibold text-slate-800">{order.address.thana}</p>
@@ -151,13 +164,31 @@ export default async function AdminOrderDetailPage({
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Subtotal</span>
-              <span className="font-medium tabular-nums text-slate-700">৳{order.subtotal.toLocaleString()}</span>
+              <span className="font-medium tabular-nums text-slate-700">৳{productSubtotal.toLocaleString()}</span>
             </div>
+            {order.productDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Product Discount</span>
+                <span className="font-semibold tabular-nums">-৳{order.productDiscount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-500">Delivery Fee</span>
               <span className="font-medium tabular-nums text-slate-700">৳{order.deliveryFee.toLocaleString()}</span>
             </div>
-            {order.discount > 0 && (
+            {order.deliveryDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Delivery Discount</span>
+                <span className="font-semibold tabular-nums">-৳{order.deliveryDiscount.toLocaleString()}</span>
+              </div>
+            )}
+            {effectiveDeliveryFee !== order.deliveryFee && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Final Delivery Fee</span>
+                <span className="font-medium tabular-nums text-slate-700">৳{effectiveDeliveryFee.toLocaleString()}</span>
+              </div>
+            )}
+            {order.discount > 0 && order.productDiscount === 0 && order.deliveryDiscount === 0 && (
               <div className="flex justify-between text-emerald-600">
                 <span>Discount</span>
                 <span className="font-semibold tabular-nums">-৳{order.discount.toLocaleString()}</span>

@@ -17,6 +17,33 @@ interface RichTextEditorProps {
   placeholder?: string
 }
 
+function ToolbarButton({
+  onClick,
+  active,
+  label,
+  title,
+}: {
+  onClick: () => void
+  active?: boolean
+  label: string
+  title: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+        active
+          ? "bg-slate-800 text-white"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
 export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const [showSource, setShowSource] = useState(false)
 
@@ -82,31 +109,6 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
   }
 
   if (!editor) return null
-
-  const ToolbarButton = ({
-    onClick,
-    active,
-    label,
-    title,
-  }: {
-    onClick: () => void
-    active?: boolean
-    label: string
-    title: string
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-        active
-          ? "bg-slate-800 text-white"
-          : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-      }`}
-    >
-      {label}
-    </button>
-  )
 
   function addImage() {
     const url = window.prompt("Image URL")

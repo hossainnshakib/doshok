@@ -3,9 +3,18 @@ import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { requireAdminPermission } from "@/lib/auth/admin"
 
-function buildTree(items: any[]) {
-  const map = new Map<string, any>()
-  const roots: any[] = []
+type MenuItemRow = {
+  id: string
+  parentId: string | null
+  location: string
+  [key: string]: unknown
+}
+
+type MenuNode = MenuItemRow & { children: MenuNode[] }
+
+function buildTree(items: MenuItemRow[]): MenuNode[] {
+  const map = new Map<string, MenuNode>()
+  const roots: MenuNode[] = []
   items.forEach(item => {
     map.set(item.id, { ...item, children: [] })
   })
@@ -36,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 
   const locations = ["desktop", "mobile", "footer"]
-  const result: Record<string, any[]> = {}
+  const result: Record<string, MenuNode[]> = {}
   for (const loc of locations) {
     const locItems = items.filter(i => i.location === loc)
     result[loc] = buildTree(locItems)

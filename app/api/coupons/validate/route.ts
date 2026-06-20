@@ -42,6 +42,10 @@ export async function POST(request: NextRequest) {
       couponCode: coupon.code,
     })
 
+    if (result.totalDiscount <= 0) {
+      return error("This coupon does not apply to your order")
+    }
+
     return success({
       code: coupon.code,
       discount: result.totalDiscount,

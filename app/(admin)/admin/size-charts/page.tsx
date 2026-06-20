@@ -46,7 +46,7 @@ export default function AdminSizeChartsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadCharts() }, [])
+  useEffect(() => { queueMicrotask(() => { void loadCharts() }) }, [])
 
   function handleNameChange(value: string) {
     setName(value)

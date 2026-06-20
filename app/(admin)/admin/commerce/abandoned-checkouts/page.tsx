@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { startTransition, useEffect, useMemo, useState } from "react"
 import { Clipboard, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,7 +64,9 @@ export default function AdminAbandonedCheckoutsPage() {
   }, [status, search, page])
 
   useEffect(() => {
-    setLoading(true)
+    startTransition(() => {
+      setLoading(true)
+    })
     fetch(`/api/admin/abandoned-checkouts?${query}`)
       .then((res) => res.json())
       .then((json) => {

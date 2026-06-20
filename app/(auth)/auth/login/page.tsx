@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState, useEffect } from "react"
+import { Suspense, startTransition, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { signIn, signOut } from "next-auth/react"
@@ -40,10 +40,12 @@ function LoginForm() {
   const [resetSuccess, setResetSuccess] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    if (searchParams.get("reset") === "success") {
-      setResetSuccess(true)
-    }
+    startTransition(() => {
+      setMounted(true)
+      if (searchParams.get("reset") === "success") {
+        setResetSuccess(true)
+      }
+    })
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {

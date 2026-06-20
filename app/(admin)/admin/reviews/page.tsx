@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { AdminPageHeader, AdminTableShell, AdminStatusBadge, AdminPageShell } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminTableShell, AdminStatusBadge, AdminPageShell, AdminEmptyState } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
 import { Check, X, Trash2, Eye } from "lucide-react"
 import { toast } from "sonner"
@@ -146,7 +146,7 @@ export default function AdminReviewsPage() {
         {loading ? (
           <div className="p-8 text-center text-sm text-slate-400">Loading reviews...</div>
         ) : reviews.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-400">No reviews found.</div>
+          <AdminEmptyState title="No reviews found" description="Customer reviews will appear here once submitted." />
         ) : (
           <table className="w-full text-sm">
             <thead>

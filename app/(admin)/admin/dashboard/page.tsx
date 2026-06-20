@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
-import { AdminPageHeader, AdminSectionCard, AdminStatCard, AdminTableShell, AdminStatusBadge } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminSectionCard, AdminStatCard, AdminTableShell, AdminStatusBadge, AdminPageShell } from "@/components/admin/admin-ui"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AlertTriangle, DollarSign, Package, ShoppingCart, Timer, Users, ArrowRight, Plus, ClipboardList } from "lucide-react"
 import { LOW_STOCK_THRESHOLD } from "@/types"
@@ -36,22 +36,14 @@ export default async function AdminDashboardPage() {
   ])
 
   const totalRevenue = totalRevenueResult._sum.total ?? 0
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-indigo-500">Overview</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">Dashboard</h1>
-            <p className="mt-1 text-xs text-slate-400">{today}</p>
-          </div>
-          <p className="text-xs text-slate-500 max-w-md">
-            Real-time overview of your Doshok store performance.
-          </p>
-        </div>
-      </div>
+    <AdminPageShell>
+      <AdminPageHeader
+        eyebrow="Overview"
+        title="Dashboard"
+        description="Real-time overview of your Doshok store performance."
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         <AdminStatCard label="Revenue" value={`৳${totalRevenue.toLocaleString()}`} href="/admin/orders" icon={DollarSign} tone={totalRevenue > 0 ? "success" : "default"} />
@@ -172,6 +164,6 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AdminPageShell>
   )
 }

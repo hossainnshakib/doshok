@@ -51,7 +51,7 @@ export async function PATCH(
     const currentOrder = await prisma.order.findUnique({ where: { id } })
     if (!currentOrder) return error("Order not found", 404)
 
-    if (filtered.orderStatus && !ORDER_STATUSES.includes(filtered.orderStatus as any)) {
+    if (filtered.orderStatus && !(ORDER_STATUSES as readonly string[]).includes(filtered.orderStatus as string)) {
       return error("Invalid order status")
     }
 

@@ -121,7 +121,7 @@ export default function AccountAddressesPage() {
   }, [])
 
   useEffect(() => {
-    fetchAddresses()
+    queueMicrotask(() => { void fetchAddresses() })
   }, [fetchAddresses])
 
   function openAdd() {

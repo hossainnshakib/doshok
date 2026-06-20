@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { startTransition, useState, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { X, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -33,7 +33,9 @@ export function ProductRelationSelector({ selectedIds, onChange, excludeId, labe
 
   useEffect(() => {
     if (selectedIds.length === 0) {
-      setSelectedProducts([])
+      startTransition(() => {
+        setSelectedProducts([])
+      })
       return
     }
     const idsParam = selectedIds.join(",")

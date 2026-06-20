@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 
 type AnnouncementData = {
   text: string
@@ -14,7 +14,9 @@ export function AnnouncementBar({ initial }: { initial?: { text: string; enabled
 
   useEffect(() => {
     if (initial) {
-      setData({ text: initial.text, enabled: initial.enabled })
+      startTransition(() => {
+        setData({ text: initial.text, enabled: initial.enabled })
+      })
       return
     }
     fetch("/api/homepage")

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { startTransition, useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X, User, Search, Package, LogOut, ChevronRight } from "lucide-react"
@@ -61,7 +61,9 @@ export function MobileMenu({ isLoggedIn }: { isLoggedIn?: boolean }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    setOpen(false)
+    startTransition(() => {
+      setOpen(false)
+    })
   }, [pathname])
 
   useEffect(() => {

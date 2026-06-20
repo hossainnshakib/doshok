@@ -28,7 +28,7 @@ export default function CartPage() {
   }
 
   useEffect(() => {
-    refresh()
+    queueMicrotask(() => { void refresh() })
     const handler = () => refresh()
     window.addEventListener("cart-update", handler)
     return () => window.removeEventListener("cart-update", handler)

@@ -445,14 +445,14 @@ export default function SiteSettingsPage() {
             </div>
           </div>
 
-          <Button onClick={handleSave} disabled={saving} className="w-full h-9 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-white">
+          <Button onClick={handleSave} disabled={saving} className="w-full h-9 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white">
             {saving ? "Saving..." : "Save Settings"}
           </Button>
 
           <a
             href="/"
             target="_blank"
-            className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200/60 bg-white px-4 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 w-full h-9 rounded-lg border border-border bg-background text-xs font-semibold text-slate-600 hover:bg-muted transition"
           >
             <Eye className="h-3.5 w-3.5" />
             Preview Storefront

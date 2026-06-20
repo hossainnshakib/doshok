@@ -6,7 +6,7 @@ const TERMINAL_STATUSES = ["cancelled", "returned"] as const
 export function OrderTimeline({ currentStatus }: { currentStatus: string }) {
   const normalized = currentStatus.toLowerCase() as OrderStatus
 
-  if (TERMINAL_STATUSES.includes(normalized as any)) {
+  if ((TERMINAL_STATUSES as readonly string[]).includes(normalized)) {
     return (
       <div className="py-6">
         <div className="flex items-center justify-center">

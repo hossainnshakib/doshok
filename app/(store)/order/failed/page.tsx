@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, startTransition, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -94,7 +94,9 @@ function PaymentFailedContent() {
 
   useEffect(() => {
     if (!orderId) return
-    setLoadingOrder(true)
+    startTransition(() => {
+      setLoadingOrder(true)
+    })
     fetch(`/api/orders/${orderId}`)
       .then((r) => r.json())
       .then((d) => {

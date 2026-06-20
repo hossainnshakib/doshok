@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { getAllStockOverview, getInventoryStats } from "@/lib/services/inventory.service"
-import { AdminPageHeader, AdminStatCard, AdminTableShell, AdminStatusBadge, AdminEmptyState } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminStatCard, AdminTableShell, AdminStatusBadge, AdminEmptyState, AdminPageShell } from "@/components/admin/admin-ui"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Package, AlertTriangle, TrendingDown, PackageSearch, ImageIcon, Pencil } from "lucide-react"
 
@@ -12,7 +12,7 @@ export default async function InventoryStockOverviewPage() {
   ])
 
   return (
-    <div className="space-y-5">
+    <AdminPageShell>
       <AdminPageHeader
         eyebrow="Inventory"
         title="Stock Overview"
@@ -115,6 +115,6 @@ export default async function InventoryStockOverviewPage() {
           </Table>
         </AdminTableShell>
       )}
-    </div>
+    </AdminPageShell>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AdminPageHeader, AdminPageShell } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,9 @@ export default function EditStoryPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setLoading(true)
+    startTransition(() => {
+      setLoading(true)
+    })
     fetch(`/api/stories/${id}`)
       .then((r) => r.json())
       .then((d) => {

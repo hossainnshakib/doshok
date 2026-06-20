@@ -64,7 +64,7 @@ export default async function OrderConfirmationPage({
   const canRetryPayment = false
 
   const expiryInfo = order.paymentExpiresAt ? (() => {
-    const diff = new Date(order.paymentExpiresAt!).getTime() - Date.now()
+    const diff = new Date(order.paymentExpiresAt!).getTime() - Number(new Date())
     if (diff <= 0) return null
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))

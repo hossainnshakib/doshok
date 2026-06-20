@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AdminPageHeader, AdminStatusBadge, AdminTableShell, AdminEmptyState } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminStatusBadge, AdminTableShell, AdminEmptyState, AdminPageShell } from "@/components/admin/admin-ui"
 import { Shield, User, UserCheck, UserX } from "lucide-react"
 import { ROLES, ROLE_LABELS, hasSettingsAccess } from "@/lib/permissions"
 import type { Role } from "@/lib/permissions"
@@ -52,7 +52,7 @@ export default function AdminUsersPage() {
         router.push("/admin/dashboard")
         return
       }
-      fetchUsers()
+      queueMicrotask(() => { void fetchUsers() })
     }
   }, [status, session, router, fetchUsers])
 
@@ -61,14 +61,14 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="space-y-5">
+      <AdminPageShell>
         <AdminPageHeader eyebrow="Settings" title="Admin Users" description="Loading..." />
-      </div>
+      </AdminPageShell>
     )
   }
 
   return (
-    <div className="space-y-5">
+    <AdminPageShell>
       <AdminPageHeader
         eyebrow="Settings"
         title="Admin Users"
@@ -104,7 +104,7 @@ export default function AdminUsersPage() {
           </Table>
         </AdminTableShell>
       )}
-    </div>
+    </AdminPageShell>
   )
 }
 

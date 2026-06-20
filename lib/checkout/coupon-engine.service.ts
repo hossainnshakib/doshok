@@ -30,7 +30,8 @@ export function calculateProductCouponDiscount(
   productSubtotal: number
 ): number {
   if (coupon.type === "percent") {
-    return Math.round(productSubtotal * coupon.discount / 100)
+    const pct = Math.min(coupon.discount, 100)
+    return Math.round(productSubtotal * pct / 100)
   }
   return Math.min(coupon.discount, productSubtotal)
 }
@@ -40,7 +41,8 @@ export function calculateDeliveryCouponDiscount(
   deliveryFee: number
 ): number {
   if (coupon.type === "percent") {
-    return Math.round(deliveryFee * coupon.discount / 100)
+    const pct = Math.min(coupon.discount, 100)
+    return Math.round(deliveryFee * pct / 100)
   }
   return Math.min(coupon.discount, deliveryFee)
 }

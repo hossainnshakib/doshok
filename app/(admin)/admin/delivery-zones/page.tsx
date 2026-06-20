@@ -30,7 +30,7 @@ export default function AdminDeliveryZonesPage() {
     setInitialLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { queueMicrotask(() => { void load() }) }, [])
 
   if (initialLoading) {
     return (
@@ -45,12 +45,17 @@ export default function AdminDeliveryZonesPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    if (!newName || !newFee) return
+    if (!newName.trim() || !newFee) return
+    const fee = Number(newFee)
+    if (!Number.isFinite(fee) || fee < 0) {
+      toast.error("Fee must be a non-negative number")
+      return
+    }
     setLoading(true)
     const res = await fetch("/api/delivery-zones", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName, fee: Number(newFee) }),
+      body: JSON.stringify({ name: newName.trim(), fee }),
     })
     const d = await res.json()
     if (d.success) {
@@ -71,10 +76,15 @@ export default function AdminDeliveryZonesPage() {
   }
 
   async function saveEdit(id: string) {
+    const fee = Number(editFee)
+    if (!editName.trim() || !Number.isFinite(fee) || fee < 0) {
+      toast.error("Name and a non-negative fee are required")
+      return
+    }
     const res = await fetch(`/api/delivery-zones/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName, fee: Number(editFee) }),
+      body: JSON.stringify({ name: editName.trim(), fee }),
     })
     const d = await res.json()
     if (d.success) {
@@ -111,7 +121,7 @@ export default function AdminDeliveryZonesPage() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="zoneFee" className="text-xs font-medium text-slate-600">Fee (৳)</Label>
-            <Input id="zoneFee" type="number" value={newFee} onChange={(e) => setNewFee(e.target.value)} placeholder="e.g. 100" className="h-9 text-xs" required />
+            <Input id="zoneFee" type="number" min={0} value={newFee} onChange={(e) => setNewFee(e.target.value)} placeholder="e.g. 100" className="h-9 text-xs" required />
           </div>
           <Button type="submit" disabled={loading} className="h-9 rounded-lg px-4 text-xs font-semibold">
             <Plus className="h-3.5 w-3.5 mr-1" /> Add zone
@@ -140,7 +150,7 @@ export default function AdminDeliveryZonesPage() {
                     <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-xs" />
                   </TableCell>
                   <TableCell>
-                    <Input type="number" value={editFee} onChange={(e) => setEditFee(e.target.value)} className="h-8 w-24 text-xs" />
+                    <Input type="number" min={0} value={editFee} onChange={(e) => setEditFee(e.target.value)} className="h-8 w-24 text-xs" />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">

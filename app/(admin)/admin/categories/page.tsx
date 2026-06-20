@@ -64,7 +64,7 @@ export default function AdminCategoriesPage() {
     }
   }
 
-  useEffect(() => { loadCategories() }, [])
+  useEffect(() => { queueMicrotask(() => { void loadCategories() }) }, [])
 
   const parentCategories = categories.filter((c) => !c.parentId)
 
