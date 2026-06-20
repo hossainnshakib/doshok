@@ -329,32 +329,6 @@ export const sizeGuidePage: InfoPageData = {
   actions: [{ label: "Shop Products", href: "/products" }],
   sections: [
     {
-      id: "tops",
-      title: "Tops",
-      table: {
-        headers: ["Size", "Chest", "Waist", "Shoulder"],
-        rows: [
-          ["S", "34–36 in", "28–30 in", "14–15 in"],
-          ["M", "36–38 in", "30–32 in", "15–16 in"],
-          ["L", "38–40 in", "32–34 in", "16–17 in"],
-          ["XL", "40–43 in", "34–37 in", "17–18 in"],
-        ],
-      },
-    },
-    {
-      id: "bottoms",
-      title: "Bottoms",
-      table: {
-        headers: ["Size", "Waist", "Hip", "Length"],
-        rows: [
-          ["S", "28–30 in", "36–38 in", "Regular"],
-          ["M", "30–32 in", "38–40 in", "Regular"],
-          ["L", "32–34 in", "40–42 in", "Regular"],
-          ["XL", "34–37 in", "42–45 in", "Regular"],
-        ],
-      },
-    },
-    {
       id: "measure",
       title: "How to Measure",
       bullets: [
