@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { AdminPageHeader, AdminTableShell, AdminStatusBadge, AdminPageShell } from "@/components/admin/admin-ui"
+import { AdminPageHeader, AdminTableShell, AdminStatusBadge, AdminPageShell, AdminEmptyState } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
 import { Trash2, Plus, Edit, Eye, X } from "lucide-react"
 import { toast } from "sonner"
@@ -130,7 +130,7 @@ export default function AdminPagesPage() {
         {loading ? (
           <div className="p-8 text-center text-sm text-slate-400">Loading...</div>
         ) : pages.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-400">No pages found.</div>
+          <AdminEmptyState title="No pages found" description="Create your first page to get started." />
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -266,6 +266,11 @@ function PageModal({
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-600">Slug</label>
                 <input name="slug" value={slug} onChange={(e) => setSlug(e.target.value)} required className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 font-mono focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                {["about","terms","delivery","faq","care-guide","privacy","privacy-policy","return-policy","returns","cookies","accessibility","size-guide"].includes(slug.trim().toLowerCase()) && (
+                  <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 leading-relaxed mt-1">
+                    This slug is used by a built-in info page. Rich text content here will not override the structured built-in page in V1.1.
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-1.5">

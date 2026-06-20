@@ -9,9 +9,13 @@ export async function getCmsPageData(slug: string): Promise<InfoPageData | null>
 
   if (!page?.content) return null
 
+  const trimmed = page.content.trim()
+  if (!trimmed.startsWith("{")) return null
+
   try {
-    const data = JSON.parse(page.content)
-    if (data && typeof data === "object" && data.title && data.sections) {
+    const data = JSON.parse(trimmed)
+    if (data && typeof data === "object" && data.title) {
+      if (data.sections !== undefined && !Array.isArray(data.sections)) return null
       return data as InfoPageData
     }
   } catch { }
