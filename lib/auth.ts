@@ -4,6 +4,8 @@ import { compare } from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   providers: [
     Credentials({
       name: "credentials",
@@ -49,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.phone = (user as { phone?: string | null }).phone
         token.phoneVerifiedAt = (user as { phoneVerifiedAt?: Date | null }).phoneVerifiedAt?.toISOString() ?? null
       }
-      if (token.id) {
+      if (typeof token.id === "string") {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id },
           select: { role: true, isActive: true, emailVerified: true, phoneVerifiedAt: true },
