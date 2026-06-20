@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import SanitizedHTML from "@/components/sanitized-html"
 import type { Metadata } from "next"
 
 export default async function DynamicPage({
@@ -19,10 +20,7 @@ export default async function DynamicPage({
       <article>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">{page.excerpt || "Page"}</p>
         <h1 className="text-3xl font-black tracking-tight md:text-4xl mb-6">{page.title}</h1>
-        <div
-          className="prose prose-sm max-w-none text-muted-foreground"
-          dangerouslySetInnerHTML={{ __html: page.content }}
-        />
+        <SanitizedHTML html={page.content} className="prose prose-sm max-w-none text-muted-foreground" />
       </article>
     </main>
   )

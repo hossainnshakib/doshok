@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Trash2, Plus, Edit, Eye, X } from "lucide-react"
 import { toast } from "sonner"
 import { ImageUploader } from "@/components/admin/image-uploader"
+import dynamic from "next/dynamic"
 import { cn } from "@/lib/utils"
+
+const RichTextEditor = dynamic(() => import("@/components/admin/rich-text-editor"), { ssr: false })
 
 type Page = {
   id: string
@@ -270,8 +273,9 @@ function PageModal({
               <textarea name="excerpt" value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600">Content (HTML)</label>
-              <textarea name="content" value={content} onChange={(e) => setContent(e.target.value)} required rows={8} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <label className="text-xs font-medium text-slate-600">Content</label>
+              <RichTextEditor value={content} onChange={setContent} />
+              <input type="hidden" name="content" value={content} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">

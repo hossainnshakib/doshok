@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
+import SanitizedHTML from "@/components/sanitized-html"
 import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
 
@@ -70,10 +71,7 @@ export default async function StoryDetailPage({
 
       <article>
         <h1 className="text-3xl font-black tracking-tight md:text-4xl">{story.title}</h1>
-        <div
-          className="mt-6 prose prose-sm max-w-none text-muted-foreground"
-          dangerouslySetInnerHTML={{ __html: story.content }}
-        />
+        <SanitizedHTML html={story.content} className="mt-6 prose prose-sm max-w-none text-muted-foreground" />
       </article>
     </main>
   )
