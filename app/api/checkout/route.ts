@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (!item.variantId) {
-        return { ...item, product, variant: null, price: product.price }
+        throw new Error(`This product is not available for checkout. Please select an available variant.`)
       }
 
       const variant = variantMap.get(item.variantId)
@@ -152,12 +152,32 @@ export async function POST(request: NextRequest) {
       const identityKey = userId ?? customer.email
       if (!identityKey) return error("Please provide an email to use a coupon")
 
+      if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
+        return error("This coupon has reached its maximum usage limit")
+      }
+
+      if (coupon.maxUsesPerCustomer) {
+        const usageCount = await prisma.couponUsage.count({
+          where: {
+            couponId: coupon.id,
+            customerKey: identityKey,
+          },
+        })
+        if (usageCount >= coupon.maxUsesPerCustomer) {
+          return error(`You have already used this coupon ${coupon.maxUsesPerCustomer} time(s)`)
+        }
+      }
+
       const result = applyScopedCoupon({
         coupon,
         productSubtotal: subtotal,
         deliveryFee,
         couponCode: coupon.code,
       })
+
+      if (result.totalDiscount <= 0) {
+        return error("This coupon does not apply to your order")
+      }
 
       discount = result.totalDiscount
       couponScope = result.couponScope
@@ -196,7 +216,7 @@ export async function POST(request: NextRequest) {
         select: { enabled: true },
       })
       if (!codSetting?.enabled) {
-        return error("Cash on Delivery is currently disabled. Please select another payment method.")
+        return error("Cash on Delivery is currently unavailable. Please contact support.")
       }
     }
 
@@ -215,15 +235,14 @@ export async function POST(request: NextRequest) {
 
     const isOnlinePayment = false
 
-    let resolvedIdempotencyKey: string | null = null
+    let resolvedIdempotencyKey: string | null = idempotencyKey ?? request.headers.get("X-Checkout-Session-Id") ?? null
 
-    if (isV2) {
-      resolvedIdempotencyKey = idempotencyKey ?? request.headers.get("X-Checkout-Session-Id") ?? null
-      if (!resolvedIdempotencyKey) {
-        resolvedIdempotencyKey = crypto.randomUUID()
-        console.warn(`[checkout] No idempotencyKey provided. Generated server-side: ${resolvedIdempotencyKey}`)
-      }
+    if (isV2 && !resolvedIdempotencyKey) {
+      resolvedIdempotencyKey = crypto.randomUUID()
+      console.warn(`[checkout] No idempotencyKey provided. Generated server-side: ${resolvedIdempotencyKey}`)
+    }
 
+    if (resolvedIdempotencyKey) {
       const existingOrder = await prisma.order.findUnique({
         where: { idempotencyKey: resolvedIdempotencyKey },
         include: { items: true, address: true },

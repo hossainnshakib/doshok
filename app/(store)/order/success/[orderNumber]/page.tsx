@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { CheckCircle, Package, MapPin, CreditCard, Truck, HeadphonesIcon, ShoppingBag } from "lucide-react"
 import { getPhoneDisplayE164 } from "@/lib/utils"
+import { getEffectiveDeliveryFee, getOrderProductSubtotal, inferDeliveryZoneLabelFromDistrictName } from "@/lib/order-delivery"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -47,6 +48,14 @@ export default async function OrderSuccessPage({
   })
 
   if (!order) notFound()
+
+  const productSubtotal = getOrderProductSubtotal(order)
+  const effectiveDeliveryFee = getEffectiveDeliveryFee(order)
+  const deliveryZoneLabel = order.address
+    ? inferDeliveryZoneLabelFromDistrictName(order.address.district)
+    : null
+
+  const hasScopedDiscountFields = (order.productDiscount ?? 0) > 0 || (order.deliveryDiscount ?? 0) > 0
 
   const orderDate = new Date(order.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
@@ -144,6 +153,9 @@ export default async function OrderSuccessPage({
               <p className="text-muted-foreground">
                 {order.address.thana}, {order.address.district}, {order.address.division}
               </p>
+              {deliveryZoneLabel && (
+                <p className="text-muted-foreground">Delivery area: {deliveryZoneLabel}</p>
+              )}
             </>
           )}
           {order.notes && (
@@ -182,9 +194,15 @@ export default async function OrderSuccessPage({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>৳{order.subtotal.toLocaleString()}</span>
+              <span>৳{productSubtotal.toLocaleString()}</span>
             </div>
-            {order.discount > 0 && (
+            {order.productDiscount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Product Discount</span>
+                <span>-৳{order.productDiscount.toLocaleString()}</span>
+              </div>
+            )}
+            {order.discount > 0 && !hasScopedDiscountFields && (
               <div className="flex justify-between text-green-600">
                 <span>Discount</span>
                 <span>-৳{order.discount.toLocaleString()}</span>
@@ -194,6 +212,18 @@ export default async function OrderSuccessPage({
               <span className="text-muted-foreground">Delivery Fee</span>
               <span>৳{order.deliveryFee.toLocaleString()}</span>
             </div>
+            {order.deliveryDiscount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Delivery Discount</span>
+                <span>-৳{order.deliveryDiscount.toLocaleString()}</span>
+              </div>
+            )}
+            {effectiveDeliveryFee !== order.deliveryFee && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Final Delivery Fee</span>
+                <span>৳{effectiveDeliveryFee.toLocaleString()}</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between font-bold text-base">
               <span>Total</span>

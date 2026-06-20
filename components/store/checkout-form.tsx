@@ -740,7 +740,7 @@ export function CheckoutForm() {
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const displayDeliveryFee = finalDeliveryFeeDisplay || deliveryFee
   const displayProductDiscount = productDiscount || couponDiscount
-  const displayTotal = grandTotal || (subtotal + deliveryFee - couponDiscount)
+  const displayTotal = grandTotal || (subtotal + displayDeliveryFee - couponDiscount)
 
   const effectiveGrandTotal = displayTotal
   const effectiveDeliveryFee = finalDeliveryFeeDisplay || deliveryFee
@@ -782,7 +782,13 @@ export function CheckoutForm() {
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.trim(), subtotal, deliveryFee }),
+        body: JSON.stringify({
+          code: code.trim(),
+          subtotal,
+          deliveryFee,
+          email: draft.email.trim() || undefined,
+          userId: session?.user?.id,
+        }),
       })
       const d = await res.json()
       if (d.success) {
@@ -977,18 +983,14 @@ export function CheckoutForm() {
         payload.abandonedCheckoutToken = abandonedCheckoutToken
       }
 
-      if (isV2) {
-        payload.idempotencyKey = idempotencyKeyRef.current
-        if (checkoutVerificationToken) {
-          payload.checkoutVerificationToken = checkoutVerificationToken
-        }
+      payload.idempotencyKey = idempotencyKeyRef.current
+      if (checkoutVerificationToken) {
+        payload.checkoutVerificationToken = checkoutVerificationToken
       }
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-      }
-      if (isV2) {
-        headers["X-Checkout-Session-Id"] = idempotencyKeyRef.current
+        "X-Checkout-Session-Id": idempotencyKeyRef.current,
       }
 
       const res = await fetch("/api/checkout", {
@@ -1925,7 +1927,7 @@ export function CheckoutForm() {
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Delivery Fee</span>
-                    <span className="font-medium">৳{deliveryFee}</span>
+                    <span className="font-medium">৳{displayDeliveryFee.toLocaleString()}</span>
                   </div>
                   {isV2 && deliveryDiscount > 0 && (
                     <div className="flex justify-between text-green-600">
@@ -1950,10 +1952,12 @@ export function CheckoutForm() {
                   </div>
                   {isV2 && (
                     <>
-                      <div className="flex justify-between text-sm text-primary font-medium">
-                        <span>Pay Now</span>
-                        <span>{computedPayment.payNow > 0 ? `৳${computedPayment.payNow.toLocaleString()}` : "—"}</span>
-                      </div>
+                      {computedPayment.payNow > 0 && (
+                        <div className="flex justify-between text-sm text-primary font-medium">
+                          <span>Pay Now</span>
+                          <span>৳{computedPayment.payNow.toLocaleString()}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Due on Delivery</span>
                         <span>{computedPayment.dueAmount > 0 ? `৳${computedPayment.dueAmount.toLocaleString()}` : "—"}</span>
