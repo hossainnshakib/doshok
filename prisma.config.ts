@@ -1,10 +1,10 @@
-import { defineConfig } from "prisma/config"
+import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
   migrations: {
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/doshok",
+    url: env("DATABASE_URL"),
   },
 })
