@@ -33,6 +33,23 @@ export default async function SizeGuidePage() {
 
   const editorial = cmsPage ?? sizeGuidePage
 
+  const fallbackFreeSizeSection: InfoPageSection = {
+    id: "free-size",
+    title: "Free Size Measurements",
+    body: [
+      "Our three-piece sets come in a standard Free Size that fits most body types. Measurements may vary slightly by design and fabric.",
+    ],
+    table: {
+      headers: ["Measurement", "Inches"],
+      rows: [
+        ["Bust / Chest", "38–42"],
+        ["Length", "52"],
+        ["Shoulder", "14–15"],
+        ["Sleeve", "17–18"],
+      ],
+    },
+  }
+
   const chartSections: InfoPageSection[] = sizeCharts.length > 0
     ? sizeCharts.map((chart) => ({
         id: `chart-${chart.slug}`,
@@ -58,15 +75,7 @@ export default async function SizeGuidePage() {
           }
         })(),
       }))
-    : [
-        {
-          id: "no-charts",
-          title: "Size Charts",
-          body: [
-            "No size charts have been created yet. Product-specific sizing information will appear here once charts are added.",
-          ],
-        },
-      ]
+    : [fallbackFreeSizeSection]
 
   const merged: InfoPageData = {
     ...editorial,

@@ -59,7 +59,7 @@ export async function PATCH(
       pending: ["confirmed", "cancelled"],
       confirmed: ["processing", "shipped", "cancelled"],
       processing: ["shipped", "cancelled"],
-      shipped: ["delivered", "returned"],
+      shipped: ["delivered", "returned", "cancelled"],
       delivered: ["returned"],
       cancelled: [],
       returned: [],

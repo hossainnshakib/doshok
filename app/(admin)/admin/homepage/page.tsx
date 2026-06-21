@@ -50,6 +50,8 @@ export default function AdminHomepagePage() {
   const [heroImage, setHeroImage] = useState("")
   const [heroCTAText, setHeroCTAText] = useState("")
   const [heroCTASecondaryText, setHeroCTASecondaryText] = useState("")
+  const [heroCTAUrl, setHeroCTAUrl] = useState("/products")
+  const [heroCTASecondaryUrl, setHeroCTASecondaryUrl] = useState("/new-arrivals")
   const [featuredIds, setFeaturedIds] = useState<string[]>([])
   const [announcementBarText, setAnnouncementBarText] = useState("")
   const [announcementBarEnabled, setAnnouncementBarEnabled] = useState(false)
@@ -73,6 +75,8 @@ export default function AdminHomepagePage() {
           setHeroImage(d.data.heroImage ?? "")
           setHeroCTAText(d.data.heroCTAText ?? "")
           setHeroCTASecondaryText(d.data.heroCTASecondaryText ?? "")
+          setHeroCTAUrl(d.data.heroCTAUrl ?? "/products")
+          setHeroCTASecondaryUrl(d.data.heroCTASecondaryUrl ?? "/new-arrivals")
           setAnnouncementBarText(d.data.announcementBarText ?? "")
           setAnnouncementBarEnabled(d.data.announcementBarEnabled ?? false)
           setPromoBannerText(d.data.promoBannerText ?? "")
@@ -129,6 +133,7 @@ export default function AdminHomepagePage() {
       body: JSON.stringify({
         heroTitle, heroSubtitle, heroImage,
         heroCTAText, heroCTASecondaryText,
+        heroCTAUrl, heroCTASecondaryUrl,
         featuredIds,
         announcementBarText, announcementBarEnabled,
         promoBannerText, promoBannerImage, promoBannerLink, promoBannerEnabled,
@@ -198,12 +203,22 @@ export default function AdminHomepagePage() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="heroCTAText" className="text-xs font-medium text-slate-600">Primary CTA Button</Label>
+                    <Label htmlFor="heroCTAText" className="text-xs font-medium text-slate-600">Primary CTA Label</Label>
                     <Input id="heroCTAText" value={heroCTAText} onChange={(e) => setHeroCTAText(e.target.value)} placeholder="Shop Collection" className="text-xs h-9" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="heroCTASecondaryText" className="text-xs font-medium text-slate-600">Secondary CTA Button</Label>
-                    <Input id="heroCTASecondaryText" value={heroCTASecondaryText} onChange={(e) => setHeroCTASecondaryText(e.target.value)} placeholder="About Us" className="text-xs h-9" />
+                    <Label htmlFor="heroCTASecondaryText" className="text-xs font-medium text-slate-600">Secondary CTA Label</Label>
+                    <Input id="heroCTASecondaryText" value={heroCTASecondaryText} onChange={(e) => setHeroCTASecondaryText(e.target.value)} placeholder="New Arrivals" className="text-xs h-9" />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="heroCTAUrl" className="text-xs font-medium text-slate-600">Primary CTA URL</Label>
+                    <Input id="heroCTAUrl" value={heroCTAUrl} onChange={(e) => setHeroCTAUrl(e.target.value)} placeholder="/products" className="text-xs h-9" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="heroCTASecondaryUrl" className="text-xs font-medium text-slate-600">Secondary CTA URL</Label>
+                    <Input id="heroCTASecondaryUrl" value={heroCTASecondaryUrl} onChange={(e) => setHeroCTASecondaryUrl(e.target.value)} placeholder="/new-arrivals" className="text-xs h-9" />
                   </div>
                 </div>
                 <div className="space-y-1.5">

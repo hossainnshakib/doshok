@@ -541,6 +541,12 @@ export async function restoreStockForCancelledOrder(
         data: { stockRestoredAt },
       })
     })
+  } else {
+    // No stock movements exist (e.g., pending COD with no reservation) — still mark restored for idempotency
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { stockRestoredAt },
+    })
   }
 
   return { success: true }

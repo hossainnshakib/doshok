@@ -471,6 +471,8 @@ model HomepageConfig {
   heroImage             String?
   heroCTAText           String @default("Shop Collection")
   heroCTASecondaryText  String @default("About Us")
+  heroCTAUrl            String @default("/products")
+  heroCTASecondaryUrl   String @default("/new-arrivals")
   featuredIds           String @default("[]")
   announcementBarText   String @default("")
   announcementBarEnabled Boolean @default(false)

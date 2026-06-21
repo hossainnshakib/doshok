@@ -51,6 +51,8 @@ async function getHomepageData() {
   const heroSubtitle = homepageConfig?.heroSubtitle ?? "Thoughtful silhouettes, clean essentials, and occasion-ready pieces — made for your wardrobe."
   const heroCTAText = homepageConfig?.heroCTAText ?? "Shop Collection"
   const heroCTASecondaryText = homepageConfig?.heroCTASecondaryText ?? "About Us"
+  const heroCTAUrl = homepageConfig?.heroCTAUrl || null
+  const heroCTASecondaryUrl = homepageConfig?.heroCTASecondaryUrl || null
 
   const hasCatSection = enabledSections.some((s) => s.type === "categories")
   const hasNewSection = enabledSections.some((s) => s.type === "new_arrivals")
@@ -58,17 +60,19 @@ async function getHomepageData() {
   const hasFeatSection = enabledSections.some((s) => s.type === "featured_products")
   const hasBestSection = enabledSections.some((s) => s.type === "best_sellers")
 
-  const needsLatest = hasNewSection || hasFeatSection || hasBestSection || (!homepageConfig?.heroImage)
-
   const catSection = enabledSections.find((s) => s.type === "categories")
   const saleSection = enabledSections.find((s) => s.type === "sale_products")
   const newSection = enabledSections.find((s) => s.type === "new_arrivals")
+  const featSection = enabledSections.find((s) => s.type === "featured_products")
+  const bestSection = enabledSections.find((s) => s.type === "best_sellers")
 
   const maxCategories = (catSection?.config?.maxCategories as number) ?? 8
   const maxSaleProducts = (saleSection?.config?.maxProducts as number) ?? 4
   const maxNewProducts = (newSection?.config?.maxProducts as number) ?? 8
+  const maxFeatProducts = (featSection?.config?.maxProducts as number) ?? 4
+  const maxBestProducts = (bestSection?.config?.maxProducts as number) ?? 8
 
-  const [categories, latestPrisma, salePrisma] = await Promise.all([
+  const [categories, latestPrisma, salePrisma, bestSellers] = await Promise.all([
     hasCatSection
       ? prisma.category.findMany({
           where: { parentId: null },
@@ -76,12 +80,12 @@ async function getHomepageData() {
           take: maxCategories,
         })
       : Promise.resolve<HomeCategory[]>([]),
-    needsLatest
+    hasNewSection
       ? prisma.product.findMany({
           where: { status: "Active" },
           include: { variants: true, category: true },
           orderBy: { createdAt: "desc" },
-          take: Math.max(maxNewProducts, (hasFeatSection || hasBestSection) ? 12 : 8),
+          take: maxNewProducts,
         })
       : Promise.resolve<Parameters<typeof mapProduct>[0][]>([]),
     hasSaleSection
@@ -92,9 +96,32 @@ async function getHomepageData() {
           take: maxSaleProducts,
         })
       : Promise.resolve<Parameters<typeof mapProduct>[0][]>([]),
+    hasBestSection
+      ? (async () => {
+          try {
+            const orderProducts = await prisma.orderItem.groupBy({
+              by: ["productId"],
+              _sum: { quantity: true },
+              orderBy: { _sum: { quantity: "desc" as const } },
+              take: maxBestProducts,
+            })
+            if (orderProducts.length > 0) {
+              const productIds = orderProducts.map((op) => op.productId)
+              const products = await prisma.product.findMany({
+                where: { id: { in: productIds }, status: "Active" },
+                include: { variants: true, category: true },
+              })
+              const orderMap = new Map(orderProducts.map((op, i) => [op.productId, i]))
+              return products.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999))
+            }
+          } catch {}
+          return []
+        })()
+      : Promise.resolve<Parameters<typeof mapProduct>[0][]>([]),
   ])
   const latestProducts = latestPrisma.map(mapProduct)
   const saleProducts = salePrisma.map(mapProduct)
+  const bestSellersMapped = bestSellers.map(mapProduct)
 
   let featuredProducts: HomeProduct[] = []
   if (featuredIds.length > 0) {
@@ -106,67 +133,37 @@ async function getHomepageData() {
     featuredProducts = products.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999)).map(mapProduct)
   }
 
-  if (hasFeatSection) {
-    const maxFeatProducts = (enabledSections.find((s) => s.type === "featured_products")?.config?.maxProducts as number) ?? 4
-    if (featuredProducts.length < maxFeatProducts) {
-      const need = maxFeatProducts - featuredProducts.length
-      const featuredFallback = await prisma.product.findMany({
-        where: { featured: true, status: "Active", id: { notIn: featuredProducts.map((p) => p.id) } },
-        include: { variants: true, category: true },
-        take: need,
-      })
-      featuredProducts = [...featuredProducts, ...featuredFallback.map(mapProduct)]
-    }
-    if (featuredProducts.length < maxFeatProducts) {
-      const need = maxFeatProducts - featuredProducts.length
-      const latestFallback = latestProducts
-        .filter((p) => !featuredProducts.find((fp) => fp.id === p.id))
-        .slice(0, need)
-      featuredProducts = [...featuredProducts, ...latestFallback]
-    }
+  if (hasFeatSection && featuredProducts.length < maxFeatProducts) {
+    const need = maxFeatProducts - featuredProducts.length
+    const featuredFallback = await prisma.product.findMany({
+      where: { featured: true, status: "Active", id: { notIn: featuredProducts.map((p) => p.id) } },
+      include: { variants: true, category: true },
+      take: need,
+    })
+    featuredProducts = [...featuredProducts, ...featuredFallback.map(mapProduct)]
   }
 
-  let bestSellers: HomeProduct[] = []
-  if (hasBestSection) {
-    const maxBestProducts = (enabledSections.find((s) => s.type === "best_sellers")?.config?.maxProducts as number) ?? 8
-    try {
-      const orderProducts = await prisma.orderItem.groupBy({
-        by: ["productId"],
-        _sum: { quantity: true },
-        orderBy: { _sum: { quantity: "desc" as const } },
-        take: maxBestProducts,
-      })
-      if (orderProducts.length > 0) {
-        const productIds = orderProducts.map((op) => op.productId)
-        const products = await prisma.product.findMany({
-          where: { id: { in: productIds }, status: "Active" },
-          include: { variants: true, category: true },
-        })
-        const orderMap = new Map(orderProducts.map((op, i) => [op.productId, i]))
-        bestSellers = products.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999)).map(mapProduct)
-      }
-    } catch {}
-    if (bestSellers.length === 0) {
-      bestSellers = (featuredProducts.length > 0 ? featuredProducts : latestProducts).slice(0, maxBestProducts)
-    }
-  }
-
-  const allProducts = [...new Map([...latestProducts, ...featuredProducts, ...bestSellers].map((p) => [p.id, p])).values()]
-  const heroProducts = allProducts.filter((product, index, list) => (
-    product.images[0] && list.findIndex((item) => item.id === product.id) === index
-  )).slice(0, 4)
+  const heroNeedsProducts = !homepageConfig?.heroImage && (hasNewSection || hasFeatSection || hasBestSection || hasSaleSection || hasCatSection)
+  const heroSource = featuredProducts.length > 0 ? featuredProducts : latestProducts.length > 0 ? latestProducts : bestSellersMapped.length > 0 ? bestSellersMapped : saleProducts
+  const heroProducts = heroNeedsProducts
+    ? heroSource.filter((product, index, list) => (
+        product.images[0] && list.findIndex((item) => item.id === product.id) === index
+      )).slice(0, 4)
+    : []
 
   return {
     categories,
     latestProducts,
     saleProducts,
     featuredProducts,
-    bestSellers,
+    bestSellers: bestSellersMapped,
     heroImage: homepageConfig?.heroImage ?? null,
     heroTitle,
     heroSubtitle,
     heroCTAText,
     heroCTASecondaryText,
+    heroCTAUrl,
+    heroCTASecondaryUrl,
     promoBannerText: homepageConfig?.promoBannerText ?? "",
     promoBannerImage: homepageConfig?.promoBannerImage ?? null,
     promoBannerLink: homepageConfig?.promoBannerLink ?? "",
@@ -399,8 +396,12 @@ function renderHeroSection(
   heroSubtitle: string,
   heroCTAText: string,
   heroCTASecondaryText: string,
+  heroCTAUrl: string | null,
+  heroCTASecondaryUrl: string | null,
   heroProducts: HomeProduct[],
 ) {
+  const primaryUrl = heroCTAUrl || "/products"
+  const showSecondary = heroCTASecondaryText && heroCTASecondaryUrl
   return (
     <>
       {heroImage && (
@@ -417,11 +418,13 @@ function renderHeroSection(
             </h1>
             <p className={styles.sub}>{heroSubtitle}</p>
             <div className={styles.ctaRow}>
-              <Link href="/products" className={styles.btnPrimary}>
+              <Link href={primaryUrl} className={styles.btnPrimary}>
                 {heroCTAText}
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
-              <Link href="/about" className={styles.btnGhost}>{heroCTASecondaryText}</Link>
+              {showSecondary && (
+                <Link href={heroCTASecondaryUrl} className={styles.btnGhost}>{heroCTASecondaryText}</Link>
+              )}
             </div>
           </div>
         </section>
@@ -439,11 +442,13 @@ function renderHeroSection(
           </h1>
           <p className={styles.sub}>{heroSubtitle}</p>
           <div className={styles.ctaRow}>
-            <Link href="/products" className={styles.btnPrimary}>
+            <Link href={primaryUrl} className={styles.btnPrimary}>
               {heroCTAText}
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
             </Link>
-            <Link href="/about" className={styles.btnGhost}>{heroCTASecondaryText}</Link>
+            {showSecondary && (
+              <Link href={heroCTASecondaryUrl} className={styles.btnGhost}>{heroCTASecondaryText}</Link>
+            )}
           </div>
         </div>
         <div className={styles.heroRight}>
@@ -479,12 +484,13 @@ export default async function HomePage() {
   const {
     categories, latestProducts, saleProducts, featuredProducts, bestSellers,
     heroImage, heroTitle, heroSubtitle, heroCTAText, heroCTASecondaryText,
+    heroCTAUrl, heroCTASecondaryUrl,
     promoBannerText, promoBannerImage, promoBannerLink, promoBannerEnabled,
     sections, heroProducts, hasProducts,
   } = await getHomepageData()
 
   const sectionRenderers: Record<string, (section: HomepageSection) => React.ReactNode> = {
-    hero: (s) => renderHeroSection(heroImage, heroTitle, heroSubtitle, heroCTAText, heroCTASecondaryText, heroProducts),
+    hero: (s) => renderHeroSection(heroImage, heroTitle, heroSubtitle, heroCTAText, heroCTASecondaryText, heroCTAUrl, heroCTASecondaryUrl, heroProducts),
     categories: (s) => renderCategoriesSection(categories, s),
     sale_products: (s) => renderSaleProductsSection(saleProducts, s),
     new_arrivals: (s) => renderNewArrivalsSection(latestProducts, saleProducts, s),

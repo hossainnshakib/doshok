@@ -90,28 +90,29 @@ export const careGuidePage: InfoPageData = {
   eyebrow: "Care Guide",
   title: "Keep your pieces looking new.",
   description:
-    "Practical care notes for cotton, linen, denim, knitwear, leather, and everyday Doshok wardrobe staples.",
+    "Practical care notes for cotton, printed fabrics, embroidered details, and everyday Doshok wardrobe staples.",
   actions: [{ label: "Shop New Arrivals", href: "/new-arrivals" }],
   sections: [
     {
       id: "fabric",
       title: "Fabric Care",
       cards: [
-        { title: "Cotton", body: "Wash cold with similar colors, reshape while damp, and avoid harsh bleach." },
-        { title: "Linen", body: "Use gentle wash cycles and steam lightly for a relaxed, polished drape." },
-        { title: "Wool & Merino", body: "Air between wears, hand wash when needed, and dry flat away from direct sun." },
-        { title: "Denim", body: "Wash inside out, reduce frequent washing, and expect natural character over time." },
-        { title: "Leather", body: "Wipe with a soft cloth and store away from moisture and direct heat." },
+        { title: "Cotton", body: "Wash cold with similar colors, reshape while damp, and avoid harsh bleach for longer fabric life." },
+        { title: "Printed Fabric", body: "Turn inside out before washing to preserve print quality. Avoid scrubbing printed areas directly." },
+        { title: "Embroidered Details", body: "Hand wash or use a gentle machine cycle with mesh bag. Do not wring or twist embroidered panels." },
+        { title: "Washing & Drying", body: "Separate dark and light colours. Use mild detergent and dry in shade to maintain colour depth." },
+        { title: "Ironing", body: "Iron on medium heat. For embroidered sections, iron on the reverse side to avoid flattening details." },
       ],
     },
     {
       id: "routine",
       title: "Everyday Routine",
       bullets: [
-        "Close zippers and buttons before washing.",
-        "Use mesh bags for delicate pieces.",
-        "Dry in shade to protect color depth.",
-        "Store structured garments on proper hangers.",
+        "Close zippers and buttons before washing to prevent snagging.",
+        "Use mesh bags for delicate or heavy-embroidery pieces.",
+        "Dry in shade to protect colour depth and fabric quality.",
+        "Store structured garments on proper hangers; fold knitted or heavy items.",
+        "Avoid prolonged exposure to direct sunlight to prevent fading.",
       ],
     },
   ],
@@ -130,8 +131,8 @@ export const cookiesPage: InfoPageData = {
       bullets: [
         "Remember cart and checkout session basics.",
         "Keep account and security flows reliable.",
-        "Understand site performance and popular pages.",
-        "Improve product discovery without selling personal data.",
+        "Understand site performance and popular pages through analytics tools.",
+        "Improve product discovery and marketing without selling personal data.",
       ],
     },
     {
@@ -142,15 +143,30 @@ export const cookiesPage: InfoPageData = {
         rows: [
           ["Essential", "Required for cart, login, checkout, and security.", "Session token, cart id"],
           ["Preference", "Stores choices like region or display preferences.", "Saved location"],
-          ["Analytics", "Helps us understand aggregate page usage.", "Page view event"],
+          ["Analytics", "Helps us understand aggregate page usage and user behaviour.", "Page view event"],
+          ["Marketing", "Used for targeted advertising and campaign measurement.", "Conversion tracking"],
         ],
       },
+    },
+    {
+      id: "tools",
+      title: "Tools We Use",
+      body: [
+        "Doshok uses the following analytics and tracking tools to understand site usage and improve your shopping experience:",
+      ],
+      bullets: [
+        "Google Analytics — anonymised page view and session data.",
+        "Google Tag Manager — manages tracking tags efficiently.",
+        "Microsoft Clarity — heatmaps and session replay to understand usability.",
+        "Meta / Trakon — conversion measurement and campaign optimisation.",
+      ],
     },
     {
       id: "control",
       title: "Managing Cookies",
       body: [
         "You can block or delete cookies from your browser settings. Some checkout, cart, account, or order features may not work correctly without essential cookies.",
+        "To opt out of Google Analytics, visit the Google Analytics Opt-out Browser Add-on page. Clarity and Meta tracking can be controlled through browser cookie settings or their respective opt-out mechanisms.",
       ],
     },
   ],
@@ -185,7 +201,7 @@ export const faqPage: InfoPageData = {
       title: "Payment",
       faqs: [
         { question: "Do you offer COD?", answer: "Yes. Cash on Delivery is supported for eligible orders." },
-        { question: "Are online gateways live?", answer: "Online payment gateways are available once configured through the admin panel." },
+        { question: "Are online gateways live?", answer: "Currently Cash on Delivery is available. Online payment is coming soon." },
       ],
     },
     {

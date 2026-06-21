@@ -1,0 +1,3 @@
+ALTER TABLE "HomepageConfig"
+ADD COLUMN IF NOT EXISTS "heroCTAUrl" TEXT NOT NULL DEFAULT '/products',
+ADD COLUMN IF NOT EXISTS "heroCTASecondaryUrl" TEXT NOT NULL DEFAULT '/new-arrivals';

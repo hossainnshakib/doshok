@@ -3,8 +3,9 @@ import { getPhoneDisplayE164 } from "@/lib/utils"
 import { generateSuccessToken } from "@/lib/checkout/success-token"
 
 const resendApiKey = process.env.RESEND_API_KEY
-const adminEmail = process.env.ADMIN_EMAIL || "admin@doshok.com"
+const adminEmail = process.env.ADMIN_EMAIL || "Doshok <hello@doshok.com>"
 const fromEmail = process.env.FROM_EMAIL || "Doshok <noreply@doshok.com>"
+const orderFromEmail = process.env.ORDER_FROM_EMAIL || fromEmail
 const otpFromEmail = process.env.OTP_FROM_EMAIL || "Doshok <otp@doshok.com>"
 const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
 
@@ -106,7 +107,7 @@ export async function sendOrderConfirmationEmail(order: OrderData): Promise<void
     const paymentLabel = order.paymentMethod === "cod" ? "Cash on Delivery" : order.paymentMethod
 
     await resend.emails.send({
-      from: fromEmail,
+      from: orderFromEmail,
       to: order.customerEmail,
       subject: `Order Confirmed — ${order.orderNumber}`,
       html: `
@@ -246,7 +247,7 @@ export async function sendOrderStatusEmail(order: OrderData, newStatus: string):
     const trackUrl = `${appUrl}/track-order?order=${encodeURIComponent(order.orderNumber)}`
 
     await resend.emails.send({
-      from: fromEmail,
+      from: orderFromEmail,
       to: order.customerEmail,
       subject: statusSubjects[newStatus] || `Order Update — ${order.orderNumber}`,
       html: `
@@ -285,7 +286,7 @@ export async function sendAdminNewOrderEmail(order: OrderData): Promise<void> {
       .join("\n")
 
     await resend.emails.send({
-      from: fromEmail,
+      from: orderFromEmail,
       to: adminEmail,
       subject: `New Order — ${order.orderNumber}`,
       html: `
