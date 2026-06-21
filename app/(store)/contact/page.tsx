@@ -4,10 +4,12 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { CheckCircle, Mail, MapPin, Phone, Send, Sparkles } from "lucide-react"
 import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { trackEvent } from "@/lib/trakon"
 
 type Settings = {
   phone: string
@@ -19,10 +21,18 @@ type Settings = {
 }
 
 export default function ContactPage() {
+  const { data: session } = useSession()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" })
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    void trackEvent("Contact", {
+      email: session?.user?.email,
+      phone: session?.user?.phone,
+    })
+  }, [session?.user?.email, session?.user?.phone])
 
   useEffect(() => {
     fetch("/api/site-settings")

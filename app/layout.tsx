@@ -1,9 +1,11 @@
 import type { Metadata } from "next"
 import { Hind_Siliguri, Manrope, Plus_Jakarta_Sans } from "next/font/google"
 import Script from "next/script"
+import { Suspense } from "react"
 import { Toaster } from "@/components/ui/sonner"
 import { Providers } from "@/components/providers/session-provider"
 import { OrganizationSchema } from "@/components/json-ld/organization-schema"
+import { TrakonPageView } from "@/components/trakon-page-view"
 import "./globals.css"
 
 const manrope = Manrope({
@@ -64,7 +66,12 @@ export default function RootLayout({
           />
         </noscript>
         <OrganizationSchema />
-        <Providers>{children}</Providers>
+        <Providers>
+          <Suspense fallback={null}>
+            <TrakonPageView />
+          </Suspense>
+          {children}
+        </Providers>
         <Toaster richColors closeButton />
         <Script id="google-tag-manager" strategy="beforeInteractive">
           {`

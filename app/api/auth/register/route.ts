@@ -5,6 +5,7 @@ import { registerSchema } from "@/lib/validations"
 import { success, error } from "@/lib/api-response"
 import { createAndSendVerificationToken } from "@/lib/email-verification"
 import { rateLimitByIp } from "@/lib/rate-limit"
+import { trackEvent } from "@/lib/trakon"
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +46,11 @@ export async function POST(request: NextRequest) {
     })
 
     await createAndSendVerificationToken(email.toLowerCase(), user.id)
+
+    await trackEvent("CompleteRegistration", {
+      email: user.email,
+      event_id: user.id,
+    })
 
     return success({ message: "Account created successfully. Check your email to verify your account." }, 201)
   } catch (err) {

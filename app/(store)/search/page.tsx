@@ -3,6 +3,8 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { ProductCard } from "@/components/store/product-card"
 import { ProductPagination } from "@/components/store/product-pagination"
+import { trackEvent } from "@/lib/trakon"
+import { auth } from "@/lib/auth"
 import { Search, Package, TrendingUp, Tag, Sparkles } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -40,6 +42,13 @@ export default async function SearchPage({
   let total = 0
 
   if (q) {
+    const session = await auth()
+    void trackEvent("Search", {
+      search_string: q,
+      email: session?.user?.email,
+      phone: session?.user?.phone,
+    })
+
     const products = await prisma.product.findMany({
       where: {
         status: "Active",

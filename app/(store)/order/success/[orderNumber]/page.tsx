@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { CheckCircle, Package, MapPin, CreditCard, Truck, HeadphonesIcon, ShoppingBag } from "lucide-react"
 import { getPhoneDisplayE164 } from "@/lib/utils"
 import { getEffectiveDeliveryFee, getOrderProductSubtotal, inferDeliveryZoneLabelFromDistrictName } from "@/lib/order-delivery"
+import { trackEvent } from "@/lib/trakon"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -64,6 +65,22 @@ export default async function OrderSuccessPage({
   })
 
   const hasInvoiceAccess = !!order.userId
+
+  await trackEvent("Purchase", {
+    event_id: order.id,
+    order_id: order.id,
+    order_number: order.orderNumber,
+    value: order.total,
+    currency: "BDT",
+    email: order.customerEmail,
+    phone: order.customerPhone,
+    content_ids: order.items.map((item) => item.productId),
+    contents: order.items.map((item) => ({
+      id: item.productId,
+      quantity: item.quantity,
+      item_price: item.price,
+    })),
+  })
 
   return (
     <div className="container mx-auto container-px py-8 md:py-12 max-w-3xl">

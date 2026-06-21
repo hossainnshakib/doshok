@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Trash2, ShoppingBag, ArrowLeft, Minus, Plus, Package, ShieldCheck } from "lucide-react"
 import { getCart, updateCartQuantity, removeFromCart, validateStock } from "@/lib/cart"
+import { trackEvent } from "@/lib/trakon"
 import type { CartItem } from "@/types"
 
 export default function CartPage() {
+  const { data: session } = useSession()
   const [items, setItems] = useState<CartItem[]>([])
   const [stockMap, setStockMap] = useState<Record<string, number>>({})
 
@@ -176,6 +179,20 @@ export default function CartPage() {
               </div>
               <Link
                 href="/checkout"
+                onClick={() => {
+                  void trackEvent("InitiateCheckout", {
+                    value: subtotal,
+                    currency: "BDT",
+                    content_ids: items.map((item) => item.productId),
+                    contents: items.map((item) => ({
+                      id: item.productId,
+                      quantity: item.quantity,
+                      item_price: item.price,
+                    })),
+                    email: session?.user?.email,
+                    phone: session?.user?.phone,
+                  })
+                }}
                 className="flex h-12 items-center justify-center rounded-xl bg-primary text-primary-foreground text-sm font-bold w-full hover:bg-primary/90 transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 Proceed to Checkout

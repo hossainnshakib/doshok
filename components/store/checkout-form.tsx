@@ -31,6 +31,7 @@ import {
   loadCheckoutPersistence,
   clearCheckoutPersistence,
 } from "@/lib/checkout/checkout-persistence"
+import { trackEvent } from "@/lib/trakon"
 
 type PaymentMethodSetting = {
   provider: string
@@ -997,6 +998,14 @@ export function CheckoutForm() {
         "Content-Type": "application/json",
         "X-Checkout-Session-Id": idempotencyKeyRef.current,
       }
+
+      void trackEvent("AddPaymentInfo", {
+        value: effectiveGrandTotal,
+        currency: "BDT",
+        payment_method: paymentMethod,
+        email: draft.email || session?.user?.email,
+        phone: e164Phone || session?.user?.phone,
+      })
 
       const res = await fetch("/api/checkout", {
         method: "POST",

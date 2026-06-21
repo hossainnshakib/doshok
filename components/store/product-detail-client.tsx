@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/store/product-card"
@@ -10,6 +11,7 @@ import { trackRecentlyViewed, RecentlyViewed } from "@/components/store/recently
 import { ProductReviews } from "@/components/store/product-reviews"
 import { toast } from "sonner"
 import { addToCart, validateStock } from "@/lib/cart"
+import { trackEvent } from "@/lib/trakon"
 import { cn } from "@/lib/utils"
 import { LOW_STOCK_THRESHOLD } from "@/types"
 import {
@@ -121,6 +123,7 @@ export function ProductDetailClient({
   upsellProducts?: ProductSummary[]
 }) {
   const router = useRouter()
+  const { data: session } = useSession()
   const [selectedImage, setSelectedImage] = useState(0)
   const firstAvailableVariant = product.variants.find((variant) => (variant.stock - variant.reservedStock) > 0) ?? product.variants[0]
   const [selectedSize, setSelectedSize] = useState(firstAvailableVariant?.size ?? "")
@@ -142,6 +145,17 @@ export function ProductDetailClient({
       variants: product.variants,
     })
   }, [product])
+
+  useEffect(() => {
+    void trackEvent("ViewContent", {
+      content_name: product.name,
+      content_id: product.id,
+      value: product.price,
+      currency: "BDT",
+      email: session?.user?.email,
+      phone: session?.user?.phone,
+    })
+  }, [product.id, product.name, product.price, session?.user?.email, session?.user?.phone])
 
   const images = product.images.length > 0 ? product.images : []
   const sizes = [...new Set(product.variants.map((variant) => variant.size))]
@@ -191,6 +205,15 @@ export function ProductDetailClient({
       quantity: actualQty,
       slug: product.slug,
     })
+    void trackEvent("AddToCart", {
+      content_name: product.name,
+      content_id: product.id,
+      value: product.price * actualQty,
+      currency: "BDT",
+      quantity: actualQty,
+      email: session?.user?.email,
+      phone: session?.user?.phone,
+    })
     window.dispatchEvent(new Event("cart-update"))
     setAddedToCart(true)
     toast.success(actualQty < quantity ? `Added ${actualQty} to cart` : "Added to cart")
@@ -225,6 +248,13 @@ export function ProductDetailClient({
     if (product.defaultCouponCode) {
       params.set("coupon", product.defaultCouponCode)
     }
+    void trackEvent("InitiateCheckout", {
+      value: product.price * result.capped,
+      currency: "BDT",
+      content_ids: [product.id],
+      email: session?.user?.email,
+      phone: session?.user?.phone,
+    })
     router.push(`/checkout?${params.toString()}`)
   }
 

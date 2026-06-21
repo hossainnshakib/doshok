@@ -3,6 +3,8 @@ import { contactSchema } from "@/lib/validations"
 import { sendContactEmail } from "@/lib/mailer"
 import { rateLimitByIp } from "@/lib/rate-limit"
 import { prisma } from "@/lib/prisma"
+import { trackEvent } from "@/lib/trakon"
+import { auth } from "@/lib/auth"
 
 function getClientIp(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for")
@@ -30,6 +32,7 @@ export async function POST(request: Request) {
     }
 
     const { name, email, phone, subject, message } = parsed.data
+    const session = await auth()
 
     await prisma.contactMessage.create({
       data: {
@@ -48,6 +51,12 @@ export async function POST(request: Request) {
     } catch {
       console.warn("[contact] contact email failed after message save")
     }
+
+    await trackEvent("Lead", {
+      email: email || session?.user?.email,
+      phone: phone || session?.user?.phone,
+      subject,
+    })
 
     return NextResponse.json({
       success: true,
