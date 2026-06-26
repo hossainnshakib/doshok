@@ -34,24 +34,25 @@ export async function generateMetadata({
   const title = (product.seoTitle || `${product.name} – Doshok`).trim()
   const description = (product.seoDescription || product.shortDescription || product.description || `Shop ${product.name} at Doshok. ৳${product.price.toLocaleString("en-IN")}`).trim()
   const ogImage = product.seoImage || (product.images && product.images[0]) || undefined
+  const primaryImageUrl = ogImage
 
   return {
     title,
     description,
     keywords: product.seoKeywords ? product.seoKeywords.split(",").map((k) => k.trim()) : undefined,
     alternates: { canonical: `${SITE_URL}/products/${slug}` },
-    openGraph: ogImage
+    openGraph: primaryImageUrl
       ? {
           title,
           description,
-          images: [{ url: ogImage }],
+          images: [{ url: primaryImageUrl }],
         }
       : undefined,
     twitter: {
       card: "summary_large_image",
-      title,
-      description,
-      images: ogImage ? [ogImage] : undefined,
+      title: `${product.name.trim()} — Doshok`,
+      description: product.shortDescription?.trim() || product.description?.trim() || "Shop this product at Doshok.",
+      images: primaryImageUrl ? [primaryImageUrl] : undefined,
     },
   }
 }
