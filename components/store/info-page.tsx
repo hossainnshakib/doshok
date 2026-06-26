@@ -56,8 +56,8 @@ export function InfoPage({ page }: { page: InfoPageData }) {
     <main className="bg-[#f7f5f1]">
       <section className="container mx-auto container-px pt-6 md:pt-12">
         <div className="overflow-hidden rounded-2xl bg-[#15191c] text-white shadow-2xl shadow-black/10 md:rounded-[2rem]">
-          <div className="grid gap-6 p-6 md:grid-cols-[1.05fr_0.95fr] md:p-12 lg:p-16">
-            <div className="flex min-h-[240px] flex-col justify-between md:min-h-[320px]">
+          <div className={`grid gap-6 p-6 md:p-12 lg:p-16 ${page.stats ? "md:grid-cols-[1.05fr_0.95fr]" : "md:grid-cols-1"}`}>
+            <div className={`flex min-h-[240px] flex-col justify-between ${page.stats ? "md:min-h-[320px]" : ""}`}>
               <div>
                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55 md:mb-4 md:text-xs">
                   {page.eyebrow}
@@ -88,13 +88,13 @@ export function InfoPage({ page }: { page: InfoPageData }) {
                 </div>
               )}
             </div>
-            <div className="relative min-h-[200px] overflow-hidden rounded-[1.2rem] bg-white/8 p-5 md:min-h-[300px] md:rounded-[1.6rem] md:p-6">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.24),transparent_34%),radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.12),transparent_30%)]" />
-              <div className="relative flex h-full flex-col justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#15191c] md:h-14 md:w-14 md:rounded-2xl">
-                  <Sparkles className="h-5 w-5 md:h-6 md:w-6" />
-                </div>
-                {page.stats && (
+            {page.stats && (
+              <div className="relative min-h-[200px] overflow-hidden rounded-[1.2rem] bg-white/8 p-5 md:min-h-[300px] md:rounded-[1.6rem] md:p-6">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.24),transparent_34%),radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.12),transparent_30%)]" />
+                <div className="relative flex h-full flex-col justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#15191c] md:h-14 md:w-14 md:rounded-2xl">
+                    <Sparkles className="h-5 w-5 md:h-6 md:w-6" />
+                  </div>
                   <div className="grid grid-cols-3 gap-2 md:gap-3">
                     {page.stats.map((stat) => (
                       <div key={stat.label} className="rounded-xl border border-white/10 bg-white/10 p-3 backdrop-blur md:rounded-2xl md:p-4">
@@ -103,9 +103,9 @@ export function InfoPage({ page }: { page: InfoPageData }) {
                       </div>
                     ))}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -173,11 +173,11 @@ export function InfoPage({ page }: { page: InfoPageData }) {
               {section.table && (
                 <div className="mt-5 overflow-hidden rounded-[1rem] border border-black/5 md:mt-6 md:rounded-[1.25rem]">
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[480px] text-left text-xs md:min-w-[560px] md:text-sm">
+                    <table className="w-full min-w-[440px] text-left text-xs md:min-w-[560px] md:text-sm">
                       <thead className="bg-neutral-950 text-white">
                         <tr>
                           {section.table.headers.map((header) => (
-                            <th key={header} className="px-3 py-2.5 font-semibold md:px-4 md:py-3">{header}</th>
+                            <th key={header} className="break-words px-3 py-2.5 font-semibold md:px-4 md:py-3">{header}</th>
                           ))}
                         </tr>
                       </thead>
@@ -185,7 +185,7 @@ export function InfoPage({ page }: { page: InfoPageData }) {
                         {section.table.rows.map((row) => (
                           <tr key={row.join("-")}>
                             {row.map((cell) => (
-                              <td key={cell} className="px-3 py-2.5 text-neutral-600 md:px-4 md:py-3">{cell}</td>
+                              <td key={cell} className="break-words px-3 py-2.5 text-neutral-600 md:px-4 md:py-3">{cell}</td>
                             ))}
                           </tr>
                         ))}

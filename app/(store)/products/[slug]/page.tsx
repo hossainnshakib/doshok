@@ -31,8 +31,8 @@ export async function generateMetadata({
 
   if (!product) return { title: "Product Not Found – Doshok" }
 
-  const title = product.seoTitle || `${product.name} – Doshok`
-  const description = product.seoDescription || product.shortDescription || product.description || `Shop ${product.name} at Doshok. ৳${product.price.toLocaleString("en-IN")}`
+  const title = (product.seoTitle || `${product.name} – Doshok`).trim()
+  const description = (product.seoDescription || product.shortDescription || product.description || `Shop ${product.name} at Doshok. ৳${product.price.toLocaleString("en-IN")}`).trim()
   const ogImage = product.seoImage || (product.images && product.images[0]) || undefined
 
   return {

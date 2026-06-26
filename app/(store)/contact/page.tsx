@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { CheckCircle, Mail, MapPin, Phone, Send, Sparkles } from "lucide-react"
+import { CheckCircle, Mail, MapPin, MessageCircle, Phone, Send, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -78,6 +78,7 @@ export default function ContactPage() {
   const phone = settings?.phone || ""
   const email = settings?.supportEmail ?? "hello@doshok.com"
   const address = settings?.address ?? "We deliver across all districts of Bangladesh."
+  const whatsapp = settings?.whatsapp || process.env.NEXT_PUBLIC_WHATSAPP || ""
 
   if (submitted) {
     return (
@@ -118,10 +119,10 @@ export default function ContactPage() {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(255,255,255,0.22),transparent_32%)]" />
               <div className="relative space-y-4">
                 {[
-                  ...(phone ? [{ icon: Phone, title: "Call", value: phone, href: `tel:${phone}`, detail: "Sat–Thu, 10 AM – 8 PM" }] : []),
-                  ...(settings?.whatsapp ? [{ icon: Phone, title: "WhatsApp", value: settings.whatsapp, href: `https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}`, detail: "Quick replies on WhatsApp" }] : []),
-                  { icon: Mail, title: "Email", value: email, href: `mailto:${email}`, detail: "We respond within 24 hours" },
-                  { icon: MapPin, title: "Service Area", value: address, href: null, detail: "Nationwide delivery support" },
+                  ...(phone ? [{ icon: Phone, title: "Call", value: phone, href: `tel:${phone}`, detail: "Sat–Thu, 10 AM – 8 PM", cta: null }] : []),
+                  ...(whatsapp ? [{ icon: MessageCircle, title: "WhatsApp", value: whatsapp, href: `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}`, detail: "Quick replies on WhatsApp", cta: "Chat on WhatsApp" }] : []),
+                  { icon: Mail, title: "Email", value: email, href: `mailto:${email}`, detail: "We respond within 24 hours", cta: null },
+                  { icon: MapPin, title: "Service Area", value: address, href: null, detail: "Nationwide delivery support", cta: null },
                 ].map((item) => (
                   <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                     <div className="flex gap-3">
@@ -134,6 +135,11 @@ export default function ContactPage() {
                           <p className="mt-1 text-sm font-semibold">{item.value}</p>
                         )}
                         <p className="mt-1 text-xs text-white/50">{item.detail}</p>
+                        {item.cta && (
+                          <a href={item.href!} className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 hover:bg-emerald-500/30 transition-colors">
+                            {item.cta}
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

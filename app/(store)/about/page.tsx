@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { InfoPage } from "@/components/store/info-page"
 import { aboutPage } from "@/lib/info-pages"
 import { getCmsPageData } from "@/lib/cms-pages"
+import { prisma } from "@/lib/prisma"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
 
@@ -34,6 +35,22 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const cmsPage = await getCmsPageData("about")
-  return <InfoPage page={cmsPage ?? aboutPage} />
+  const [cmsPage, activeCategoryCount] = await Promise.all([
+    getCmsPageData("about"),
+    prisma.category.count({
+      where: { products: { some: { status: "Active" } } },
+    }),
+  ])
+
+  const base = cmsPage ?? aboutPage
+  const page = {
+    ...base,
+    stats: base.stats?.map((stat) =>
+      stat.label === "Categories"
+        ? { ...stat, value: String(activeCategoryCount) }
+        : stat
+    ),
+  }
+
+  return <InfoPage page={page} />
 }
