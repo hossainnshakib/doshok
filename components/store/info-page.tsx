@@ -134,7 +134,7 @@ export function InfoPage({ page }: { page: InfoPageData }) {
             <section
               key={section.id ?? section.title}
               id={section.id}
-              className="scroll-mt-28 rounded-[1.5rem] border border-black/5 bg-white p-4 shadow-sm md:rounded-[1.75rem] md:p-8"
+              className="scroll-mt-28 max-w-full rounded-[1.5rem] border border-black/5 bg-white p-4 shadow-sm md:rounded-[1.75rem] md:p-8"
             >
               {section.eyebrow && (
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-red-500 md:mb-3 md:text-xs">
@@ -150,17 +150,17 @@ export function InfoPage({ page }: { page: InfoPageData }) {
                 </div>
               )}
               {section.bullets && (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 md:mt-5 md:gap-3">
+                <div className="mt-4 grid min-w-0 gap-2 sm:grid-cols-2 md:mt-5 md:gap-3">
                   {section.bullets.map((bullet) => (
-                    <div key={bullet} className="flex gap-2 rounded-xl bg-neutral-50 p-3 text-xs text-neutral-700 md:gap-3 md:rounded-2xl md:p-4 md:text-sm">
+                    <div key={bullet} className="flex min-w-0 gap-2 rounded-xl bg-neutral-50 p-3 text-xs text-neutral-700 md:gap-3 md:rounded-2xl md:p-4 md:text-sm">
                       <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-600 md:h-4 md:w-4" />
-                      <span>{bullet}</span>
+                      <span className="break-words">{bullet}</span>
                     </div>
                   ))}
                 </div>
               )}
               {section.cards && (
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 md:mt-6 md:gap-4 xl:grid-cols-3">
+                <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2 md:mt-6 md:gap-4 xl:grid-cols-3">
                   {section.cards.map((card) => (
                     <article key={card.title} className="rounded-[1rem] border border-black/5 bg-[#fbfaf7] p-4 md:rounded-[1.25rem] md:p-5">
                       {card.meta && <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 md:mb-2 md:text-xs">{card.meta}</p>}
@@ -171,8 +171,8 @@ export function InfoPage({ page }: { page: InfoPageData }) {
                 </div>
               )}
               {section.table && (
-                <div className="mt-5 overflow-hidden rounded-[1rem] border border-black/5 md:mt-6 md:rounded-[1.25rem]">
-                  <div className="overflow-x-auto">
+                <div className="mt-5 max-w-full overflow-hidden rounded-[1rem] border border-black/5 md:mt-6 md:rounded-[1.25rem]">
+                  <div className="overflow-x-auto max-w-full">
                     <table className="w-full min-w-[440px] text-left text-xs md:min-w-[560px] md:text-sm">
                       <thead className="bg-neutral-950 text-white">
                         <tr>
