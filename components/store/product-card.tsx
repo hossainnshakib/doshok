@@ -132,7 +132,7 @@ export function ProductCard({ product, compact }: ProductCardProps) {
             </span>
           )}
         </div>
-        {product.reviewCount && product.reviewCount > 0 && (
+        {(product.reviewCount ?? 0) > 0 && (
           <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
             <span className="font-semibold">{Number(product.averageRating).toFixed(1)}</span>

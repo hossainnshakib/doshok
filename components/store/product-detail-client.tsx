@@ -330,7 +330,7 @@ export function ProductDetailClient({
             {product.shortDescription && (
               <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{product.shortDescription}</p>
             )}
-            {product.reviewCount && product.reviewCount > 0 && (
+            {(product.reviewCount ?? 0) > 0 && (
               <div className="mt-2 flex items-center gap-1.5 text-sm">
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-amber-400 text-amber-400" />

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { Providers } from "@/components/providers/session-provider"
 import { OrganizationSchema } from "@/components/json-ld/organization-schema"
 import { TrakonPageView } from "@/components/trakon-page-view"
+import { getSiteSettings } from "@/lib/site-settings"
 import "./globals.css"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
@@ -26,35 +27,39 @@ const hindSiliguri = Hind_Siliguri({
   weight: ["400", "600", "700"],
 })
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: "Doshok – Premium Women's Fashion in Bangladesh",
-  description:
-    "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
-  manifest: "/site.webmanifest",
-  other: {
-    "theme-color": "#15191c",
-  },
-  openGraph: {
-    siteName: "Doshok",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings()
+
+  return {
+    metadataBase: new URL(SITE_URL),
     title: "Doshok – Premium Women's Fashion in Bangladesh",
     description:
       "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
-    type: "website",
-    locale: "en_US",
-    url: SITE_URL,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Doshok – Premium Women's Fashion in Bangladesh",
-    description:
-      "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
-  },
+    icons: {
+      icon: settings?.favicon || "/favicon.ico",
+      shortcut: settings?.favicon || "/favicon.ico",
+      apple: settings?.appleTouchIcon || "/apple-touch-icon.png",
+    },
+    manifest: "/site.webmanifest",
+    other: {
+      "theme-color": "#15191c",
+    },
+    openGraph: {
+      siteName: "Doshok",
+      title: "Doshok – Premium Women's Fashion in Bangladesh",
+      description:
+        "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
+      type: "website",
+      locale: "en_US",
+      url: SITE_URL,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Doshok – Premium Women's Fashion in Bangladesh",
+      description:
+        "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
+    },
+  }
 }
 
 export default function RootLayout({
