@@ -112,9 +112,9 @@ export function InfoPage({ page }: { page: InfoPageData }) {
 
       <section className="container mx-auto container-px grid gap-5 py-6 md:grid-cols-[240px_1fr] md:gap-6 md:py-12 lg:grid-cols-[280px_1fr]">
         {nav.length > 0 && (
-          <aside className="md:sticky md:top-24 md:self-start">
-            <div className="overflow-x-auto rounded-[1.25rem] border border-black/5 bg-white p-1.5 shadow-sm md:rounded-[1.5rem] md:p-3">
-              <nav className="flex gap-1.5 md:flex-col md:gap-2">
+          <aside className="min-w-0 md:sticky md:top-24 md:self-start">
+            <div className="max-w-full overflow-x-auto rounded-[1.25rem] border border-black/5 bg-white p-1.5 shadow-sm scrollbar-none md:rounded-[1.5rem] md:p-3">
+              <nav className="flex w-max min-w-max gap-1.5 whitespace-nowrap md:w-auto md:min-w-0 md:flex-col md:gap-2">
                 {nav.map((item) => (
                   <Link
                     key={item.href}
@@ -129,7 +129,7 @@ export function InfoPage({ page }: { page: InfoPageData }) {
           </aside>
         )}
 
-        <div className="space-y-4 md:space-y-5">
+        <div className="min-w-0 space-y-4 md:space-y-5">
           {page.sections.map((section) => (
             <section
               key={section.id ?? section.title}
@@ -171,27 +171,25 @@ export function InfoPage({ page }: { page: InfoPageData }) {
                 </div>
               )}
               {section.table && (
-                <div className="mt-5 max-w-full overflow-hidden rounded-[1rem] border border-black/5 md:mt-6 md:rounded-[1.25rem]">
-                  <div className="overflow-x-auto max-w-full">
-                    <table className="w-full min-w-[440px] text-left text-xs md:min-w-[560px] md:text-sm">
-                      <thead className="bg-neutral-950 text-white">
-                        <tr>
-                          {section.table.headers.map((header) => (
-                            <th key={header} className="break-words px-3 py-2.5 font-semibold md:px-4 md:py-3">{header}</th>
+                <div className="mt-5 max-w-full overflow-x-auto rounded-[1rem] border border-black/5 md:mt-6 md:rounded-[1.25rem]">
+                  <table className="w-full min-w-max text-left text-xs md:min-w-[560px] md:text-sm">
+                    <thead className="bg-neutral-950 text-white">
+                      <tr>
+                        {section.table.headers.map((header) => (
+                          <th key={header} className="break-words px-3 py-2.5 font-semibold md:px-4 md:py-3">{header}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/5 bg-white">
+                      {section.table.rows.map((row) => (
+                        <tr key={row.join("-")}>
+                          {row.map((cell) => (
+                            <td key={cell} className="break-words px-3 py-2.5 text-neutral-600 md:px-4 md:py-3">{cell}</td>
                           ))}
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-black/5 bg-white">
-                        {section.table.rows.map((row) => (
-                          <tr key={row.join("-")}>
-                            {row.map((cell) => (
-                              <td key={cell} className="break-words px-3 py-2.5 text-neutral-600 md:px-4 md:py-3">{cell}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
               {section.faqs && (
