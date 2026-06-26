@@ -3,9 +3,14 @@ import Link from "next/link"
 import { MapPin, Briefcase, Clock } from "lucide-react"
 import type { Metadata } from "next"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export const metadata: Metadata = {
-  title: "Careers",
+  title: "Careers – Doshok",
   description: "Join the Doshok team. We are building meaningful fashion in Bangladesh.",
+  alternates: { canonical: `${SITE_URL}/careers` },
+  openGraph: { title: "Careers – Doshok", description: "Join the Doshok team. We are building meaningful fashion in Bangladesh.", url: `${SITE_URL}/careers` },
+  twitter: { card: "summary_large_image", title: "Careers – Doshok", description: "Join the Doshok team. We are building meaningful fashion in Bangladesh." },
 }
 
 export default async function CareersPage() {

@@ -326,7 +326,7 @@ export function ProductDetailClient({
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{product.category.name}</p>
-            <h1 className="mt-1 text-2xl font-black leading-tight tracking-tight md:text-3xl">{product.name}</h1>
+            <h1 className="mt-1 text-2xl font-black leading-tight tracking-tight md:text-3xl">{product.name.trim()}</h1>
             {product.shortDescription && (
               <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{product.shortDescription}</p>
             )}
@@ -686,7 +686,7 @@ export function ProductDetailClient({
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/70 bg-background/95 p-3 shadow-2xl backdrop-blur-md md:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold">{product.name}</p>
+            <p className="truncate text-sm font-bold">{product.name.trim()}</p>
             <div className="flex items-baseline gap-2">
               <span className="text-base font-black">৳{product.price.toLocaleString()}</span>
               {product.oldPrice && (

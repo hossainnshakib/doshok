@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import type { Metadata } from "next"
 import { ArrowRight } from "lucide-react"
 import styles from "./stories.module.css"
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
+export const metadata: Metadata = {
+  title: "Stories – Doshok",
+  description: "Inside the Doshok wardrobe. Editorial notes, fabric choices, and the people shaping the brand.",
+  alternates: { canonical: `${SITE_URL}/stories` },
+}
 
 export default async function StoriesPage() {
   const stories = await prisma.story.findMany({

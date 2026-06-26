@@ -7,6 +7,8 @@ import { ProductSortSelect } from "@/components/store/product-sort-select"
 import { ProductPagination } from "@/components/store/product-pagination"
 import { Package } from "lucide-react"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 const LIMIT = 24
 
 export async function generateMetadata({
@@ -39,7 +41,7 @@ export async function generateMetadata({
           description,
           images: cat.seoImage ? [cat.seoImage] : undefined,
         },
-        alternates: { canonical: `/products?category=${categorySlug}` },
+        alternates: { canonical: `${SITE_URL}/products?category=${categorySlug}` },
       }
     }
   }
@@ -63,7 +65,7 @@ export async function generateMetadata({
       description,
       images: settings?.defaultSeoImage ? [settings.defaultSeoImage] : undefined,
     },
-    alternates: { canonical: "/products" },
+    alternates: { canonical: `${SITE_URL}/products` },
   }
 }
 

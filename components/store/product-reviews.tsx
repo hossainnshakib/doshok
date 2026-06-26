@@ -63,7 +63,8 @@ export function ProductReviews({ productId, initialSummary }: ProductReviewsProp
     return (
       <div className="py-8 text-center">
         <Star className="mx-auto mb-2 h-6 w-6 text-muted-foreground/30" />
-        <p className="text-sm font-medium text-muted-foreground">No reviews yet</p>
+        <p className="text-sm font-medium text-muted-foreground">No reviews yet.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Be the first to review this product.</p>
       </div>
     )
   }

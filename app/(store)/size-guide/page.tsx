@@ -5,17 +5,25 @@ import { sizeGuidePage } from "@/lib/info-pages"
 import { getCmsPageData } from "@/lib/cms-pages"
 import type { InfoPageData, InfoPageSection } from "@/components/store/info-page"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export async function generateMetadata(): Promise<Metadata> {
   const cmsPage = await getCmsPageData("size-guide")
   if (cmsPage) {
     return {
-      title: `${cmsPage.title} — Doshok`,
+      title: `${cmsPage.title} – Doshok`,
       description: cmsPage.description,
+      alternates: { canonical: `${SITE_URL}/size-guide` },
+      openGraph: { title: `${cmsPage.title} – Doshok`, description: cmsPage.description, url: `${SITE_URL}/size-guide` },
+      twitter: { card: "summary_large_image", title: `${cmsPage.title} – Doshok`, description: cmsPage.description },
     }
   }
   return {
-    title: "Size Guide — Doshok",
+    title: "Size Guide – Doshok",
     description: "Find your best Doshok fit with general measurements for tops, bottoms, and product-specific fit notes.",
+    alternates: { canonical: `${SITE_URL}/size-guide` },
+    openGraph: { title: "Size Guide – Doshok", description: "Find your best Doshok fit with general measurements for tops, bottoms, and product-specific fit notes.", url: `${SITE_URL}/size-guide` },
+    twitter: { card: "summary_large_image", title: "Size Guide – Doshok", description: "Find your best Doshok fit with general measurements for tops, bottoms, and product-specific fit notes." },
   }
 }
 

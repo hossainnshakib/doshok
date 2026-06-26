@@ -118,16 +118,21 @@ export default function ContactPage() {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(255,255,255,0.22),transparent_32%)]" />
               <div className="relative space-y-4">
                 {[
-                  ...(phone ? [{ icon: Phone, title: "Call", value: phone, detail: settings?.whatsapp ? `WhatsApp: ${settings.whatsapp}` : "Sat–Thu, 10 AM – 8 PM" }] : []),
-                  { icon: Mail, title: "Email", value: email, detail: "We respond within 24 hours" },
-                  { icon: MapPin, title: "Service Area", value: address, detail: "Nationwide delivery support" },
+                  ...(phone ? [{ icon: Phone, title: "Call", value: phone, href: `tel:${phone}`, detail: "Sat–Thu, 10 AM – 8 PM" }] : []),
+                  ...(settings?.whatsapp ? [{ icon: Phone, title: "WhatsApp", value: settings.whatsapp, href: `https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, "")}`, detail: "Quick replies on WhatsApp" }] : []),
+                  { icon: Mail, title: "Email", value: email, href: `mailto:${email}`, detail: "We respond within 24 hours" },
+                  { icon: MapPin, title: "Service Area", value: address, href: null, detail: "Nationwide delivery support" },
                 ].map((item) => (
                   <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
                     <div className="flex gap-3">
                       <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-white/70" />
                       <div>
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/40">{item.title}</p>
-                        <p className="mt-1 text-sm font-semibold">{item.value}</p>
+                        {item.href ? (
+                          <a href={item.href} className="mt-1 text-sm font-semibold hover:text-white/80 transition-colors">{item.value}</a>
+                        ) : (
+                          <p className="mt-1 text-sm font-semibold">{item.value}</p>
+                        )}
                         <p className="mt-1 text-xs text-white/50">{item.detail}</p>
                       </div>
                     </div>

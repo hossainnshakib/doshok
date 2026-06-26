@@ -2,9 +2,14 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, HelpCircle, Ruler, Shirt, Truck, MessageSquare } from "lucide-react"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export const metadata: Metadata = {
-  title: "Help Hub — Doshok",
+  title: "Help Hub – Doshok",
   description: "Find answers, size guides, care instructions, order tracking, and support contact — all in one place.",
+  alternates: { canonical: `${SITE_URL}/help` },
+  openGraph: { title: "Help Hub – Doshok", description: "Find answers, size guides, care instructions, order tracking, and support contact — all in one place.", url: `${SITE_URL}/help` },
+  twitter: { card: "summary_large_image", title: "Help Hub – Doshok", description: "Find answers, size guides, care instructions, order tracking, and support contact — all in one place." },
 }
 
 const helpTopics = [

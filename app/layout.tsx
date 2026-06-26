@@ -8,6 +8,8 @@ import { OrganizationSchema } from "@/components/json-ld/organization-schema"
 import { TrakonPageView } from "@/components/trakon-page-view"
 import "./globals.css"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 const manrope = Manrope({
   variable: "--font-body",
   subsets: ["latin"],
@@ -25,24 +27,33 @@ const hindSiliguri = Hind_Siliguri({
 })
 
 export const metadata: Metadata = {
-  title: "Doshok — Premium Bangladeshi Fashion",
-  description: "Style That Speaks. Premium Bangladeshi fashion for the modern wardrobe.",
+  metadataBase: new URL(SITE_URL),
+  title: "Doshok – Premium Women's Fashion in Bangladesh",
+  description:
+    "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+  manifest: "/site.webmanifest",
+  other: {
+    "theme-color": "#15191c",
+  },
   openGraph: {
     siteName: "Doshok",
-    title: "Doshok — Premium Bangladeshi Fashion",
-    description: "Style That Speaks. Premium Bangladeshi fashion for the modern wardrobe.",
+    title: "Doshok – Premium Women's Fashion in Bangladesh",
+    description:
+      "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
     type: "website",
     locale: "en_US",
+    url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Doshok — Premium Bangladeshi Fashion",
-    description: "Style That Speaks. Premium Bangladeshi fashion for the modern wardrobe.",
+    title: "Doshok – Premium Women's Fashion in Bangladesh",
+    description:
+      "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
   },
 }
 

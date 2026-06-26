@@ -2,9 +2,18 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, FileText, RefreshCcw, Scale, Truck, Cookie, Accessibility } from "lucide-react"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export const metadata: Metadata = {
-  title: "Policy Hub — Doshok",
+  title: "Policy Hub – Doshok",
   description: "Browse our privacy, return, terms, delivery, cookie, and accessibility policies so you always know where you stand.",
+  alternates: { canonical: `${SITE_URL}/policy` },
+  openGraph: {
+    title: "Policy Hub – Doshok",
+    description: "Browse our privacy, return, terms, delivery, cookie, and accessibility policies so you always know where you stand.",
+    url: `${SITE_URL}/policy`,
+  },
+  twitter: { card: "summary_large_image", title: "Policy Hub – Doshok", description: "Browse our privacy, return, terms, delivery, cookie, and accessibility policies so you always know where you stand." },
 }
 
 const policies = [

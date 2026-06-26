@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { MapPin, Briefcase, Clock, Calendar, DollarSign, ArrowLeft, Mail } from "lucide-react"
 import type { Metadata } from "next"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export async function generateMetadata({
   params,
 }: {
@@ -17,9 +19,15 @@ export async function generateMetadata({
 
   if (!post) return { title: "Job Not Found" }
 
+  const title = `${post.title} – ${post.department} at Doshok`
+  const description = post.excerpt || `${post.title} in ${post.department} at Doshok. Location: ${post.location}.`
+
   return {
-    title: `${post.title} — ${post.department}`,
-    description: post.excerpt || `${post.title} in ${post.department} at Doshok. Location: ${post.location}.`,
+    title,
+    description,
+    alternates: { canonical: `${SITE_URL}/careers/${slug}` },
+    openGraph: { title, description, url: `${SITE_URL}/careers/${slug}` },
+    twitter: { card: "summary_large_image", title, description },
   }
 }
 

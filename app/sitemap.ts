@@ -11,12 +11,16 @@ const STATIC_ROUTES = [
   { path: "/about", priority: 0.5, changeFreq: "monthly" as const },
   { path: "/contact", priority: 0.5, changeFreq: "monthly" as const },
   { path: "/faq", priority: 0.5, changeFreq: "monthly" as const },
+  { path: "/policy", priority: 0.5, changeFreq: "monthly" as const },
+  { path: "/help", priority: 0.5, changeFreq: "monthly" as const },
   { path: "/privacy", priority: 0.4, changeFreq: "monthly" as const },
   { path: "/terms", priority: 0.4, changeFreq: "monthly" as const },
   { path: "/delivery", priority: 0.5, changeFreq: "monthly" as const },
   { path: "/returns", priority: 0.5, changeFreq: "monthly" as const },
   { path: "/care-guide", priority: 0.4, changeFreq: "monthly" as const },
   { path: "/size-guide", priority: 0.5, changeFreq: "monthly" as const },
+  { path: "/accessibility", priority: 0.3, changeFreq: "monthly" as const },
+  { path: "/careers", priority: 0.3, changeFreq: "weekly" as const },
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

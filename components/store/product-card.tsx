@@ -61,7 +61,7 @@ export function ProductCard({ product, compact }: ProductCardProps) {
           )}
         </div>
         <div className="p-2.5">
-          <h3 className="line-clamp-1 text-xs font-semibold leading-snug">{product.name}</h3>
+          <h3 className="line-clamp-1 text-xs font-semibold leading-snug">{product.name.trim()}</h3>
           <div className="mt-1 flex items-baseline gap-1.5">
             <span className="text-sm font-black">৳{product.price.toLocaleString()}</span>
             {hasDiscount && product.oldPrice && (
@@ -120,7 +120,7 @@ export function ProductCard({ product, compact }: ProductCardProps) {
             {product.category.name}
           </p>
         )}
-        <h3 className="line-clamp-2 min-h-[2.3rem] text-sm font-semibold leading-snug tracking-tight md:text-[15px]">{product.name}</h3>
+        <h3 className="line-clamp-2 min-h-[2.3rem] text-sm font-semibold leading-snug tracking-tight md:text-[15px]">{product.name.trim()}</h3>
         <div className="mt-1.5 text-[11px] text-muted-foreground">
           <span>{totalStock > 0 ? `${totalStock} in stock` : "Sold out"}</span>
         </div>

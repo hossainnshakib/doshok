@@ -1,7 +1,13 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { ProductCard } from "@/components/store/product-card"
 import { prisma } from "@/lib/prisma"
 import { ArrowRight, Package } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "New Arrivals – Doshok",
+  description: "Fresh drops and the latest arrivals from Doshok. Discover new fashion pieces, curated weekly for the modern wardrobe.",
+}
 
 export default async function NewArrivalsPage() {
   const [products, categories] = await Promise.all([
