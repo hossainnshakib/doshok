@@ -286,7 +286,7 @@ export function ProductDetailClient({
               </Badge>
             )}
             {!isSoldOut && discountPercent > 0 && (
-              <Badge variant="secondary" className="absolute right-3 top-3 z-10 rounded-full bg-red-50 text-red-600 border-red-200 shadow-sm text-xs font-bold">
+              <Badge variant="secondary" className="absolute right-3 top-3 z-10 rounded-full bg-red-100 text-red-700 border-red-300 shadow-sm text-xs font-bold">
                 -{discountPercent}%
               </Badge>
             )}
@@ -297,6 +297,7 @@ export function ProductDetailClient({
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
+                fetchPriority="high"
                 className="object-cover transition-opacity duration-300"
               />
             ) : (
@@ -366,7 +367,7 @@ export function ProductDetailClient({
           </div>
 
           {product.defaultCouponCode && !isSoldOut && (
-            <p className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600">
+            <p className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700">
               Use coupon {product.defaultCouponCode} at checkout
             </p>
           )}
@@ -694,7 +695,7 @@ export function ProductDetailClient({
             <div className="flex items-baseline gap-2">
               <span className="text-base font-black">৳{product.price.toLocaleString()}</span>
               {product.oldPrice && (
-                <span className="text-xs text-red-400 line-through">৳{product.oldPrice.toLocaleString()}</span>
+                <span className="text-xs text-red-600 line-through">৳{product.oldPrice.toLocaleString()}</span>
               )}
             </div>
           </div>

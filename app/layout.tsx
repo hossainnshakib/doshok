@@ -73,6 +73,8 @@ export default function RootLayout({
       className={`${manrope.variable} ${jakarta.variable} ${hindSiliguri.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <noscript>
           <iframe
             src="https://www.googletagmanager.com/ns.html?id=GTM-WFC5L2JX"
@@ -89,7 +91,7 @@ export default function RootLayout({
           {children}
         </Providers>
         <Toaster richColors closeButton />
-        <Script id="google-tag-manager" strategy="beforeInteractive">
+        <Script id="google-tag-manager" strategy="afterInteractive">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -100,9 +102,9 @@ export default function RootLayout({
         </Script>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-D11HZ86XK5"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
-        <Script id="google-analytics" strategy="beforeInteractive">
+        <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

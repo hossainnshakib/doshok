@@ -119,7 +119,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
           <div className={styles.navbar}>
             <Link href="/" className={styles.logo}>
               {headerLogo ? (
-                <Image src={headerLogo} alt="Doshok" width={120} height={32} className="h-8 w-auto object-contain" priority />
+                <Image src={headerLogo} alt="Doshok" width={120} height={32} className="h-8 w-auto object-contain" priority fetchPriority="high" />
               ) : (
                 <>
                   <span className={styles.mark}>D</span>

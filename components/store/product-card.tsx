@@ -57,7 +57,7 @@ export function ProductCard({ product, compact }: ProductCardProps) {
             </Badge>
           )}
           {!isSoldOut && hasDiscount && (
-            <Badge variant="secondary" className="absolute left-2 top-2 rounded-full bg-red-50 text-red-600 border-red-200 text-[9px] px-2 py-0 font-medium shadow-sm">
+            <Badge variant="secondary" className="absolute left-2 top-2 rounded-full bg-red-100 text-red-700 border-red-300 text-[9px] px-2 py-0 font-medium shadow-sm">
               -{discountPercent}%
             </Badge>
           )}
@@ -67,7 +67,7 @@ export function ProductCard({ product, compact }: ProductCardProps) {
           <div className="mt-1 flex items-baseline gap-1.5">
             <span className="text-sm font-black">৳{product.price.toLocaleString()}</span>
             {hasDiscount && product.oldPrice && (
-              <span className="text-[10px] font-medium text-red-400 line-through">৳{product.oldPrice.toLocaleString()}</span>
+              <span className="text-[10px] font-medium text-red-600 line-through">৳{product.oldPrice.toLocaleString()}</span>
             )}
           </div>
         </div>
@@ -104,7 +104,7 @@ export function ProductCard({ product, compact }: ProductCardProps) {
         )}
         {!isSoldOut && hasDiscount && (
           <div className="absolute left-3 top-3 z-10">
-            <Badge variant="secondary" className="rounded-full bg-red-50 text-red-600 border-red-200 text-[10px] px-2.5 py-0.5 font-medium shadow-sm">
+            <Badge variant="secondary" className="rounded-full bg-red-100 text-red-700 border-red-300 text-[10px] px-2.5 py-0.5 font-medium shadow-sm">
               -{discountPercent}%
             </Badge>
           </div>
@@ -130,7 +130,7 @@ export function ProductCard({ product, compact }: ProductCardProps) {
         <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
           <span className="text-base font-black tracking-tight md:text-lg">৳{product.price.toLocaleString()}</span>
           {hasDiscount && product.oldPrice && (
-            <span className="text-xs font-medium text-red-400 line-through">
+            <span className="text-xs font-medium text-red-600 line-through">
               ৳{product.oldPrice.toLocaleString()}
             </span>
           )}

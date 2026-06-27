@@ -462,7 +462,7 @@ function renderHeroSection(
                   href={`/products/${product.slug}`}
                   className={`${styles.heroPhoto} ${styles[`heroPhoto${index + 1}`]}`}
                 >
-                  <Image src={product.images[0]} alt={product.name} fill sizes="(max-width: 640px) 50vw, 25vw" priority className="object-cover" />
+                  <Image src={product.images[0]} alt={product.name} fill sizes="(max-width: 640px) 50vw, 25vw" priority fetchPriority="high" className="object-cover" />
                 </Link>
               ))}
             </div>
