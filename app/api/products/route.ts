@@ -3,6 +3,7 @@ import { success, error } from "@/lib/api-response"
 import { productSchema } from "@/lib/validations"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 type SortOption = "newest" | "price-low" | "price-high"
 
 const SORT_MAP: Record<SortOption, Record<string, "asc" | "desc">> = {
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    revalidatePath("/", "page")
     return success({ ...product, relations: { RELATED: [], CROSS_SELL: [], UPSELL: [] } }, 201)
   } catch {
     return error("Failed to create product")

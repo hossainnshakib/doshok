@@ -4,6 +4,7 @@ import { success, error } from "@/lib/api-response"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { parseSections, SECTION_TYPES } from "@/lib/homepage-sections"
 import type { HomepageSection } from "@/lib/homepage-sections"
+import { revalidatePath } from "next/cache"
 
 export async function GET() {
   const config = await prisma.homepageConfig.findUnique({
@@ -88,6 +89,7 @@ export async function PUT(request: NextRequest) {
         sections: sectionsJson,
       },
     })
+    revalidatePath("/", "page")
     return success(config)
   } catch {
     return error("Failed to update homepage")

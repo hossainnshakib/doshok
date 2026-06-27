@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { requireAdminPermission } from "@/lib/auth/admin"
+import { revalidatePath } from "next/cache"
 
 export async function PATCH(
   request: NextRequest,
@@ -27,6 +28,7 @@ export async function PATCH(
         parentId: parentId || null,
       },
     })
+    revalidatePath("/", "page")
     return success(category)
   } catch {
     return error("Failed to update category")
@@ -54,6 +56,7 @@ export async function DELETE(
     }
 
     await prisma.category.delete({ where: { id } })
+    revalidatePath("/", "page")
     return success({ deleted: true })
   } catch {
     return error("Failed to delete category")

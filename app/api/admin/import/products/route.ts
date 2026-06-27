@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { parseCsvLine } from "@/lib/csv"
 import { requireAdminPermission } from "@/lib/auth/admin"
+import { revalidatePath } from "next/cache"
 
 const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
@@ -474,6 +475,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const execution = await executeRows(validated.rows, validated.categoryBySlug)
+    revalidatePath("/", "page")
     return success({ ...preview, execution })
   } catch {
     return NextResponse.json(

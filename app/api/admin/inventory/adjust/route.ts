@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { success, error } from "@/lib/api-response"
 import { manualAdjustStock } from "@/lib/services/inventory.service"
 import { requireAdminPermission } from "@/lib/auth/admin"
+import { revalidatePath } from "next/cache"
 
 export async function POST(request: NextRequest) {
   const session = await requireAdminPermission("inventory")
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
       return error(result.error ?? "Failed to adjust stock", 400)
     }
 
+    revalidatePath("/", "page")
     return success({ message: "Stock adjusted successfully" })
   } catch (err) {
     console.error(err)

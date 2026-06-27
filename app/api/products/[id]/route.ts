@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { success, error } from "@/lib/api-response"
 import { requireAdminPermission } from "@/lib/auth/admin"
+import { revalidatePath } from "next/cache"
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -258,6 +259,7 @@ export async function PATCH(
     })
 
     const { relatedProducts, targetRelations, ...productDataRest } = product
+    revalidatePath("/", "page")
     return success({ ...productDataRest, relations: groupedRelations })
   } catch {
     return error("Failed to update product")
@@ -275,6 +277,7 @@ export async function DELETE(
     if (session instanceof NextResponse) return session
 
     await prisma.product.delete({ where: { id } })
+    revalidatePath("/", "page")
     return success({ deleted: true })
   } catch {
     return error("Failed to delete product")

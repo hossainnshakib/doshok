@@ -4,6 +4,7 @@ import { success, error } from "@/lib/api-response"
 import { categorySchema } from "@/lib/validations"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 
 export async function GET() {
   const categories = await prisma.category.findMany({
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
         parentId: parentId || null,
       },
     })
+    revalidatePath("/", "page")
     return success(category, 201)
   } catch {
     return error("Failed to create category")
