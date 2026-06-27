@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import Image from "next/image"
 import type { Metadata } from "next"
 import { ArrowRight } from "lucide-react"
 import styles from "./stories.module.css"
@@ -45,7 +46,7 @@ export default async function StoriesPage() {
           <Link key={story.id} href={`/stories/${story.slug}`} className={styles.card}>
             {story.image && (
               <div className={styles.cardImage}>
-                <img src={story.image} alt={story.title} />
+                <Image src={story.image} alt={story.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className={styles.cardImageImg} />
               </div>
             )}
             <div className={styles.cardContent}>

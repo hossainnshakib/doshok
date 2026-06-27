@@ -1,5 +1,7 @@
 import { Fragment } from "react"
 import Link from "next/link"
+import Image from "next/image"
+import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
 import { ProductCard } from "@/components/store/product-card"
 import { Briefcase, Grid3X3, ImageIcon, PackageCheck, Shirt, ShoppingBag, Watch } from "lucide-react"
@@ -181,7 +183,7 @@ function CategoryCard({ category, index }: { category: HomeCategory; index: numb
   return (
     <Link href={`/products?category=${category.slug}`} className={styles.cat}>
       <div className={styles.catIcon}>
-        {category.image ? <img src={category.image} alt={category.name} /> : <Icon size={26} />}
+        {category.image ? <Image src={category.image} alt={category.name} fill sizes="54px" className="object-cover" /> : <Icon size={26} />}
       </div>
       <div className={styles.catLabel}>{category.name}</div>
     </Link>
@@ -284,7 +286,7 @@ function renderFeaturedProductsSection(featuredProducts: HomeProduct[], section:
             <div className={styles.promoImage}>
               {promoProduct?.images[0] ? (
                 <Link href={`/products/${promoProduct.slug}`}>
-                  <img src={promoProduct.images[0]} alt={promoProduct.name} />
+                  <Image src={promoProduct.images[0]} alt={promoProduct.name} fill sizes="170px" className="object-cover" />
                 </Link>
               ) : (
                 <div className={styles.imageEmpty} />
@@ -309,7 +311,7 @@ function renderFeaturedProductsSection(featuredProducts: HomeProduct[], section:
                   <div className={styles.storeProd}>
                     <div className={styles.storeImg}>
                       {product.images[0] ? (
-                        <img src={product.images[0]} alt={product.name} loading="lazy" />
+                        <Image src={product.images[0]} alt={product.name} fill sizes="(max-width: 640px) 33vw, 15vw" className="object-cover" />
                       ) : (
                         <div className={styles.imageEmpty}>
                           <ImageIcon size={18} />
@@ -460,7 +462,7 @@ function renderHeroSection(
                   href={`/products/${product.slug}`}
                   className={`${styles.heroPhoto} ${styles[`heroPhoto${index + 1}`]}`}
                 >
-                  <img src={product.images[0]} alt={product.name} />
+                  <Image src={product.images[0]} alt={product.name} fill sizes="(max-width: 640px) 50vw, 25vw" priority className="object-cover" />
                 </Link>
               ))}
             </div>
@@ -478,6 +480,14 @@ function renderHeroSection(
       </section>
     </>
   )
+}
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: SITE_URL,
+  },
 }
 
 export default async function HomePage() {

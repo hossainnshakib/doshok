@@ -13,16 +13,20 @@ export async function OrganizationSchema() {
     settings?.youtubeUrl,
   ].filter(Boolean)
 
-  const organizationJsonLd = {
+  const organizationJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": settings?.brandName || "Doshok",
     "url": SITE_URL,
+    "description": settings?.tagline || "Style That Speaks. Premium women's fashion in Bangladesh — curated dresses, tops, and occasion wear for the modern wardrobe.",
+    ...(settings?.phone && { "telephone": settings.phone }),
+    ...(settings?.supportEmail && { "email": settings.supportEmail }),
+    ...(settings?.address && { "address": { "@type": "PostalAddress", "addressCountry": "BD", "streetAddress": settings.address } }),
     ...(settings?.headerLogo && { "logo": settings.headerLogo }),
     ...(sameAs.length > 0 && { "sameAs": sameAs }),
   }
 
-  const websiteJsonLd = {
+  const websiteJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": settings?.brandName || "Doshok",

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { ImageIcon, Star } from "lucide-react"
 import { LOW_STOCK_THRESHOLD } from "@/types"
@@ -37,11 +38,12 @@ export function ProductCard({ product, compact }: ProductCardProps) {
       >
         <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-b from-muted to-muted/60">
           {image ? (
-            <img
+            <Image
               src={image}
               alt={product.name}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-1 bg-gradient-to-b from-muted to-muted/60">
@@ -80,11 +82,12 @@ export function ProductCard({ product, compact }: ProductCardProps) {
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-muted to-muted/40">
         {image ? (
-          <img
+          <Image
             src={image}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-            loading="lazy"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-b from-muted to-muted/60">

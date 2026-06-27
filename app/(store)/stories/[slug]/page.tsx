@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { prisma } from "@/lib/prisma"
 import SanitizedHTML from "@/components/sanitized-html"
 import { ArrowLeft } from "lucide-react"
@@ -64,8 +65,8 @@ export default async function StoryDetailPage({
       </Link>
 
       {story.image && (
-        <div className="aspect-video rounded-2xl overflow-hidden mb-8 bg-muted">
-          <img src={story.image} alt={story.title} className="w-full h-full object-cover" />
+        <div className="relative aspect-video rounded-2xl overflow-hidden mb-8 bg-muted">
+          <Image src={story.image} alt={story.title} fill className="object-cover" />
         </div>
       )}
 

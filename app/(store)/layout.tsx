@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Bell, ChevronDown, MapPin, Search, ShoppingCart, User, Package } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -118,7 +119,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
           <div className={styles.navbar}>
             <Link href="/" className={styles.logo}>
               {headerLogo ? (
-                <img src={headerLogo} alt="Doshok" className="h-8 w-auto object-contain" />
+                <Image src={headerLogo} alt="Doshok" width={120} height={32} className="h-8 w-auto object-contain" priority />
               ) : (
                 <>
                   <span className={styles.mark}>D</span>
@@ -129,7 +130,8 @@ export default async function StoreLayout({ children }: { children: React.ReactN
               )}
             </Link>
 
-            <form action="/search" className={styles.searchWrap}>
+            <form action="/search" className={styles.searchWrap} role="search">
+              <label htmlFor="header-search" className="sr-only">Search products</label>
               <details className={styles.categoryDetails}>
                 <summary className={styles.catSelect}>
                   <span>All Category</span>
@@ -145,9 +147,11 @@ export default async function StoreLayout({ children }: { children: React.ReactN
                 </div>
               </details>
               <input
+                id="header-search"
                 name="q"
                 type="search"
                 placeholder="Search product or brand here..."
+                autoComplete="off"
                 className={styles.searchInput}
               />
               <button type="submit" className={styles.searchBtn} aria-label="Search">

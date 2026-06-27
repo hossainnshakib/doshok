@@ -42,14 +42,17 @@ export function SearchBar() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-background w-full max-w-2xl mx-4 mt-[15vh] rounded-2xl shadow-2xl border border-border/50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-            <form onSubmit={handleSubmit} className="flex items-center gap-3 p-4 border-b border-border/50">
+            <form onSubmit={handleSubmit} className="flex items-center gap-3 p-4 border-b border-border/50" role="search">
+              <label htmlFor="modal-search" className="sr-only">Search products</label>
               <Search className="h-5 w-5 text-muted-foreground shrink-0" />
               <input
+                id="modal-search"
                 autoFocus
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search products..."
+                autoComplete="off"
                 className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
               />
               <button

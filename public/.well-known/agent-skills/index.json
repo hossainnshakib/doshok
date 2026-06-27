@@ -1,0 +1,15 @@
+{
+  "name": "Doshok",
+  "description": "Bangladesh-based women's fashion ecommerce store. Browse women's clothing, three-piece sets, and salwar kameez. Supports cart, COD checkout, order tracking, and customer support with nationwide delivery.",
+  "urls": [
+    "https://doshok.com",
+    "https://doshok.com/products",
+    "https://doshok.com/contact",
+    "https://doshok.com/track-order",
+    "https://doshok.com/faq",
+    "https://doshok.com/policy"
+  ],
+  "type": "ecommerce",
+  "region": "Bangladesh",
+  "category": "women's fashion"
+}

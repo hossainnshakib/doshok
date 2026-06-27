@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { prisma } from "@/lib/prisma"
 import { getFooterMenu } from "@/lib/menus"
 import styles from "./site-footer.module.css"
@@ -108,7 +109,7 @@ export async function SiteFooter() {
         <div>
           <Link href="/" className={styles.logo}>
             {settings?.footerLogo ? (
-              <img src={settings.footerLogo} alt="Doshok" className="h-8 w-auto object-contain" />
+              <Image src={settings.footerLogo} alt="Doshok" width={120} height={32} className="h-8 w-auto object-contain" />
             ) : (
               <>
                 <span className={styles.mark}>D</span>

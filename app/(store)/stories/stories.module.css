@@ -16,16 +16,15 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: hsl(var(--muted) / 0.5);
+  position: relative;
 }
 
-.cardImage img {
-  width: 100%;
-  height: 100%;
+.cardImageImg {
   object-fit: cover;
   transition: transform 0.5s ease;
 }
 
-.card:hover .cardImage img {
+.card:hover .cardImageImg {
   transform: scale(1.05);
 }
 

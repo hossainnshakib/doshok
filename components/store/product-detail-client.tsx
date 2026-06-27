@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -290,10 +291,13 @@ export function ProductDetailClient({
               </Badge>
             )}
             {images[selectedImage] ? (
-              <img
+              <Image
                 src={images[selectedImage]}
                 alt={product.name}
-                className="h-full w-full object-cover transition-opacity duration-300"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
+                className="object-cover transition-opacity duration-300"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground">
@@ -309,13 +313,13 @@ export function ProductDetailClient({
                   key={`${image}-${index}`}
                   onClick={() => setSelectedImage(index)}
                   className={cn(
-                    "h-14 w-14 shrink-0 overflow-hidden rounded-lg border bg-muted transition-all md:h-16 md:w-16",
+                    "relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border bg-muted transition-all md:h-16 md:w-16",
                     selectedImage === index
                       ? "border-primary ring-2 ring-primary/20"
                       : "border-border hover:border-primary/40"
                   )}
                 >
-                  <img src={image} alt={`${product.name} ${index + 1}`} className="h-full w-full object-cover" />
+                  <Image src={image} alt={`${product.name} ${index + 1}`} fill sizes="64px" className="object-cover" />
                 </button>
               ))}
             </div>
@@ -380,13 +384,13 @@ export function ProductDetailClient({
                       key={color}
                       onClick={() => setSelectedColor(color)}
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border bg-muted text-[10px] font-bold transition-all",
+                        "relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border bg-muted text-[10px] font-bold transition-all",
                         selectedColor === color ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40"
                       )}
                       title={color}
                     >
                       {image ? (
-                        <img src={image} alt={color} className="h-full w-full object-cover" />
+                        <Image src={image} alt={color} fill sizes="40px" className="object-cover" />
                       ) : (
                         <span className="h-full w-full" style={{ backgroundColor: variant?.colorHex ?? "#e5e7eb" }} />
                       )}
