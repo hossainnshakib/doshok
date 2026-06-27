@@ -6,21 +6,21 @@
 Doshok is a Bangladesh-based women's fashion ecommerce store specializing in women's clothing, three-piece sets, and salwar kameez style collections. We offer curated dresses, tops, and occasion wear for the modern wardrobe with cash-on-delivery (COD) and nationwide delivery across Bangladesh.
 
 ## Key URLs
-- Homepage: https://doshok.com
-- Products: https://doshok.com/products
-- Contact: https://doshok.com/contact
-- Track Order: https://doshok.com/track-order
-- FAQ: https://doshok.com/faq
-- Policy: https://doshok.com/policy
-- New Arrivals: https://doshok.com/new-arrivals
-- About: https://doshok.com/about
-- Size Guide: https://doshok.com/size-guide
-- Return Policy: https://doshok.com/returns
-- Delivery: https://doshok.com/delivery
-- Terms & Conditions: https://doshok.com/terms
-- Privacy Policy: https://doshok.com/privacy
-- Cart: https://doshok.com/cart
-- Search: https://doshok.com/search
+- [Homepage](https://doshok.com)
+- [Products](https://doshok.com/products)
+- [Contact](https://doshok.com/contact)
+- [Track Order](https://doshok.com/track-order)
+- [FAQ](https://doshok.com/faq)
+- [Policy](https://doshok.com/policy)
+- [New Arrivals](https://doshok.com/new-arrivals)
+- [About](https://doshok.com/about)
+- [Size Guide](https://doshok.com/size-guide)
+- [Return Policy](https://doshok.com/returns)
+- [Delivery](https://doshok.com/delivery)
+- [Terms & Conditions](https://doshok.com/terms)
+- [Privacy Policy](https://doshok.com/privacy)
+- [Cart](https://doshok.com/cart)
+- [Search](https://doshok.com/search)
 
 ## Features
 - Browse products by category
