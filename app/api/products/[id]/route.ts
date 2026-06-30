@@ -85,6 +85,14 @@ export async function PATCH(
     const body = await request.json()
 
     const { variants, specifications, sizeChartIds, relatedProductIds, crossSellProductIds, upsellProductIds, ...productData } = body
+
+    if ("defaultCouponCode" in productData) {
+      productData.defaultCouponCode =
+        typeof productData.defaultCouponCode === "string" && productData.defaultCouponCode.trim()
+          ? productData.defaultCouponCode.trim().toUpperCase()
+          : null
+    }
+
     const existingProduct = await prisma.product.findUnique({
       where: { id },
       select: { price: true, oldPrice: true },

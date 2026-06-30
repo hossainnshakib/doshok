@@ -101,6 +101,13 @@ export async function POST(request: NextRequest) {
 
     const { variants, specifications, sizeChartIds, ...productData } = parsed.data
 
+    if ("defaultCouponCode" in productData) {
+      productData.defaultCouponCode =
+        typeof productData.defaultCouponCode === "string" && productData.defaultCouponCode.trim()
+          ? productData.defaultCouponCode.trim().toUpperCase()
+          : null
+    }
+
     const extraFields: Record<string, unknown> = {}
     if (body.paymentRuleOverride !== undefined) extraFields.paymentRuleOverride = body.paymentRuleOverride
     if (body.paymentRuleValueOverride !== undefined) extraFields.paymentRuleValueOverride = body.paymentRuleValueOverride

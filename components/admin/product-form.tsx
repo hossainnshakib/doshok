@@ -205,7 +205,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
       categoryId,
       featured,
       status: publishStatus,
-      defaultCouponCode: defaultCouponCode?.toUpperCase() || undefined,
+      defaultCouponCode: defaultCouponCode?.trim() ? defaultCouponCode.trim().toUpperCase() : null,
       variants: variants.filter((v) => v.size && v.color),
       material: material || undefined,
       careInstructions: careInstructions || undefined,

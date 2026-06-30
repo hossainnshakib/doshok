@@ -40,7 +40,7 @@ export const productSchema = z.object({
   categoryId: z.string().min(1),
   featured: z.boolean().default(false),
   status: z.enum(["Draft", "Active", "Hidden", "Archived"]).default("Draft"),
-  defaultCouponCode: z.string().optional(),
+  defaultCouponCode: z.string().nullable().optional(),
   material: z.string().optional(),
   careInstructions: z.string().optional(),
   seoTitle: z.string().optional(),

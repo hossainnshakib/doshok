@@ -23,11 +23,13 @@ export async function GET() {
 
   const headers = [
     "id",
+    "item_group_id",
     "title",
     "description",
     "link",
     "image_link",
     "price",
+    "sale_price",
     "availability",
     "condition",
     "brand",
@@ -43,44 +45,38 @@ export async function GET() {
       .replace(/<[^>]*>/g, "")
     const imageLink = toAbsoluteUrl(product.images[0])
     const link = `https://doshok.com/products/${product.slug}`
-    const price = `${product.price} BDT`
     const brand = "Doshok"
+
+    const hasSale = product.oldPrice != null && product.price < product.oldPrice
+    const regularPrice = hasSale ? `${product.oldPrice} BDT` : `${product.price} BDT`
+    const salePrice = hasSale ? `${product.price} BDT` : ""
+
+    const columns = (itemGroupId: string, availability: string) => [
+      itemGroupId,
+      product.name,
+      description,
+      link,
+      imageLink,
+      regularPrice,
+      salePrice,
+      availability,
+      "new",
+      brand,
+      "no",
+    ]
 
     if (product.variants.length === 0) {
       rows.push(
-        [
-          product.slug,
-          product.name,
-          description,
-          link,
-          imageLink,
-          price,
-          "out of stock",
-          "new",
-          brand,
-          "no",
-        ]
-          .map(escapeTsv)
-          .join("\t"),
+        [product.slug, ...columns("", "out of stock")].map(escapeTsv).join("\t"),
       )
     } else {
+      const itemGroupId = product.slug
       for (const variant of product.variants) {
         const availableStock = variant.stock - variant.reservedStock
         const availability = availableStock > 0 ? "in stock" : "out of stock"
 
         rows.push(
-          [
-            `${product.slug}-${variant.id.slice(-8)}`,
-            product.name,
-            description,
-            link,
-            imageLink,
-            price,
-            availability,
-            "new",
-            brand,
-            "no",
-          ]
+          [`${product.slug}-${variant.id.slice(-8)}`, ...columns(itemGroupId, availability)]
             .map(escapeTsv)
             .join("\t"),
         )
