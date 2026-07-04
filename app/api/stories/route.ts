@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAdminPermission } from "@/lib/auth/admin"
+import { decode } from "he"
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,11 +32,13 @@ export async function POST(req: NextRequest) {
     if (session instanceof NextResponse) return session
 
     const body = await req.json()
-    const { title, slug, excerpt, content, image, status, seoTitle, seoDescription, seoImage, seoKeywords } = body
+    const { title, slug, excerpt, content, image, storyCategoryId, tags, status, seoTitle, seoDescription, seoImage, seoKeywords } = body
 
     if (!title || !slug || !content) {
       return NextResponse.json({ success: false, error: "Title, slug, and content are required" }, { status: 400 })
     }
+
+    const cleanContent = decode(content)
 
     const existing = await prisma.story.findUnique({ where: { slug } })
     if (existing) {
@@ -43,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     const story = await prisma.story.create({
-      data: { title, slug, excerpt, content, image, status: status ?? "draft", seoTitle, seoDescription, seoImage, seoKeywords },
+      data: { title, slug, excerpt, content: cleanContent, image, storyCategoryId, tags, status: status ?? "draft", seoTitle, seoDescription, seoImage, seoKeywords },
     })
 
     return NextResponse.json({ success: true, data: story })

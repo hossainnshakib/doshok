@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/store/product-card"
 import { ProductSortSelect } from "@/components/store/product-sort-select"
 import { ProductPagination } from "@/components/store/product-pagination"
 import { Package } from "lucide-react"
+import { safeJsonLd } from "@/lib/json-ld"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
 
@@ -154,8 +155,30 @@ export default async function ProductsPage({
     page: params.page || undefined,
   }
 
+  const breadcrumbList = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": SITE_URL },
+      ...(selectedCategory
+        ? [
+            { "@type": "ListItem", "position": 2, "name": "Products", "item": `${SITE_URL}/products` },
+            { "@type": "ListItem", "position": 3, "name": selectedCategory.name, "item": `${SITE_URL}/products?category=${selectedCategory.slug}` },
+          ]
+        : [
+            { "@type": "ListItem", "position": 2, "name": "Products", "item": `${SITE_URL}/products` },
+          ]),
+    ],
+  }
+
   return (
     <div className="container mx-auto container-px py-8 md:py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLd(breadcrumbList),
+        }}
+      />
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-8">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2 font-medium">Collection</p>

@@ -35,6 +35,7 @@ import {
   ExternalLink,
   Download,
   Shield,
+  Layers,
 } from "lucide-react"
 import { canAccessSection, hasSettingsAccess } from "@/lib/permissions"
 import type { PermissionGroup } from "@/lib/permissions"
@@ -127,6 +128,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/cms/menus", label: "Menus", icon: Menu },
       { href: "/admin/cms/pages", label: "Pages", icon: FileText },
       { href: "/admin/cms/stories", label: "Stories", icon: BookOpen },
+      { href: "/admin/cms/story-categories", label: "Story Categories", icon: Layers },
       { href: "/admin/cms/short-links", label: "Short Links", icon: ExternalLink, permission: "short_links" },
     ],
   },

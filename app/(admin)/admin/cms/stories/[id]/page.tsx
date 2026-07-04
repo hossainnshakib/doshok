@@ -1,18 +1,24 @@
 "use client"
 
-import { startTransition, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AdminPageHeader, AdminPageShell } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
 import { ImageUploader } from "@/components/admin/image-uploader"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
+import Link from "next/link"
 
 const RichTextEditor = dynamic(() => import("@/components/admin/rich-text-editor"), { ssr: false })
+
+type StoryCategory = { id: string; name: string; slug: string }
 
 export default function EditStoryPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+
+  const [categories, setCategories] = useState<StoryCategory[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
@@ -20,6 +26,8 @@ export default function EditStoryPage() {
   const [content, setContent] = useState("")
   const [image, setImage] = useState("")
   const [status, setStatus] = useState("draft")
+  const [storyCategoryId, setStoryCategoryId] = useState("")
+  const [tags, setTags] = useState("")
   const [seoTitle, setSeoTitle] = useState("")
   const [seoDescription, setSeoDescription] = useState("")
   const [seoImage, setSeoImage] = useState("")
@@ -28,9 +36,17 @@ export default function EditStoryPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    startTransition(() => {
-      setLoading(true)
-    })
+    fetch("/api/story-categories?all=true")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setCategories(d.data)
+      })
+      .catch(() => {})
+      .finally(() => setCategoriesLoading(false))
+  }, [])
+
+  useEffect(() => {
+    setLoading(true)
     fetch(`/api/stories/${id}`)
       .then((r) => r.json())
       .then((d) => {
@@ -42,6 +58,8 @@ export default function EditStoryPage() {
           setContent(s.content ?? "")
           setImage(s.image ?? "")
           setStatus(s.status)
+          setStoryCategoryId(s.storyCategoryId ?? "")
+          setTags(s.tags ?? "")
           setSeoTitle(s.seoTitle ?? "")
           setSeoDescription(s.seoDescription ?? "")
           setSeoImage(s.seoImage ?? "")
@@ -71,6 +89,8 @@ export default function EditStoryPage() {
           excerpt: excerpt || null,
           content,
           image: image || null,
+          storyCategoryId: storyCategoryId || null,
+          tags: tags || null,
           status,
           seoTitle: seoTitle || null,
           seoDescription: seoDescription || null,
@@ -91,82 +111,126 @@ export default function EditStoryPage() {
     }
   }
 
+  const hasCategories = categories.length > 0
+
+  if (loading) {
+    return (
+      <AdminPageShell>
+        <AdminPageHeader eyebrow="CMS" title="Loading..." description="Edit this story." backHref="/admin/cms/stories" />
+        <div className="rounded-xl border border-slate-200/60 bg-white p-8 text-center text-sm text-slate-400">Loading...</div>
+      </AdminPageShell>
+    )
+  }
+
   return (
     <AdminPageShell>
       <AdminPageHeader
         eyebrow="CMS"
-        title={loading ? "Loading..." : `Edit: ${title}`}
+        title={`Edit: ${title}`}
         description="Edit this story."
         backHref="/admin/cms/stories"
       />
-      {loading ? (
-        <div className="rounded-xl border border-slate-200/60 bg-white p-8 text-center text-sm text-slate-400">Loading...</div>
-      ) : (
-        <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200/60 bg-white p-6 space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600">Title</label>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600">Slug</label>
-              <input value={slug} onChange={(e) => setSlug(e.target.value)} required className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 font-mono focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">Excerpt</label>
-            <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">Content</label>
-            <RichTextEditor value={content} onChange={setContent} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">Cover Image</label>
-            <ImageUploader images={image ? [image] : []} onChange={(imgs) => setImage(imgs[0] || "")} single label="" helperText="" folder="stories" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20">
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-            </select>
-          </div>
-
-          <div className="border-t border-border pt-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">SEO</p>
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] items-start">
+          <div className="space-y-5 rounded-xl border border-slate-200/60 bg-white p-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-600">SEO Title</label>
-                <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <label className="text-xs font-medium text-slate-600">Title</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-600">SEO Keywords</label>
-                <input value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="comma, separated, values" />
+                <label className="text-xs font-medium text-slate-600">Slug</label>
+                <input value={slug} onChange={(e) => setSlug(e.target.value)} required className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 font-mono focus:outline-none focus:ring-2 focus:ring-primary/20" />
               </div>
             </div>
-            <div className="space-y-1.5 mt-3">
-              <label className="text-xs font-medium text-slate-600">SEO Description</label>
-              <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-600">Excerpt</label>
+              <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
             </div>
-            <div className="space-y-1.5 mt-3">
-              <label className="text-xs font-medium text-slate-600">SEO Image</label>
-              <ImageUploader images={seoImage ? [seoImage] : []} onChange={(imgs) => setSeoImage(imgs[0] || "")} single label="" helperText="" folder="stories" />
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-600">Content</label>
+              <RichTextEditor value={content} onChange={setContent} />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-600">Cover Image</label>
+              <ImageUploader images={image ? [image] : []} onChange={(imgs) => setImage(imgs[0] || "")} single label="" helperText="" folder="stories" />
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2 border-t border-border">
-            <Button type="button" variant="outline" className="rounded-lg" onClick={() => router.push("/admin/cms/stories")}>Cancel</Button>
-            <Button type="submit" className="rounded-lg bg-slate-900 hover:bg-slate-800" disabled={saving}>
-              {saving ? "Saving..." : "Update Story"}
-            </Button>
+          <div className="space-y-4 sticky top-6">
+            <div className="rounded-xl border border-slate-200/60 bg-white p-4 space-y-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</p>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+              </select>
+              <p className="text-[11px] text-slate-400">{status === "active" ? "Published and visible on the storefront." : "Only visible to admins."}</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200/60 bg-white p-4 space-y-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Organization</p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600">Category</label>
+                {categoriesLoading ? (
+                  <div className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 flex items-center text-slate-400">Loading...</div>
+                ) : !hasCategories ? (
+                  <div className="w-full rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm h-9 flex items-center justify-between">
+                    <span className="text-slate-400">No categories found.</span>
+                    <Link href="/admin/cms/story-categories/new" className="text-xs font-semibold text-primary hover:underline">Create Category</Link>
+                  </div>
+                ) : (
+                  <select value={storyCategoryId} onChange={(e) => setStoryCategoryId(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="">None</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600">Tags</label>
+                <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="comma, separated" className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200/60 bg-white p-4 space-y-3">
+              <details className="group">
+                <summary className="text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer list-none flex items-center gap-2 [&::-webkit-details-marker]:hidden before:content-['▶'] before:text-[10px] before:text-slate-400 group-open:before:content-['▼']">
+                  SEO
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-600">SEO Title</label>
+                    <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-600">SEO Description</label>
+                    <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} rows={2} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-600">SEO Keywords</label>
+                    <input value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="comma, separated" className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-600">SEO Image</label>
+                    <ImageUploader images={seoImage ? [seoImage] : []} onChange={(imgs) => setSeoImage(imgs[0] || "")} single label="" helperText="" folder="stories" />
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button type="button" variant="outline" className="rounded-lg text-sm flex-1" onClick={() => router.push("/admin/cms/stories")}>Cancel</Button>
+              <Button type="submit" className="rounded-lg bg-slate-900 hover:bg-slate-800 text-sm flex-1" disabled={saving}>
+                {saving ? "Saving..." : "Update Story"}
+              </Button>
+            </div>
           </div>
-        </form>
-      )}
+        </div>
+      </form>
     </AdminPageShell>
   )
 }

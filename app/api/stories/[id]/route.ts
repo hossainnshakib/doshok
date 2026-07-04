@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAdminPermission } from "@/lib/auth/admin"
+import { decode } from "he"
 
 export async function GET(
   req: NextRequest,
@@ -34,7 +35,9 @@ export async function PATCH(
 
     const { id } = await params
     const body = await req.json()
-    const { title, slug, excerpt, content, image, status, seoTitle, seoDescription, seoImage, seoKeywords } = body
+    let { title, slug, excerpt, content, image, storyCategoryId, tags, status, seoTitle, seoDescription, seoImage, seoKeywords } = body
+
+    if (content) content = decode(content)
 
     if (slug) {
       const existing = await prisma.story.findFirst({ where: { slug, id: { not: id } } })
@@ -45,7 +48,7 @@ export async function PATCH(
 
     const story = await prisma.story.update({
       where: { id },
-      data: { title, slug, excerpt, content, image, status, seoTitle, seoDescription, seoImage, seoKeywords },
+      data: { title, slug, excerpt, content, image, storyCategoryId, tags, status, seoTitle, seoDescription, seoImage, seoKeywords },
     })
 
     return NextResponse.json({ success: true, data: story })

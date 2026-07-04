@@ -17,6 +17,7 @@ type MenuItemData = {
 const DEFAULT_SHOP_LINKS = [
   ["All Products", "/products"],
   ["New Arrivals", "/new-arrivals"],
+  ["Stories", "/stories"],
   ["About", "/about"],
   ["Contact", "/contact"],
 ]

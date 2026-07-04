@@ -27,6 +27,15 @@ type HomeCategory = {
   image: string | null
 }
 
+type HomeStory = {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  image: string | null
+  storyCategory: { name: string } | null
+}
+
 function mapProduct(p: {
   id: string; name: string; slug: string; price: number; oldPrice: number | null;
   images: string[]; variants: { stock: number; reservedStock: number }[];
@@ -61,18 +70,21 @@ async function getHomepageData() {
   const hasSaleSection = enabledSections.some((s) => s.type === "sale_products")
   const hasFeatSection = enabledSections.some((s) => s.type === "featured_products")
   const hasBestSection = enabledSections.some((s) => s.type === "best_sellers")
+  const hasJournalSection = enabledSections.some((s) => s.type === "from_the_journal")
 
   const catSection = enabledSections.find((s) => s.type === "categories")
   const saleSection = enabledSections.find((s) => s.type === "sale_products")
   const newSection = enabledSections.find((s) => s.type === "new_arrivals")
   const featSection = enabledSections.find((s) => s.type === "featured_products")
   const bestSection = enabledSections.find((s) => s.type === "best_sellers")
+  const journalSection = enabledSections.find((s) => s.type === "from_the_journal")
 
   const maxCategories = (catSection?.config?.maxCategories as number) ?? 8
   const maxSaleProducts = (saleSection?.config?.maxProducts as number) ?? 4
   const maxNewProducts = (newSection?.config?.maxProducts as number) ?? 8
   const maxFeatProducts = (featSection?.config?.maxProducts as number) ?? 4
   const maxBestProducts = (bestSection?.config?.maxProducts as number) ?? 8
+  const maxJournalStories = (journalSection?.config?.maxStories as number) ?? 3
 
   const [categories, latestPrisma, salePrisma, bestSellers] = await Promise.all([
     hasCatSection
@@ -145,6 +157,15 @@ async function getHomepageData() {
     featuredProducts = [...featuredProducts, ...featuredFallback.map(mapProduct)]
   }
 
+  const journalStories: HomeStory[] = hasJournalSection
+    ? await prisma.story.findMany({
+        where: { status: "active" },
+        include: { storyCategory: true },
+        orderBy: { createdAt: "desc" },
+        take: maxJournalStories,
+      })
+    : []
+
   const heroNeedsProducts = !homepageConfig?.heroImage && (hasNewSection || hasFeatSection || hasBestSection || hasSaleSection || hasCatSection)
   const heroSource = featuredProducts.length > 0 ? featuredProducts : latestProducts.length > 0 ? latestProducts : bestSellersMapped.length > 0 ? bestSellersMapped : saleProducts
   const heroProducts = heroNeedsProducts
@@ -173,6 +194,7 @@ async function getHomepageData() {
     sections: enabledSections,
     heroProducts,
     hasProducts: latestProducts.length > 0,
+    journalStories,
   }
 }
 
@@ -382,6 +404,43 @@ function renderPromoBannerSection(promoBannerEnabled: boolean, promoBannerText: 
   )
 }
 
+function renderJournalSection(stories: HomeStory[], section: HomepageSection) {
+  const max = (section.config.maxStories as number) ?? 3
+  const items = stories.slice(0, max)
+  if (items.length === 0) return null
+  const title = section.title || "From the Journal"
+  return (
+    <section className={styles.section}>
+      <div className={styles.sectionWrap}>
+        <div className={styles.sectionHead}>
+          <div className={styles.sectionTitle}>{title}</div>
+          <Link href="/stories" className={styles.viewAll}>
+            View All <span className="inline-block ml-1">→</span>
+          </Link>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-3">
+          {items.map((story) => (
+            <Link key={story.id} href={`/stories/${story.slug}`} className="group">
+              <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-muted mb-3">
+                {story.image ? (
+                  <Image src={story.image} alt={story.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-xs">No image</div>
+                )}
+              </div>
+              <h3 className="text-sm font-semibold group-hover:text-primary transition-colors">{story.title}</h3>
+              {story.excerpt && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{story.excerpt}</p>}
+              {story.storyCategory && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-50 text-violet-700 mt-2">{story.storyCategory.name}</span>
+              )}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function renderQuoteSection(tagline: string, section: HomepageSection) {
   const text = section.title || tagline || "Style That Speaks"
   return (
@@ -498,7 +557,7 @@ export default async function HomePage() {
     heroImage, heroTitle, heroSubtitle, heroCTAText, heroCTASecondaryText,
     heroCTAUrl, heroCTASecondaryUrl,
     promoBannerText, promoBannerImage, promoBannerLink, promoBannerEnabled,
-    sections, heroProducts, hasProducts,
+    sections, heroProducts, hasProducts, journalStories,
   } = await getHomepageData()
 
   const sectionRenderers: Record<string, (section: HomepageSection) => React.ReactNode> = {
@@ -510,6 +569,7 @@ export default async function HomePage() {
     best_sellers: (s) => renderBestSellersSection(bestSellers, s),
     promo_banner: (s) => renderPromoBannerSection(promoBannerEnabled, promoBannerText, promoBannerImage, promoBannerLink, s),
     quote: (s) => renderQuoteSection("", s),
+    from_the_journal: (s) => renderJournalSection(journalStories, s),
   }
 
   return (

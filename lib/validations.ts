@@ -286,6 +286,8 @@ export const storySchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().min(1),
   image: z.string().optional(),
+  storyCategoryId: z.string().optional(),
+  tags: z.string().optional(),
   status: z.enum(["draft", "active"]).default("draft"),
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),

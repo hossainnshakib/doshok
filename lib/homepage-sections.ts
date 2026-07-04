@@ -7,6 +7,7 @@ export type SectionType =
   | "best_sellers"
   | "promo_banner"
   | "quote"
+  | "from_the_journal"
 
 export const SECTION_TYPES: SectionType[] = [
   "hero",
@@ -17,6 +18,7 @@ export const SECTION_TYPES: SectionType[] = [
   "best_sellers",
   "promo_banner",
   "quote",
+  "from_the_journal",
 ]
 
 export interface HomepageSection {
@@ -38,6 +40,7 @@ export function getDefaultSections(): HomepageSection[] {
     { type: "best_sellers", enabled: true, title: "Best Sellers", description: "", sortOrder: 45, config: { maxProducts: 8 } },
     { type: "promo_banner", enabled: true, title: "", description: "", sortOrder: 50, config: {} },
     { type: "quote", enabled: true, title: "Style That Speaks", description: "", sortOrder: 60, config: {} },
+    { type: "from_the_journal", enabled: true, title: "From the Journal", description: "", sortOrder: 70, config: { maxStories: 3 } },
   ]
 }
 

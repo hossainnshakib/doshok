@@ -4,9 +4,14 @@ import { ProductCard } from "@/components/store/product-card"
 import { prisma } from "@/lib/prisma"
 import { ArrowRight, Package } from "lucide-react"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://doshok.com"
+
 export const metadata: Metadata = {
   title: "New Arrivals – Doshok",
   description: "Fresh drops and the latest arrivals from Doshok. Discover new fashion pieces, curated weekly for the modern wardrobe.",
+  alternates: {
+    canonical: `${SITE_URL}/new-arrivals`,
+  },
 }
 
 export default async function NewArrivalsPage() {
