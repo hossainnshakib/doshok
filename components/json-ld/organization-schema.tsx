@@ -24,6 +24,16 @@ export async function OrganizationSchema() {
     ...(settings?.address && { "address": { "@type": "PostalAddress", "addressCountry": "BD", "streetAddress": settings.address } }),
     ...(settings?.headerLogo && { "logo": settings.headerLogo }),
     ...(sameAs.length > 0 && { "sameAs": sameAs }),
+    "hasMerchantReturnPolicy": {
+      "@type": "MerchantReturnPolicy",
+      "@id": "https://doshok.com/returns#policy",
+      "name": "7-Day Return Policy",
+      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+      "merchantReturnDays": 7,
+      "returnMethod": "https://schema.org/ReturnByMail",
+      "returnFees": "https://schema.org/FreeReturn",
+      "applicableCountry": "BD",
+    },
   }
 
   const websiteJsonLd: Record<string, unknown> = {

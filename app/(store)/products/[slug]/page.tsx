@@ -205,6 +205,13 @@ export default async function ProductDetailPage({
       "priceCurrency": "BDT",
       "availability": availableStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       "url": `${SITE_URL}/products/${slug}`,
+      "hasMerchantReturnPolicy": {
+        "@id": "https://doshok.com/returns#policy",
+      },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "@id": "https://doshok.com/delivery#shipping",
+      },
     },
   }
 
