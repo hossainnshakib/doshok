@@ -94,7 +94,9 @@ export default function AdminHomepagePage() {
             }
           }
           if (Array.isArray(d.data.sections) && d.data.sections.length > 0) {
-            setSections(d.data.sections)
+            const seen = new Set()
+            const deduped = d.data.sections.filter((s: { type: string }) => !seen.has(s.type) && !seen.add(s.type))
+            setSections(deduped)
           }
         }
       })
@@ -405,7 +407,7 @@ export default function AdminHomepagePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {sections.map((section, index) => (
-                  <div key={section.type} className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                  <div key={`${section.type}-${index}`} className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider min-w-[120px]">

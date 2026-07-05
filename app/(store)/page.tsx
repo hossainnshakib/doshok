@@ -597,10 +597,10 @@ export default async function HomePage() {
         </section>
       )}
 
-      {sections.map((section) => {
+      {sections.map((section, i) => {
         const renderFn = sectionRenderers[section.type]
         const node = renderFn ? renderFn(section) : null
-        return node ? <Fragment key={section.type}>{node}</Fragment> : null
+        return node ? <Fragment key={`${section.type}-${i}`}>{node}</Fragment> : null
       })}
     </>
   )

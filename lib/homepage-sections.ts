@@ -79,7 +79,8 @@ export function parseSections(raw: string | null | undefined): HomepageSection[]
 }
 
 export function getEnabledSections(sections: HomepageSection[]): HomepageSection[] {
+  const seen = new Set<SectionType>()
   return sections
-    .filter((s) => s.enabled)
+    .filter((s) => s.enabled && !seen.has(s.type) && (seen.add(s.type), true))
     .sort((a, b) => a.sortOrder - b.sortOrder)
 }
