@@ -161,7 +161,7 @@ export async function pathaoRequest<T>(
             requestBody: sanitizeBodyForLog(body),
             responseStatus: response.status,
             responseBody: { raw: text.substring(0, 1000) },
-            errorMessage: errorMessage,
+            errorMessage,
             durationMs,
           }
           await createCourierLog(logData)
@@ -217,20 +217,159 @@ export async function pathaoRequest<T>(
       responseBody: responseData as object,
       responseStatus,
       durationMs,
-      errorMessage: !response.ok ? (responseData as PathaoApiError).error || (responseData as PathaoApiError).message : null,
+      errorMessage: !response.ok ? buildErrorMessage(responseData as PathaoApiError) : null,
     }
     await createCourierLog(logData)
   }
 
   if (!response.ok) {
+    const errorMessage = buildErrorMessage(responseData as PathaoApiError)
     return {
       success: false,
       data: null as unknown as T,
       code: responseStatus,
-      message: (responseData as PathaoApiError).error_description || (responseData as PathaoApiError).message || "Request failed",
-      errors: (responseData as PathaoApiError).error ? [{ message: (responseData as PathaoApiError).error }] : undefined,
+      message: errorMessage,
+      errors: [{ message: errorMessage }],
     }
   }
 
   return responseData as PathaoApiResponse<T>
+}
+
+function buildErrorMessage(err: PathaoApiError): string {
+  const parts: string[] = []
+  if (err.error) parts.push(`error: ${err.error}`)
+  if (err.error_description) parts.push(`description: ${err.error_description}`)
+  if (err.message) parts.push(`message: ${err.message}`)
+  if (err.code) parts.push(`code: ${err.code}`)
+  if (parts.length === 0) parts.push("Unknown error")
+  return parts.join(" | ")
+}
+
+export async function pathaoTokenRequest(
+  endpoint: string,
+  body: Record<string, string>,
+  providerCode: string = PATHAO_PROVIDER_CODE
+): Promise<PathaoApiResponse<PathaoTokenResponse>> {
+  const startTime = Date.now()
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+    Accept: "application/json",
+  }
+
+  const sanitizedBody: Record<string, string> = {}
+  for (const [key, value] of Object.entries(body)) {
+    if (["client_secret", "password", "refresh_token"].includes(key)) {
+      sanitizedBody[key] = "[REDACTED]"
+    } else {
+      sanitizedBody[key] = value
+    }
+  }
+
+  const formBody = new URLSearchParams()
+  for (const [key, value] of Object.entries(body)) {
+    formBody.append(key, value)
+  }
+
+  let response: Response
+  let responseData: PathaoApiResponse<PathaoTokenResponse> | PathaoApiError
+
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: formBody.toString(),
+    })
+
+    const text = await response.text()
+    if (text) {
+      try {
+        responseData = JSON.parse(text)
+      } catch {
+        const durationMs = Date.now() - startTime
+        const errorMessage = `Pathao token endpoint returned non-JSON (status ${response.status}): ${text.substring(0, 500)}`
+
+        await createCourierLog({
+          providerCode,
+          action: "token_request",
+          requestUrl: endpoint,
+          requestMethod: "POST",
+          requestBody: sanitizedBody as object,
+          responseStatus: response.status,
+          responseBody: { raw: text.substring(0, 1000) },
+          errorMessage,
+          durationMs,
+        })
+
+        return {
+          success: false,
+          data: null as unknown as PathaoTokenResponse,
+          message: errorMessage,
+          code: response.status,
+        }
+      }
+    } else {
+      responseData = { error: "Empty response body" } as PathaoApiError
+    }
+  } catch (err) {
+    const durationMs = Date.now() - startTime
+    const errorMessage = err instanceof Error ? err.message : "Network error"
+
+    await createCourierLog({
+      providerCode,
+      action: "token_request",
+      requestUrl: endpoint,
+      requestMethod: "POST",
+      requestBody: sanitizedBody as object,
+      responseStatus: null,
+      errorMessage,
+      durationMs,
+    })
+
+    return {
+      success: false,
+      data: null as unknown as PathaoTokenResponse,
+      message: errorMessage,
+    }
+  }
+
+  const durationMs = Date.now() - startTime
+  const responseStatus = response.status
+
+  if (!response.ok) {
+    const errorMessage = buildErrorMessage(responseData as PathaoApiError)
+
+    await createCourierLog({
+      providerCode,
+      action: "token_request",
+      requestUrl: endpoint,
+      requestMethod: "POST",
+      requestBody: sanitizedBody as object,
+      responseBody: responseData as object,
+      responseStatus,
+      errorMessage,
+      durationMs,
+    })
+
+    return {
+      success: false,
+      data: null as unknown as PathaoTokenResponse,
+      message: errorMessage,
+      code: responseStatus,
+    }
+  }
+
+  await createCourierLog({
+    providerCode,
+    action: "token_request",
+    requestUrl: endpoint,
+    requestMethod: "POST",
+    requestBody: sanitizedBody as object,
+    responseBody: responseData as object,
+    responseStatus,
+    durationMs,
+    errorMessage: null,
+  })
+
+  return responseData as PathaoApiResponse<PathaoTokenResponse>
 }

@@ -1,7 +1,7 @@
 import {
   getPathaoEndpoints,
   getPathaoCredentials,
-  pathaoRequest,
+  pathaoTokenRequest,
   type PathaoTokenResponse,
   type PathaoApiResponse,
   PATHAO_PROVIDER_CODE,
@@ -28,21 +28,16 @@ export async function issueAccessToken(): Promise<PathaoApiResponse<PathaoTokenR
   const environment = provider?.environment ?? "sandbox"
   const endpoints = getPathaoEndpoints(environment)
 
-  const response = await pathaoRequest<PathaoTokenResponse>(
+  const response = await pathaoTokenRequest(
     endpoints.AUTH,
     {
-      method: "POST",
-      body: {
-        grant_type: "password",
-        client_id: credentials.clientId,
-        client_secret: credentials.clientSecret,
-        username: credentials.username,
-        password: credentials.password,
-      },
-      credentials,
-      action: "issue_access_token",
-      logRequest: true,
-    }
+      grant_type: "password",
+      client_id: credentials.clientId,
+      client_secret: credentials.clientSecret,
+      username: credentials.username,
+      password: credentials.password,
+    },
+    PATHAO_PROVIDER_CODE
   )
 
   if (response.success && response.data) {
@@ -81,19 +76,15 @@ export async function refreshAccessToken(): Promise<PathaoApiResponse<PathaoToke
   const environment = provider?.environment ?? "sandbox"
   const endpoints = getPathaoEndpoints(environment)
 
-  const response = await pathaoRequest<PathaoTokenResponse>(
+  const response = await pathaoTokenRequest(
     endpoints.REFRESH,
     {
-      method: "POST",
-      body: {
-        grant_type: "refresh_token",
-        client_id: credentials.clientId,
-        client_secret: credentials.clientSecret,
-        refresh_token: existingToken.refreshToken,
-      },
-      credentials,
-      action: "refresh_access_token",
-    }
+      grant_type: "refresh_token",
+      client_id: credentials.clientId,
+      client_secret: credentials.clientSecret,
+      refresh_token: existingToken.refreshToken,
+    },
+    PATHAO_PROVIDER_CODE
   )
 
   if (response.success && response.data) {
