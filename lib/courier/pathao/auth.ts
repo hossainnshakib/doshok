@@ -20,17 +20,16 @@ export async function issueAccessToken(): Promise<PathaoApiResponse<PathaoTokenR
     return {
       success: false,
       data: null as unknown as PathaoTokenResponse,
-      message: "Pathao credentials not configured",
+      message: "Pathao credentials not configured in database",
     }
   }
 
-  const endpoints = getPathaoEndpoints((await getPathaoCredentials()) ? "sandbox" : "sandbox")
   const provider = await import("@/lib/courier").then(m => m.getCourierProviderByCode(PATHAO_PROVIDER_CODE))
   const environment = provider?.environment ?? "sandbox"
-  const resolvedEndpoints = getPathaoEndpoints(environment)
+  const endpoints = getPathaoEndpoints(environment)
 
   const response = await pathaoRequest<PathaoTokenResponse>(
-    resolvedEndpoints.AUTH,
+    endpoints.AUTH,
     {
       method: "POST",
       body: {

@@ -129,12 +129,15 @@ export async function POST(request: NextRequest) {
       if (result.success) {
         return success({ message: "Connection successful", expiresAt: result.expiresAt?.toISOString() })
       }
-      return error(result.message || "Connection failed")
+      const errorMessage = result.message || "Connection failed"
+      console.error("[Pathao Settings] Test connection failed:", errorMessage, "Code:", result.code)
+      return error(errorMessage)
     }
 
     return error("Invalid action")
   } catch (err) {
-    console.error("[Pathao Settings] Action failed:", err)
-    return error("Failed to perform action")
+    const message = err instanceof Error ? err.message : "Unknown error"
+    console.error("[Pathao Settings] Action failed:", message)
+    return error(`Failed to perform action: ${message}`)
   }
 }

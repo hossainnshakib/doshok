@@ -143,7 +143,40 @@ export async function pathaoRequest<T>(
       body: requestBody,
     })
 
-    responseData = await response.json()
+    const text = await response.text()
+    if (text) {
+      try {
+        responseData = JSON.parse(text)
+      } catch {
+        const durationMs = Date.now() - startTime
+        const errorMessage = `Pathao API returned non-JSON response (status ${response.status}): ${text.substring(0, 500)}`
+
+        if (logRequest && providerCode) {
+          const logData: CourierLogData = {
+            providerCode,
+            orderId: orderId ?? null,
+            action: action ?? method,
+            requestUrl: endpoint,
+            requestMethod: method,
+            requestBody: sanitizeBodyForLog(body),
+            responseStatus: response.status,
+            responseBody: { raw: text.substring(0, 1000) },
+            errorMessage: errorMessage,
+            durationMs,
+          }
+          await createCourierLog(logData)
+        }
+
+        return {
+          success: false,
+          data: null as unknown as T,
+          message: errorMessage,
+          code: response.status,
+        } as PathaoApiResponse<T>
+      }
+    } else {
+      responseData = { error: "Empty response body" } as PathaoApiError
+    }
   } catch (err) {
     const durationMs = Date.now() - startTime
     const errorMessage = err instanceof Error ? err.message : "Network error"

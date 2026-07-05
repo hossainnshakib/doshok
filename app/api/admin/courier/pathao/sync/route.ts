@@ -15,11 +15,17 @@ export async function POST(request: NextRequest) {
 
     if (action === "sync_stores") {
       const result = await syncAllStores()
+      if (result.errors.length > 0 && result.synced === 0) {
+        return error(`Sync stores failed: ${result.errors.join("; ")}`)
+      }
       return success(result)
     }
 
     if (action === "sync_cities") {
       const result = await syncAllCities()
+      if (result.errors.length > 0 && result.synced === 0) {
+        return error(`Sync cities failed: ${result.errors.join("; ")}`)
+      }
       return success(result)
     }
 
@@ -29,6 +35,9 @@ export async function POST(request: NextRequest) {
         return error("cityId is required for sync_zones")
       }
       const result = await syncZonesForCity(cityId)
+      if (result.errors.length > 0 && result.synced === 0) {
+        return error(`Sync zones failed: ${result.errors.join("; ")}`)
+      }
       return success(result)
     }
 
@@ -38,11 +47,16 @@ export async function POST(request: NextRequest) {
         return error("zoneId is required for sync_areas")
       }
       const result = await syncAreasForZone(zoneId)
+      if (result.errors.length > 0 && result.synced === 0) {
+        return error(`Sync areas failed: ${result.errors.join("; ")}`)
+      }
       return success(result)
     }
 
     return error("Invalid action")
-  } catch {
-    return error("Failed to sync")
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    console.error("[Pathao Sync] Failed:", message)
+    return error(`Failed to sync: ${message}`)
   }
 }
