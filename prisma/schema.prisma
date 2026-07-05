@@ -729,3 +729,130 @@ model ShortLink {
   @@index([slug])
   @@index([status])
 }
+
+model CourierProvider {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  name         String
+  isActive     Boolean  @default(false)
+  environment  String   @default("sandbox")
+  baseUrl      String?
+  credentials  Json?
+  settings     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([code])
+}
+
+model CourierStore {
+  id              String   @id @default(cuid())
+  providerCode    String
+  storeId         String
+  name            String?
+  merchantName    String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([providerCode, storeId])
+  @@index([providerCode])
+}
+
+model CourierCity {
+  id           String   @id @default(cuid())
+  providerCode String
+  cityId       String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([providerCode, cityId])
+  @@index([providerCode])
+}
+
+model CourierZone {
+  id           String   @id @default(cuid())
+  providerCode String
+  cityId       String
+  zoneId       String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([providerCode, zoneId])
+  @@index([providerCode])
+  @@index([providerCode, cityId])
+}
+
+model CourierArea {
+  id           String   @id @default(cuid())
+  providerCode String
+  zoneId       String
+  areaId       String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([providerCode, areaId])
+  @@index([providerCode])
+  @@index([providerCode, zoneId])
+}
+
+model CourierConsignment {
+  id              String   @id @default(cuid())
+  orderId         String   @unique
+  providerCode    String
+  storeId         String?
+  consignmentId   String?  @unique
+  trackingCode    String?
+  recipientName   String?
+  recipientPhone  String?
+  recipientAddress String?
+  deliveryType    String?
+  itemType        String?
+  itemQuantity    Int?
+  itemWeight      Float?
+  amountToCollect Int?
+  deliveryFee     Int?
+  courierStatus   String?
+  courierMessage  String?
+  responseJson    Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  syncedAt        DateTime?
+
+  @@index([providerCode])
+  @@index([consignmentId])
+}
+
+model CourierToken {
+  id           String   @id @default(cuid())
+  providerCode String   @unique
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([providerCode])
+}
+
+model CourierLog {
+  id           String   @id @default(cuid())
+  providerCode String
+  orderId      String?
+  action       String
+  requestUrl   String?
+  requestMethod String?
+  requestBody  Json?
+  responseBody Json?
+  responseStatus Int?
+  errorMessage String?
+  durationMs   Int?
+  createdAt    DateTime @default(now())
+
+  @@index([providerCode])
+  @@index([orderId])
+  @@index([createdAt])
+}

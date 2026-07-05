@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { UpdateOrderStatus } from "@/components/admin/update-order-status"
+import { CourierPanel } from "@/components/admin/courier-panel"
 import { AdminPageHeader, AdminSectionCard, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -220,6 +221,8 @@ export default async function AdminOrderDetailPage({
           </div>
         </AdminSectionCard>
       </div>
+
+      <CourierPanel orderId={order.id} />
 
       <AdminSectionCard
         title="Checkout V2 Payment Breakdown"

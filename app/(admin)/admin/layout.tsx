@@ -36,6 +36,7 @@ import {
   Download,
   Shield,
   Layers,
+  Truck,
 } from "lucide-react"
 import { canAccessSection, hasSettingsAccess } from "@/lib/permissions"
 import type { PermissionGroup } from "@/lib/permissions"
@@ -139,6 +140,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/payment-methods", label: "Payment Methods", icon: CreditCard },
       { href: "/admin/delivery-zones", label: "Delivery Zones", icon: MapPin },
       { href: "/admin/checkout-settings", label: "Checkout Settings", icon: ClipboardList },
+      { href: "/admin/couriers", label: "Couriers", icon: Truck },
     ],
   },
   {
