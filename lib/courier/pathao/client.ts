@@ -8,7 +8,7 @@ export const PATHAO_PROVIDER_CODE = "pathao"
 
 export const PATHAO_ENDPOINTS = {
   SANDBOX: {
-    AUTH: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/issue-access-token",
+    AUTH: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/issue-token",
     REFRESH: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/refresh-access-token",
     CITIES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/city-list",
     ZONES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/zone-list",
@@ -19,7 +19,7 @@ export const PATHAO_ENDPOINTS = {
     ORDER_INFO: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/order/info",
   },
   LIVE: {
-    AUTH: "https://courier-api.pathao.com/aladdin/api/v1/issue-access-token",
+    AUTH: "https://courier-api.pathao.com/aladdin/api/v1/issue-token",
     REFRESH: "https://courier-api.pathao.com/aladdin/api/v1/refresh-access-token",
     CITIES: "https://courier-api.pathao.com/aladdin/api/v1/city-list",
     ZONES: "https://courier-api.pathao.com/aladdin/api/v1/zone-list",
@@ -217,13 +217,13 @@ export async function pathaoRequest<T>(
       responseBody: responseData as object,
       responseStatus,
       durationMs,
-      errorMessage: !response.ok ? buildErrorMessage(responseData as PathaoApiError) : null,
+      errorMessage: !response.ok ? buildErrorMessage(responseData as PathaoApiError, responseStatus) : null,
     }
     await createCourierLog(logData)
   }
 
   if (!response.ok) {
-    const errorMessage = buildErrorMessage(responseData as PathaoApiError)
+    const errorMessage = buildErrorMessage(responseData as PathaoApiError, responseStatus)
     return {
       success: false,
       data: null as unknown as T,
@@ -236,14 +236,27 @@ export async function pathaoRequest<T>(
   return responseData as PathaoApiResponse<T>
 }
 
-function buildErrorMessage(err: PathaoApiError): string {
-  const parts: string[] = []
-  if (err.error) parts.push(`error: ${err.error}`)
-  if (err.error_description) parts.push(`description: ${err.error_description}`)
-  if (err.message) parts.push(`message: ${err.message}`)
-  if (err.code) parts.push(`code: ${err.code}`)
-  if (parts.length === 0) parts.push("Unknown error")
-  return parts.join(" | ")
+function buildErrorMessage(err: PathaoApiError, statusCode?: number): string {
+  const errorObj: Record<string, unknown> = {}
+  if (err.error !== undefined) errorObj.error = err.error
+  if (err.error_description !== undefined) errorObj.error_description = err.error_description
+  if (err.message !== undefined) errorObj.message = err.message
+  if (err.code !== undefined) errorObj.code = err.code
+  if (Object.keys(errorObj).length === 0) errorObj.error = "Unknown error"
+
+  const prefix = statusCode ? `Pathao API error ${statusCode}:` : "Pathao API error:"
+  return `${prefix}\n${JSON.stringify(errorObj, null, 2)}`
+}
+
+export function stringifyError(value: unknown): string {
+  if (!value) return ""
+  if (typeof value === "string") return value
+  if (value instanceof Error) return value.message
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
 }
 
 export async function pathaoTokenRequest(
@@ -337,7 +350,7 @@ export async function pathaoTokenRequest(
   const responseStatus = response.status
 
   if (!response.ok) {
-    const errorMessage = buildErrorMessage(responseData as PathaoApiError)
+    const errorMessage = buildErrorMessage(responseData as PathaoApiError, responseStatus)
 
     await createCourierLog({
       providerCode,
