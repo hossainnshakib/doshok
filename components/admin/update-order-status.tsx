@@ -23,17 +23,28 @@ export function UpdateOrderStatus({ orderId, currentOrderStatus, currentPaymentS
 
   async function handleUpdate() {
     setLoading(true)
-    const res = await fetch(`/api/orders/${orderId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderStatus, paymentStatus }),
-    })
-    const data = await res.json()
-    if (data.success) {
-      toast.success("Order updated")
-      router.refresh()
-    } else {
-      toast.error(data.error ?? "Failed to update")
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderStatus, paymentStatus }),
+      })
+      let data
+      try {
+        data = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setLoading(false)
+        return
+      }
+      if (data.success) {
+        toast.success("Order updated")
+        router.refresh()
+      } else {
+        toast.error(data.error ?? `Update failed (${res.status})`)
+      }
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
     setLoading(false)
   }

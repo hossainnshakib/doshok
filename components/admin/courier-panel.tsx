@@ -100,37 +100,49 @@ export function CourierPanel({ orderId }: { orderId: string }) {
           itemWeight: parseFloat(itemWeight),
         }),
       })
-      const d = await res.json()
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setSending(false)
+        return
+      }
       if (d.success) {
         toast.success("Order sent to Pathao")
         setShowSendForm(false)
         loadConsignment()
       } else {
-        toast.error(d.error || "Failed to send to Pathao")
+        toast.error(d.error || `Failed to send (${res.status})`)
       }
-    } catch {
-      toast.error("Failed to send to Pathao")
-    } finally {
-      setSending(false)
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
+    setSending(false)
   }
 
   async function handleRefreshStatus() {
     setRefreshing(true)
     try {
       const res = await fetch(`/api/admin/courier/pathao/orders?orderId=${orderId}`)
-      const d = await res.json()
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setRefreshing(false)
+        return
+      }
       if (d.success) {
         setOrderStatus(d.data)
         toast.success("Status refreshed")
       } else {
-        toast.error(d.error || "Failed to refresh status")
+        toast.error(d.error || `Failed to refresh (${res.status})`)
       }
-    } catch {
-      toast.error("Failed to refresh status")
-    } finally {
-      setRefreshing(false)
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
+    setRefreshing(false)
   }
 
   if (loading) {

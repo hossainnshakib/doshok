@@ -50,18 +50,24 @@ export default function AdminPathaoLocationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "sync_cities" }),
       })
-      const d = await res.json()
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setSyncing(null)
+        return
+      }
       if (d.success) {
         toast.success(`Synced ${d.data.synced} cities`)
         loadLocations()
       } else {
-        toast.error(d.error || "Sync failed")
+        toast.error(d.error || `Sync failed (${res.status})`)
       }
-    } catch {
-      toast.error("Sync failed")
-    } finally {
-      setSyncing(null)
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
+    setSyncing(null)
   }
 
   async function handleSyncZones(cityId: string) {
@@ -72,18 +78,24 @@ export default function AdminPathaoLocationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "sync_zones", cityId }),
       })
-      const d = await res.json()
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setSyncing(null)
+        return
+      }
       if (d.success) {
         toast.success(`Synced ${d.data.synced} zones`)
         loadLocations()
       } else {
-        toast.error(d.error || "Sync failed")
+        toast.error(d.error || `Sync failed (${res.status})`)
       }
-    } catch {
-      toast.error("Sync failed")
-    } finally {
-      setSyncing(null)
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
+    setSyncing(null)
   }
 
   async function handleSyncAreas(zoneId: string) {
@@ -94,18 +106,24 @@ export default function AdminPathaoLocationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "sync_areas", zoneId }),
       })
-      const d = await res.json()
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setSyncing(null)
+        return
+      }
       if (d.success) {
         toast.success(`Synced ${d.data.synced} areas`)
         loadLocations()
       } else {
-        toast.error(d.error || "Sync failed")
+        toast.error(d.error || `Sync failed (${res.status})`)
       }
-    } catch {
-      toast.error("Sync failed")
-    } finally {
-      setSyncing(null)
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
+    setSyncing(null)
   }
 
   function getZonesForCity(cityId: string) {

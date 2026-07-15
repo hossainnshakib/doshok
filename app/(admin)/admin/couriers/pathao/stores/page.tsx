@@ -41,18 +41,24 @@ export default function AdminPathaoStoresPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "sync_stores" }),
       })
-      const d = await res.json()
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setSyncing(false)
+        return
+      }
       if (d.success) {
         toast.success(`Synced ${d.data.synced} stores`)
         load()
       } else {
-        toast.error(d.error || "Sync failed")
+        toast.error(d.error || `Sync failed (${res.status})`)
       }
-    } catch {
-      toast.error("Sync failed")
-    } finally {
-      setSyncing(false)
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
+    setSyncing(false)
   }
 
   if (loading) {

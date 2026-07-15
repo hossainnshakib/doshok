@@ -38,6 +38,7 @@ export async function PATCH(
   const session = await requireAdminPermission("orders")
   if (session instanceof NextResponse) return session
 
+  const userId = session.user.id
   const { id } = await params
 
   try {
@@ -49,10 +50,15 @@ export async function PATCH(
     }
 
     const currentOrder = await prisma.order.findUnique({ where: { id } })
-    if (!currentOrder) return error("Order not found", 404)
+    if (!currentOrder) {
+      console.error(`[OrderUpdate] Order not found: ${id}, user: ${userId}`)
+      return error("Order not found", 404)
+    }
 
     if (filtered.orderStatus && !(ORDER_STATUSES as readonly string[]).includes(filtered.orderStatus as string)) {
-      return error("Invalid order status")
+      const invalidStatus = filtered.orderStatus
+      console.error(`[OrderUpdate] Invalid order status: "${invalidStatus}", order: ${id}, user: ${userId}`)
+      return error(`Invalid order status: "${invalidStatus}". Valid values: ${ORDER_STATUSES.join(", ")}`)
     }
 
     const allowedTransitions: Record<string, string[]> = {
@@ -65,11 +71,13 @@ export async function PATCH(
       returned: [],
     }
 
-    const newStatus = filtered.orderStatus as string
+    const newStatus = filtered.orderStatus as string | undefined
     if (newStatus && newStatus !== currentOrder.orderStatus) {
       const allowed = allowedTransitions[currentOrder.orderStatus]
       if (!allowed || !allowed.includes(newStatus)) {
-        return error("Invalid order status transition")
+        const current = currentOrder.orderStatus
+        console.error(`[OrderUpdate] Invalid transition: ${current} -> ${newStatus}, order: ${id}, user: ${userId}`)
+        return error(`Cannot change order status from "${current}" to "${newStatus}". Allowed transitions from "${current}": ${allowed?.join(", ") || "none"}`)
       }
     }
 
@@ -79,6 +87,7 @@ export async function PATCH(
     ) {
       const stockResult = await applyInventorySideEffectsForOrderStatus(id, filtered.orderStatus as string)
       if (!stockResult.success) {
+        console.error(`[OrderUpdate] Stock update failed: ${stockResult.error}, order: ${id}, user: ${userId}`)
         return error(`Stock update failed: ${stockResult.error}`)
       }
     }
@@ -88,6 +97,8 @@ export async function PATCH(
       data: filtered,
       include: { items: true, address: true },
     })
+
+    console.info(`[OrderUpdate] Success: order ${id}, status: ${order.orderStatus}, paymentStatus: ${order.paymentStatus}, user: ${userId}`)
 
     if (
       filtered.orderStatus &&
@@ -116,7 +127,8 @@ export async function PATCH(
 
     return success(order)
   } catch (err) {
-    console.error(err)
-    return error("Failed to update order")
+    const errMsg = err instanceof Error ? err.message : String(err)
+    console.error(`[OrderUpdate] Unexpected error: ${errMsg}, order: ${id}, user: ${userId}, stack: ${err instanceof Error ? err.stack : ""}`)
+    return error(`Failed to update order: ${errMsg}`)
   }
 }

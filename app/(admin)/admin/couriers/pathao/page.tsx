@@ -124,18 +124,24 @@ export default function AdminPathaoSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "test_connection" }),
       })
-      const d = await res.json()
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setTesting(false)
+        return
+      }
       if (d.success) {
         toast.success(d.data?.message || "Connection successful")
         load()
       } else {
-        toast.error(d.error || "Connection failed")
+        toast.error(d.error || `Connection failed (${res.status})`)
       }
-    } catch {
-      toast.error("Connection test failed")
-    } finally {
-      setTesting(false)
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
     }
+    setTesting(false)
   }
 
   if (loading) {

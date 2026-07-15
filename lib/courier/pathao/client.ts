@@ -8,26 +8,26 @@ export const PATHAO_PROVIDER_CODE = "pathao"
 
 export const PATHAO_ENDPOINTS = {
   SANDBOX: {
-    AUTH: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/issue-token",
-    REFRESH: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/refresh-access-token",
-    CITIES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/city-list",
-    ZONES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/zone-list",
-    AREAS: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/area-list",
-    STORES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/stores",
-    PRICE: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/price-plan",
-    ORDERS: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
-    ORDER_INFO: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/order/info",
+    AUTH: "https://api-hermes.pathao.com/aladdin/api/v1/issue-token",
+    REFRESH: "https://api-hermes.pathao.com/aladdin/api/v1/refresh-token",
+    CITIES: "https://api-hermes.pathao.com/aladdin/api/v1/city-list",
+    ZONES: "https://api-hermes.pathao.com/aladdin/api/v1/zone-list",
+    AREAS: "https://api-hermes.pathao.com/aladdin/api/v1/area-list",
+    STORES: "https://api-hermes.pathao.com/aladdin/api/v1/stores",
+    PRICE: "https://api-hermes.pathao.com/aladdin/api/v1/price-plan",
+    ORDERS: "https://api-hermes.pathao.com/aladdin/api/v1/create/order",
+    ORDER_INFO: "https://api-hermes.pathao.com/aladdin/api/v1/order/info",
   },
   LIVE: {
-    AUTH: "https://courier-api.pathao.com/aladdin/api/v1/issue-token",
-    REFRESH: "https://courier-api.pathao.com/aladdin/api/v1/refresh-access-token",
-    CITIES: "https://courier-api.pathao.com/aladdin/api/v1/city-list",
-    ZONES: "https://courier-api.pathao.com/aladdin/api/v1/zone-list",
-    AREAS: "https://courier-api.pathao.com/aladdin/api/v1/area-list",
-    STORES: "https://courier-api.pathao.com/aladdin/api/v1/stores",
-    PRICE: "https://courier-api.pathao.com/aladdin/api/v1/price-plan",
-    ORDERS: "https://courier-api.pathao.com/aladdin/api/v1/create/order",
-    ORDER_INFO: "https://courier-api.pathao.com/aladdin/api/v1/order/info",
+    AUTH: "https://api-hermes.pathao.com/aladdin/api/v1/issue-token",
+    REFRESH: "https://api-hermes.pathao.com/aladdin/api/v1/refresh-token",
+    CITIES: "https://api-hermes.pathao.com/aladdin/api/v1/city-list",
+    ZONES: "https://api-hermes.pathao.com/aladdin/api/v1/zone-list",
+    AREAS: "https://api-hermes.pathao.com/aladdin/api/v1/area-list",
+    STORES: "https://api-hermes.pathao.com/aladdin/api/v1/stores",
+    PRICE: "https://api-hermes.pathao.com/aladdin/api/v1/price-plan",
+    ORDERS: "https://api-hermes.pathao.com/aladdin/api/v1/create/order",
+    ORDER_INFO: "https://api-hermes.pathao.com/aladdin/api/v1/order/info",
   },
 } as const
 
@@ -76,11 +76,18 @@ export interface PathaoTokenResponse {
   expires_in: number
 }
 
+export interface PathaoApiErrorDetail {
+  source?: string
+  description?: string
+  [key: string]: unknown
+}
+
 export interface PathaoApiError {
-  error: string
+  error: string | PathaoApiErrorDetail
   error_description?: string
   message?: string
   code?: number
+  type?: string
 }
 
 export interface PathaoApiResponse<T> {
@@ -237,15 +244,15 @@ export async function pathaoRequest<T>(
 }
 
 function buildErrorMessage(err: PathaoApiError, statusCode?: number): string {
-  const errorObj: Record<string, unknown> = {}
-  if (err.error !== undefined) errorObj.error = err.error
-  if (err.error_description !== undefined) errorObj.error_description = err.error_description
-  if (err.message !== undefined) errorObj.message = err.message
-  if (err.code !== undefined) errorObj.code = err.code
-  if (Object.keys(errorObj).length === 0) errorObj.error = "Unknown error"
-
-  const prefix = statusCode ? `Pathao API error ${statusCode}:` : "Pathao API error:"
-  return `${prefix}\n${JSON.stringify(errorObj, null, 2)}`
+  const parts: string[] = []
+  if (statusCode) parts.push(`HTTP ${statusCode}`)
+  if (typeof err.error === "string") parts.push(err.error)
+  else if (err.error) parts.push(stringifyError(err.error))
+  if (err.error_description) parts.push(err.error_description)
+  if (err.message) parts.push(err.message)
+  if (err.type) parts.push(`type: ${err.type}`)
+  if (parts.length === 0) parts.push("Unknown error")
+  return parts.join(" - ")
 }
 
 export function stringifyError(value: unknown): string {
@@ -266,7 +273,7 @@ export async function pathaoTokenRequest(
 ): Promise<PathaoApiResponse<PathaoTokenResponse>> {
   const startTime = Date.now()
   const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded",
+    "Content-Type": "application/json",
     Accept: "application/json",
   }
 
@@ -279,11 +286,6 @@ export async function pathaoTokenRequest(
     }
   }
 
-  const formBody = new URLSearchParams()
-  for (const [key, value] of Object.entries(body)) {
-    formBody.append(key, value)
-  }
-
   let response: Response
   let responseData: PathaoApiResponse<PathaoTokenResponse> | PathaoApiError
 
@@ -291,7 +293,7 @@ export async function pathaoTokenRequest(
     response = await fetch(endpoint, {
       method: "POST",
       headers,
-      body: formBody.toString(),
+      body: JSON.stringify(body),
     })
 
     const text = await response.text()
