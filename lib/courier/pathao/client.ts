@@ -8,15 +8,15 @@ export const PATHAO_PROVIDER_CODE = "pathao"
 
 export const PATHAO_ENDPOINTS = {
   SANDBOX: {
-    AUTH: "https://api-hermes.pathao.com/aladdin/api/v1/issue-token",
-    REFRESH: "https://api-hermes.pathao.com/aladdin/api/v1/refresh-token",
-    CITIES: "https://api-hermes.pathao.com/aladdin/api/v1/city-list",
-    ZONES: "https://api-hermes.pathao.com/aladdin/api/v1/zone-list",
-    AREAS: "https://api-hermes.pathao.com/aladdin/api/v1/area-list",
-    STORES: "https://api-hermes.pathao.com/aladdin/api/v1/stores",
-    PRICE: "https://api-hermes.pathao.com/aladdin/api/v1/price-plan",
-    ORDERS: "https://api-hermes.pathao.com/aladdin/api/v1/create/order",
-    ORDER_INFO: "https://api-hermes.pathao.com/aladdin/api/v1/order/info",
+    AUTH: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/issue-token",
+    REFRESH: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/refresh-token",
+    CITIES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/city-list",
+    ZONES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/zone-list",
+    AREAS: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/area-list",
+    STORES: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/stores",
+    PRICE: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/price-plan",
+    ORDERS: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
+    ORDER_INFO: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/order/info",
   },
   LIVE: {
     AUTH: "https://api-hermes.pathao.com/aladdin/api/v1/issue-token",
@@ -240,6 +240,16 @@ export async function pathaoRequest<T>(
     }
   }
 
+  const responseBody = responseData as unknown as Record<string, unknown>
+  if (responseBody && typeof responseBody === "object" && "data" in responseBody && responseBody.data && typeof responseBody.data === "object") {
+    const innerData = responseBody.data as Record<string, unknown>
+    if ("data" in innerData && Array.isArray(innerData.data)) {
+      return {
+        success: true,
+        data: innerData.data as T,
+      }
+    }
+  }
   return responseData as PathaoApiResponse<T>
 }
 
@@ -287,7 +297,7 @@ export async function pathaoTokenRequest(
   }
 
   let response: Response
-  let responseData: PathaoApiResponse<PathaoTokenResponse> | PathaoApiError
+  let rawData: unknown
 
   try {
     response = await fetch(endpoint, {
@@ -299,7 +309,7 @@ export async function pathaoTokenRequest(
     const text = await response.text()
     if (text) {
       try {
-        responseData = JSON.parse(text)
+        rawData = JSON.parse(text)
       } catch {
         const durationMs = Date.now() - startTime
         const errorMessage = `Pathao token endpoint returned non-JSON (status ${response.status}): ${text.substring(0, 500)}`
@@ -324,7 +334,7 @@ export async function pathaoTokenRequest(
         }
       }
     } else {
-      responseData = { error: "Empty response body" } as PathaoApiError
+      rawData = { error: "Empty response body" }
     }
   } catch (err) {
     const durationMs = Date.now() - startTime
@@ -352,7 +362,7 @@ export async function pathaoTokenRequest(
   const responseStatus = response.status
 
   if (!response.ok) {
-    const errorMessage = buildErrorMessage(responseData as PathaoApiError, responseStatus)
+    const errorMessage = buildErrorMessage(rawData as PathaoApiError, responseStatus)
 
     await createCourierLog({
       providerCode,
@@ -360,7 +370,7 @@ export async function pathaoTokenRequest(
       requestUrl: endpoint,
       requestMethod: "POST",
       requestBody: sanitizedBody as object,
-      responseBody: responseData as object,
+      responseBody: rawData as object,
       responseStatus,
       errorMessage,
       durationMs,
@@ -380,11 +390,14 @@ export async function pathaoTokenRequest(
     requestUrl: endpoint,
     requestMethod: "POST",
     requestBody: sanitizedBody as object,
-    responseBody: responseData as object,
+    responseBody: rawData as object,
     responseStatus,
     durationMs,
     errorMessage: null,
   })
 
-  return responseData as PathaoApiResponse<PathaoTokenResponse>
+  return {
+    success: true,
+    data: rawData as PathaoTokenResponse,
+  }
 }
