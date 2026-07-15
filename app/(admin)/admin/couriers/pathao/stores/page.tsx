@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 import { RefreshCw, Upload } from "lucide-react"
@@ -14,17 +15,31 @@ type Store = {
   isActive: boolean
 }
 
+type Settings = {
+  environment: "sandbox" | "live"
+}
+
 export default function AdminPathaoStoresPage() {
   const [stores, setStores] = useState<Store[]>([])
+  const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
 
   async function load() {
     try {
-      const res = await fetch("/api/admin/courier/pathao/stores")
-      const d = await res.json()
-      if (d.success) {
-        setStores(d.data)
+      const [settingsRes, storesRes] = await Promise.all([
+        fetch("/api/admin/courier/pathao/settings"),
+        fetch("/api/admin/courier/pathao/stores"),
+      ])
+      const [settingsData, storesData] = await Promise.all([
+        settingsRes.json(),
+        storesRes.json(),
+      ])
+      if (settingsData.success) {
+        setSettings(settingsData.data)
+      }
+      if (storesData.success) {
+        setStores(storesData.data)
       }
     } finally {
       setLoading(false)
@@ -61,6 +76,13 @@ export default function AdminPathaoStoresPage() {
     setSyncing(false)
   }
 
+  function getEnvironmentBadge(env: string) {
+    if (env === "sandbox") {
+      return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 text-[10px]">Sandbox</Badge>
+    }
+    return <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 text-[10px]">Live</Badge>
+  }
+
   if (loading) {
     return (
       <div className="space-y-5">
@@ -80,7 +102,17 @@ export default function AdminPathaoStoresPage() {
       />
       <AdminBackLink href="/admin/couriers/pathao" label="Back to Pathao Settings" />
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-slate-500">
+            Showing stores for:
+          </p>
+          {settings?.environment ? getEnvironmentBadge(settings.environment) : <span className="text-xs text-slate-400">Unknown</span>}
+          <Button onClick={load} variant="outline" size="sm" className="h-7 text-xs">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Refresh
+          </Button>
+        </div>
         <Button onClick={handleSync} disabled={syncing} className="h-9 rounded-lg px-4 text-xs font-semibold">
           <Upload className={`h-3.5 w-3.5 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
           {syncing ? "Syncing..." : "Sync Stores from Pathao"}

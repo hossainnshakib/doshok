@@ -46,7 +46,8 @@ export interface CourierProviderSettings {
     clientSecret?: string
     username?: string
     password?: string
-    defaultStoreId?: string
+    sandboxDefaultStoreId?: string
+    liveDefaultStoreId?: string
   } | null
   settings: {
     isActive?: boolean
@@ -144,9 +145,9 @@ export async function upsertCourierProvider(data: {
   })
 }
 
-export async function getCourierStores(providerCode: string): Promise<CourierStoreData[]> {
+export async function getCourierStores(providerCode: string, environment: string): Promise<CourierStoreData[]> {
   const stores = await prisma.courierStore.findMany({
-    where: { providerCode, isActive: true },
+    where: { providerCode, environment, isActive: true },
     orderBy: { name: "asc" },
   })
 
@@ -158,14 +159,14 @@ export async function getCourierStores(providerCode: string): Promise<CourierSto
   }))
 }
 
-export async function syncCourierStore(providerCode: string, storeData: {
+export async function syncCourierStore(providerCode: string, environment: string, storeData: {
   storeId: string
   name?: string | null
   merchantName?: string | null
 }) {
   return prisma.courierStore.upsert({
     where: {
-      providerCode_storeId: { providerCode, storeId: storeData.storeId },
+      providerCode_environment_storeId: { providerCode, environment, storeId: storeData.storeId },
     },
     update: {
       name: storeData.name,
@@ -173,6 +174,7 @@ export async function syncCourierStore(providerCode: string, storeData: {
     },
     create: {
       providerCode,
+      environment,
       storeId: storeData.storeId,
       name: storeData.name,
       merchantName: storeData.merchantName,
@@ -181,65 +183,65 @@ export async function syncCourierStore(providerCode: string, storeData: {
   })
 }
 
-export async function getCourierCities(providerCode: string): Promise<CourierCityData[]> {
+export async function getCourierCities(providerCode: string, environment: string): Promise<CourierCityData[]> {
   return prisma.courierCity.findMany({
-    where: { providerCode },
+    where: { providerCode, environment },
     orderBy: { name: "asc" },
   })
 }
 
-export async function syncCourierCity(providerCode: string, cityData: {
+export async function syncCourierCity(providerCode: string, environment: string, cityData: {
   cityId: string
   name: string
 }) {
   return prisma.courierCity.upsert({
     where: {
-      providerCode_cityId: { providerCode, cityId: cityData.cityId },
+      providerCode_environment_cityId: { providerCode, environment, cityId: cityData.cityId },
     },
     update: { name: cityData.name },
-    create: { providerCode, cityId: cityData.cityId, name: cityData.name },
+    create: { providerCode, environment, cityId: cityData.cityId, name: cityData.name },
   })
 }
 
-export async function getCourierZones(providerCode: string, cityId?: string): Promise<CourierZoneData[]> {
+export async function getCourierZones(providerCode: string, environment: string, cityId?: string): Promise<CourierZoneData[]> {
   return prisma.courierZone.findMany({
-    where: { providerCode, ...(cityId ? { cityId } : {}) },
+    where: { providerCode, environment, ...(cityId ? { cityId } : {}) },
     orderBy: { name: "asc" },
   })
 }
 
-export async function syncCourierZone(providerCode: string, zoneData: {
+export async function syncCourierZone(providerCode: string, environment: string, zoneData: {
   zoneId: string
   cityId: string
   name: string
 }) {
   return prisma.courierZone.upsert({
     where: {
-      providerCode_zoneId: { providerCode, zoneId: zoneData.zoneId },
+      providerCode_environment_zoneId: { providerCode, environment, zoneId: zoneData.zoneId },
     },
     update: { cityId: zoneData.cityId, name: zoneData.name },
-    create: { providerCode, zoneId: zoneData.zoneId, cityId: zoneData.cityId, name: zoneData.name },
+    create: { providerCode, environment, zoneId: zoneData.zoneId, cityId: zoneData.cityId, name: zoneData.name },
   })
 }
 
-export async function getCourierAreas(providerCode: string, zoneId?: string): Promise<CourierAreaData[]> {
+export async function getCourierAreas(providerCode: string, environment: string, zoneId?: string): Promise<CourierAreaData[]> {
   return prisma.courierArea.findMany({
-    where: { providerCode, ...(zoneId ? { zoneId } : {}) },
+    where: { providerCode, environment, ...(zoneId ? { zoneId } : {}) },
     orderBy: { name: "asc" },
   })
 }
 
-export async function syncCourierArea(providerCode: string, areaData: {
+export async function syncCourierArea(providerCode: string, environment: string, areaData: {
   areaId: string
   zoneId: string
   name: string
 }) {
   return prisma.courierArea.upsert({
     where: {
-      providerCode_areaId: { providerCode, areaId: areaData.areaId },
+      providerCode_environment_areaId: { providerCode, environment, areaId: areaData.areaId },
     },
     update: { zoneId: areaData.zoneId, name: areaData.name },
-    create: { providerCode, areaId: areaData.areaId, zoneId: areaData.zoneId, name: areaData.name },
+    create: { providerCode, environment, areaId: areaData.areaId, zoneId: areaData.zoneId, name: areaData.name },
   })
 }
 
@@ -252,6 +254,7 @@ export async function getOrderConsignment(orderId: string) {
 export async function upsertOrderConsignment(data: {
   orderId: string
   providerCode: string
+  environment: string
   storeId?: string | null
   consignmentId?: string | null
   trackingCode?: string | null
@@ -272,6 +275,7 @@ export async function upsertOrderConsignment(data: {
     where: { orderId: data.orderId },
     update: {
       providerCode: data.providerCode,
+      environment: data.environment,
       storeId: data.storeId,
       consignmentId: data.consignmentId,
       trackingCode: data.trackingCode,
@@ -292,6 +296,7 @@ export async function upsertOrderConsignment(data: {
     create: {
       orderId: data.orderId,
       providerCode: data.providerCode,
+      environment: data.environment,
       storeId: data.storeId,
       consignmentId: data.consignmentId,
       trackingCode: data.trackingCode,
@@ -332,6 +337,7 @@ export async function updateConsignmentStatus(orderId: string, data: {
 
 export interface CourierLogData {
   providerCode: string
+  environment?: string
   orderId?: string | null
   action: string
   requestUrl?: string | null
@@ -347,6 +353,7 @@ export async function createCourierLog(data: CourierLogData) {
   return prisma.courierLog.create({
     data: {
       providerCode: data.providerCode,
+      environment: data.environment ?? "sandbox",
       orderId: data.orderId,
       action: data.action,
       requestUrl: data.requestUrl,
@@ -362,12 +369,14 @@ export async function createCourierLog(data: CourierLogData) {
 
 export async function getCourierLogs(options: {
   providerCode?: string
+  environment?: string
   orderId?: string
   limit?: number
   offset?: number
 }) {
   const where: Record<string, unknown> = {}
   if (options.providerCode) where.providerCode = options.providerCode
+  if (options.environment) where.environment = options.environment
   if (options.orderId) where.orderId = options.orderId
 
   const [logs, total] = await Promise.all([
@@ -383,13 +392,13 @@ export async function getCourierLogs(options: {
   return { logs, total }
 }
 
-export async function saveCourierToken(providerCode: string, data: {
+export async function saveCourierToken(providerCode: string, environment: string, data: {
   accessToken: string
   refreshToken?: string | null
   expiresAt: Date
 }) {
   return prisma.courierToken.upsert({
-    where: { providerCode },
+    where: { providerCode_environment: { providerCode, environment } },
     update: {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
@@ -397,6 +406,7 @@ export async function saveCourierToken(providerCode: string, data: {
     },
     create: {
       providerCode,
+      environment,
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       expiresAt: data.expiresAt,
@@ -404,14 +414,65 @@ export async function saveCourierToken(providerCode: string, data: {
   })
 }
 
-export async function getCourierToken(providerCode: string) {
+export async function getCourierToken(providerCode: string, environment: string) {
   return prisma.courierToken.findUnique({
-    where: { providerCode },
+    where: { providerCode_environment: { providerCode, environment } },
   })
 }
 
-export async function deleteCourierToken(providerCode: string) {
+export async function deleteCourierToken(providerCode: string, environment: string) {
   return prisma.courierToken.delete({
-    where: { providerCode },
+    where: { providerCode_environment: { providerCode, environment } },
   })
+}
+
+export async function deleteCourierDataByEnvironment(providerCode: string, environment: string, options?: {
+  deleteTokens?: boolean
+  deleteStores?: boolean
+  deleteLocations?: boolean
+  deleteLogs?: boolean
+}) {
+  const opts = options ?? { deleteTokens: true, deleteStores: true, deleteLocations: true, deleteLogs: false }
+
+  const results: { tokensDeleted?: number; storesDeleted?: number; citiesDeleted?: number; zonesDeleted?: number; areasDeleted?: number; logsDeleted?: number } = {}
+
+  if (opts.deleteTokens) {
+    const deleted = await prisma.courierToken.deleteMany({
+      where: { providerCode, environment },
+    })
+    results.tokensDeleted = deleted.count
+  }
+
+  if (opts.deleteStores) {
+    const deleted = await prisma.courierStore.deleteMany({
+      where: { providerCode, environment },
+    })
+    results.storesDeleted = deleted.count
+  }
+
+  if (opts.deleteLocations) {
+    const deletedCities = await prisma.courierCity.deleteMany({
+      where: { providerCode, environment },
+    })
+    results.citiesDeleted = deletedCities.count
+
+    const deletedZones = await prisma.courierZone.deleteMany({
+      where: { providerCode, environment },
+    })
+    results.zonesDeleted = deletedZones.count
+
+    const deletedAreas = await prisma.courierArea.deleteMany({
+      where: { providerCode, environment },
+    })
+    results.areasDeleted = deletedAreas.count
+  }
+
+  if (opts.deleteLogs) {
+    const deleted = await prisma.courierLog.deleteMany({
+      where: { providerCode, environment },
+    })
+    results.logsDeleted = deleted.count
+  }
+
+  return results
 }

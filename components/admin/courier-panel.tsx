@@ -58,6 +58,8 @@ export function CourierPanel({ orderId }: { orderId: string }) {
         setConsignment(d.data)
         setOrderStatus(d.data)
       }
+    } catch (err) {
+      console.error("[CourierPanel] Failed to load consignment:", err)
     } finally {
       setLoading(false)
     }
@@ -70,7 +72,8 @@ export function CourierPanel({ orderId }: { orderId: string }) {
       if (d.success) {
         setStores(d.data)
       }
-    } catch {
+    } catch (err) {
+      console.error("[CourierPanel] Failed to load stores:", err)
     }
   }
 

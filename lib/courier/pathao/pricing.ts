@@ -49,7 +49,10 @@ export const PATHAO_ITEM_TYPE_MAP: Record<CourierItemType, number> = {
 }
 
 export async function calculatePrice(request: PathaoPriceRequest): Promise<PathaoApiResponse<PathaoPriceData>> {
-  const tokenResult = await getValidToken()
+  const provider = await getCourierProviderByCode(PATHAO_PROVIDER_CODE)
+  const environment = provider?.environment ?? "sandbox"
+
+  const tokenResult = await getValidToken(environment)
   if (!tokenResult.success) {
     return {
       success: false,
@@ -58,8 +61,6 @@ export async function calculatePrice(request: PathaoPriceRequest): Promise<Patha
     }
   }
 
-  const provider = await getCourierProviderByCode(PATHAO_PROVIDER_CODE)
-  const environment = provider?.environment ?? "sandbox"
   const endpoints = getPathaoEndpoints(environment)
 
   const deliveryTypeId = PATHAO_DELIVERY_TYPE_MAP[request.deliveryType] ?? 1
@@ -80,6 +81,7 @@ export async function calculatePrice(request: PathaoPriceRequest): Promise<Patha
       accessToken: tokenResult.data.accessToken,
       providerCode: PATHAO_PROVIDER_CODE,
       action: "calculate_price",
+      environment,
     }
   )
 

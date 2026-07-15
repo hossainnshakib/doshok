@@ -2,6 +2,7 @@ import {
   getPathaoEndpoints,
   pathaoRequest,
   type PathaoApiResponse,
+  type PathaoEnvironment,
   PATHAO_PROVIDER_CODE,
 } from "./client"
 import {
@@ -115,18 +116,8 @@ export async function createOrder(
     }
   }
 
-  const tokenResult = await getValidToken()
-  if (!tokenResult.success) {
-    return {
-      success: false,
-      data: null as unknown as PathaoOrderResponse,
-      message: tokenResult.message,
-    }
-  }
-
   const provider = await getCourierProviderByCode(PATHAO_PROVIDER_CODE)
   const environment = provider?.environment ?? "sandbox"
-  const endpoints = getPathaoEndpoints(environment)
 
   const deliveryTypeId = PATHAO_DELIVERY_TYPE_MAP[payload.deliveryType] ?? 1
   const itemTypeId = PATHAO_ITEM_TYPE_MAP[payload.itemType] ?? 1
@@ -148,22 +139,49 @@ export async function createOrder(
     item_description: payload.itemDescription || `${payload.itemQuantity} item(s)`,
   }
 
-  const result = await pathaoRequest<PathaoOrderResponse>(
-    endpoints.ORDERS,
-    {
-      method: "POST",
-      body: orderPayload,
-      accessToken: tokenResult.data.accessToken,
-      providerCode: PATHAO_PROVIDER_CODE,
-      orderId,
-      action: "create_order",
+  async function attemptOrderCreation(retryOn401: boolean): Promise<PathaoApiResponse<PathaoOrderResponse>> {
+    const tokenResult = await getValidToken(environment)
+    if (!tokenResult.success) {
+      return {
+        success: false,
+        data: null as unknown as PathaoOrderResponse,
+        message: tokenResult.message,
+      }
     }
-  )
 
-  if (result.success && result.data) {
+    const endpoints = getPathaoEndpoints(environment as PathaoEnvironment)
+
+    const result = await pathaoRequest<PathaoOrderResponse>(
+      endpoints.ORDERS,
+      {
+        method: "POST",
+        body: orderPayload,
+        accessToken: tokenResult.data.accessToken,
+        providerCode: PATHAO_PROVIDER_CODE,
+        orderId,
+        action: "create_order",
+        environment,
+      }
+    )
+
+    if (result.code === 401 && retryOn401) {
+      const { deleteCourierToken } = await import("@/lib/courier")
+      await deleteCourierToken(PATHAO_PROVIDER_CODE, environment)
+      const { issueAccessToken } = await import("@/lib/courier/pathao/auth")
+      await issueAccessToken(environment)
+      return attemptOrderCreation(false)
+    }
+
+    return result
+  }
+
+  const result = await attemptOrderCreation(true)
+
+  if (result.success && result.data && result.data.consignment_id) {
     await upsertOrderConsignment({
       orderId,
       providerCode: PATHAO_PROVIDER_CODE,
+      environment,
       storeId: payload.storeId,
       consignmentId: String(result.data.consignment_id),
       trackingCode: result.data.tracking_code,
@@ -184,8 +202,10 @@ export async function createOrder(
   return result
 }
 
-export async function getOrderInfo(consignmentId: string): Promise<PathaoApiResponse<PathaoOrderInfo>> {
-  const tokenResult = await getValidToken()
+export async function getOrderInfo(consignmentId: string, environment?: string): Promise<PathaoApiResponse<PathaoOrderInfo>> {
+  const env = environment ?? (await getCourierProviderByCode(PATHAO_PROVIDER_CODE))?.environment ?? "sandbox"
+
+  const tokenResult = await getValidToken(env)
   if (!tokenResult.success) {
     return {
       success: false,
@@ -194,9 +214,7 @@ export async function getOrderInfo(consignmentId: string): Promise<PathaoApiResp
     }
   }
 
-  const provider = await getCourierProviderByCode(PATHAO_PROVIDER_CODE)
-  const environment = provider?.environment ?? "sandbox"
-  const endpoints = getPathaoEndpoints(environment)
+  const endpoints = getPathaoEndpoints(env as PathaoEnvironment)
 
   return pathaoRequest<PathaoOrderInfo>(
     `${endpoints.ORDER_INFO}?consignment_id=${consignmentId}`,
@@ -205,6 +223,7 @@ export async function getOrderInfo(consignmentId: string): Promise<PathaoApiResp
       providerCode: PATHAO_PROVIDER_CODE,
       orderId: undefined,
       action: `get_order_info_${consignmentId}`,
+      environment: env,
     }
   )
 }
@@ -219,7 +238,7 @@ export async function refreshOrderStatus(orderId: string): Promise<PathaoApiResp
     }
   }
 
-  const result = await getOrderInfo(consignment.consignmentId)
+  const result = await getOrderInfo(consignment.consignmentId, consignment.environment)
 
   if (result.success && result.data) {
     await updateConsignmentStatus(orderId, {

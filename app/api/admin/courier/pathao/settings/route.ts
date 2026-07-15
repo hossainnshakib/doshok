@@ -12,7 +12,8 @@ const pathaoCredentialsSchema = z.object({
   clientSecret: z.string().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
-  defaultStoreId: z.string().optional(),
+  sandboxDefaultStoreId: z.string().optional(),
+  liveDefaultStoreId: z.string().optional(),
 })
 
 const pathaoSettingsSchema = z.object({
@@ -39,7 +40,7 @@ export async function GET() {
       })
     }
 
-    const token = await getCourierToken("pathao")
+    const token = await getCourierToken("pathao", provider.environment)
     let tokenStatus: { valid: boolean; expiresAt?: string } | null = null
 
     if (token) {
@@ -55,7 +56,8 @@ export async function GET() {
       hasClientSecret: !!provider.credentials.clientSecret,
       hasUsername: !!provider.credentials.username,
       hasPassword: !!provider.credentials.password,
-      hasDefaultStoreId: !!provider.credentials.defaultStoreId,
+      hasSandboxDefaultStoreId: !!provider.credentials.sandboxDefaultStoreId,
+      hasLiveDefaultStoreId: !!provider.credentials.liveDefaultStoreId,
     } : null
 
     return success({
@@ -87,14 +89,15 @@ export async function PUT(request: NextRequest) {
     const { environment, isActive, credentials } = parsed.data
 
     const existingProvider = await getCourierProviderByCode("pathao")
-    const existingCreds = existingProvider?.credentials as { clientId?: string; clientSecret?: string; username?: string; password?: string; defaultStoreId?: string } | null
+    const existingCreds = existingProvider?.credentials as { clientId?: string; clientSecret?: string; username?: string; password?: string; sandboxDefaultStoreId?: string; liveDefaultStoreId?: string } | null
 
     const newCredentials = {
       clientId: credentials.clientId || existingCreds?.clientId || undefined,
       clientSecret: credentials.clientSecret || existingCreds?.clientSecret || undefined,
       username: credentials.username || existingCreds?.username || undefined,
       password: credentials.password || existingCreds?.password || undefined,
-      defaultStoreId: credentials.defaultStoreId || existingCreds?.defaultStoreId || undefined,
+      sandboxDefaultStoreId: credentials.sandboxDefaultStoreId || existingCreds?.sandboxDefaultStoreId || undefined,
+      liveDefaultStoreId: credentials.liveDefaultStoreId || existingCreds?.liveDefaultStoreId || undefined,
     }
 
     if (!newCredentials.clientId || !newCredentials.clientSecret || !newCredentials.username || !newCredentials.password) {
@@ -125,7 +128,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     if (body.action === "test_connection") {
-      const result = await issueAccessToken()
+      const provider = await getCourierProviderByCode("pathao")
+      const environment = provider?.environment ?? "sandbox"
+      const result = await issueAccessToken(environment)
       if (result.success) {
         return success({ message: "Connection successful", expiresAt: result.expiresAt?.toISOString() })
       }

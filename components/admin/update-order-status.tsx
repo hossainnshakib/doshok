@@ -19,6 +19,7 @@ export function UpdateOrderStatus({ orderId, currentOrderStatus, currentPaymentS
   const router = useRouter()
   const [orderStatus, setOrderStatus] = useState(currentOrderStatus)
   const [paymentStatus, setPaymentStatus] = useState(currentPaymentStatus)
+  const [adminOverride, setAdminOverride] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleUpdate() {
@@ -27,7 +28,7 @@ export function UpdateOrderStatus({ orderId, currentOrderStatus, currentPaymentS
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderStatus, paymentStatus }),
+        body: JSON.stringify({ orderStatus, paymentStatus, adminOverride }),
       })
       let data
       try {
@@ -84,6 +85,17 @@ export function UpdateOrderStatus({ orderId, currentOrderStatus, currentPaymentS
             </SelectContent>
           </Select>
         </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-1.5 text-xs text-slate-500">
+          <input
+            type="checkbox"
+            checked={adminOverride}
+            onChange={(e) => setAdminOverride(e.target.checked)}
+            className="h-3.5 w-3.5 rounded border-slate-300"
+          />
+          Force status change (admin override)
+        </label>
       </div>
       <Button
         size="sm"

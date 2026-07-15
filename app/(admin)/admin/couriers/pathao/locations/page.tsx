@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 import { RefreshCw, ChevronDown, ChevronRight } from "lucide-react"
@@ -11,10 +12,15 @@ type City = { cityId: string; name: string }
 type Zone = { zoneId: string; cityId: string; name: string }
 type Area = { areaId: string; zoneId: string; name: string }
 
+type Settings = {
+  environment: "sandbox" | "live"
+}
+
 export default function AdminPathaoLocationsPage() {
   const [cities, setCities] = useState<City[]>([])
   const [zones, setZones] = useState<Zone[]>([])
   const [areas, setAreas] = useState<Area[]>([])
+  const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState<string | null>(null)
   const [expandedCity, setExpandedCity] = useState<string | null>(null)
@@ -22,16 +28,19 @@ export default function AdminPathaoLocationsPage() {
 
   async function loadLocations() {
     try {
-      const [citiesRes, zonesRes, areasRes] = await Promise.all([
+      const [settingsRes, citiesRes, zonesRes, areasRes] = await Promise.all([
+        fetch("/api/admin/courier/pathao/settings"),
         fetch("/api/admin/courier/pathao/locations?type=cities"),
         fetch("/api/admin/courier/pathao/locations?type=zones"),
         fetch("/api/admin/courier/pathao/locations?type=areas"),
       ])
-      const [citiesData, zonesData, areasData] = await Promise.all([
+      const [settingsData, citiesData, zonesData, areasData] = await Promise.all([
+        settingsRes.json(),
         citiesRes.json(),
         zonesRes.json(),
         areasRes.json(),
       ])
+      if (settingsData.success) setSettings(settingsData.data)
       if (citiesData.success) setCities(citiesData.data)
       if (zonesData.success) setZones(zonesData.data)
       if (areasData.success) setAreas(areasData.data)
@@ -41,6 +50,13 @@ export default function AdminPathaoLocationsPage() {
   }
 
   useEffect(() => { queueMicrotask(() => { void loadLocations() }) }, [])
+
+  function getEnvironmentBadge(env: string) {
+    if (env === "sandbox") {
+      return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 text-[10px]">Sandbox</Badge>
+    }
+    return <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 text-[10px]">Live</Badge>
+  }
 
   async function handleSyncCities() {
     setSyncing("cities")
@@ -153,7 +169,17 @@ export default function AdminPathaoLocationsPage() {
       />
       <AdminBackLink href="/admin/couriers/pathao" label="Back to Pathao Settings" />
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-slate-500">
+            Showing locations for:
+          </p>
+          {settings?.environment ? getEnvironmentBadge(settings.environment) : <span className="text-xs text-slate-400">Unknown</span>}
+          <Button onClick={loadLocations} variant="outline" size="sm" className="h-7 text-xs">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Refresh
+          </Button>
+        </div>
         <Button onClick={handleSyncCities} disabled={syncing !== null} className="h-9 rounded-lg px-4 text-xs font-semibold">
           <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncing === "cities" ? "animate-spin" : ""}`} />
           {syncing === "cities" ? "Syncing..." : "Sync Cities"}

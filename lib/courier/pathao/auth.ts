@@ -4,17 +4,19 @@ import {
   pathaoTokenRequest,
   type PathaoTokenResponse,
   type PathaoApiResponse,
+  type PathaoEnvironment,
   PATHAO_PROVIDER_CODE,
 } from "./client"
 import {
   getCourierToken,
   saveCourierToken,
   deleteCourierToken,
+  getCourierProviderByCode,
 } from "@/lib/courier"
 
 const TOKEN_EXPIRY_BUFFER_SECONDS = 300
 
-export async function issueAccessToken(): Promise<PathaoApiResponse<PathaoTokenResponse> & { expiresAt?: Date }> {
+export async function issueAccessToken(environment: string): Promise<PathaoApiResponse<PathaoTokenResponse> & { expiresAt?: Date }> {
   const credentials = await getPathaoCredentials()
   if (!credentials) {
     return {
@@ -24,9 +26,7 @@ export async function issueAccessToken(): Promise<PathaoApiResponse<PathaoTokenR
     }
   }
 
-  const provider = await import("@/lib/courier").then(m => m.getCourierProviderByCode(PATHAO_PROVIDER_CODE))
-  const environment = provider?.environment ?? "sandbox"
-  const endpoints = getPathaoEndpoints(environment)
+  const endpoints = getPathaoEndpoints(environment as PathaoEnvironment)
 
   const response = await pathaoTokenRequest(
     endpoints.AUTH,
@@ -37,12 +37,13 @@ export async function issueAccessToken(): Promise<PathaoApiResponse<PathaoTokenR
       username: credentials.username,
       password: credentials.password,
     },
-    PATHAO_PROVIDER_CODE
+    PATHAO_PROVIDER_CODE,
+    environment
   )
 
   if (response.success && response.data) {
     const expiresAt = new Date(Date.now() + (response.data.expires_in - TOKEN_EXPIRY_BUFFER_SECONDS) * 1000)
-    await saveCourierToken(PATHAO_PROVIDER_CODE, {
+    await saveCourierToken(PATHAO_PROVIDER_CODE, environment, {
       accessToken: response.data.access_token,
       refreshToken: response.data.refresh_token,
       expiresAt,
@@ -53,7 +54,7 @@ export async function issueAccessToken(): Promise<PathaoApiResponse<PathaoTokenR
   return response
 }
 
-export async function refreshAccessToken(): Promise<PathaoApiResponse<PathaoTokenResponse> & { expiresAt?: Date }> {
+export async function refreshAccessToken(environment: string): Promise<PathaoApiResponse<PathaoTokenResponse> & { expiresAt?: Date }> {
   const credentials = await getPathaoCredentials()
   if (!credentials) {
     return {
@@ -63,7 +64,7 @@ export async function refreshAccessToken(): Promise<PathaoApiResponse<PathaoToke
     }
   }
 
-  const existingToken = await getCourierToken(PATHAO_PROVIDER_CODE)
+  const existingToken = await getCourierToken(PATHAO_PROVIDER_CODE, environment)
   if (!existingToken?.refreshToken) {
     return {
       success: false,
@@ -72,9 +73,7 @@ export async function refreshAccessToken(): Promise<PathaoApiResponse<PathaoToke
     }
   }
 
-  const provider = await import("@/lib/courier").then(m => m.getCourierProviderByCode(PATHAO_PROVIDER_CODE))
-  const environment = provider?.environment ?? "sandbox"
-  const endpoints = getPathaoEndpoints(environment)
+  const endpoints = getPathaoEndpoints(environment as PathaoEnvironment)
 
   const response = await pathaoTokenRequest(
     endpoints.REFRESH,
@@ -84,12 +83,13 @@ export async function refreshAccessToken(): Promise<PathaoApiResponse<PathaoToke
       client_secret: credentials.clientSecret,
       refresh_token: existingToken.refreshToken,
     },
-    PATHAO_PROVIDER_CODE
+    PATHAO_PROVIDER_CODE,
+    environment
   )
 
   if (response.success && response.data) {
     const expiresAt = new Date(Date.now() + (response.data.expires_in - TOKEN_EXPIRY_BUFFER_SECONDS) * 1000)
-    await saveCourierToken(PATHAO_PROVIDER_CODE, {
+    await saveCourierToken(PATHAO_PROVIDER_CODE, environment, {
       accessToken: response.data.access_token,
       refreshToken: response.data.refresh_token,
       expiresAt,
@@ -100,8 +100,10 @@ export async function refreshAccessToken(): Promise<PathaoApiResponse<PathaoToke
   return response
 }
 
-export async function getValidToken(): Promise<PathaoApiResponse<{ accessToken: string }>> {
-  const existingToken = await getCourierToken(PATHAO_PROVIDER_CODE)
+export async function getValidToken(environment?: string): Promise<PathaoApiResponse<{ accessToken: string }>> {
+  const env = environment ?? (await getCourierProviderByCode(PATHAO_PROVIDER_CODE))?.environment ?? "sandbox"
+
+  const existingToken = await getCourierToken(PATHAO_PROVIDER_CODE, env)
 
   if (existingToken) {
     const tokenExpiresAt = new Date(existingToken.expiresAt)
@@ -114,7 +116,7 @@ export async function getValidToken(): Promise<PathaoApiResponse<{ accessToken: 
       }
     }
 
-    const refreshResult = await refreshAccessToken()
+    const refreshResult = await refreshAccessToken(env)
     if (refreshResult.success) {
       return {
         success: true,
@@ -123,7 +125,7 @@ export async function getValidToken(): Promise<PathaoApiResponse<{ accessToken: 
     }
   }
 
-  const issueResult = await issueAccessToken()
+  const issueResult = await issueAccessToken(env)
   if (issueResult.success) {
     return {
       success: true,
@@ -138,6 +140,7 @@ export async function getValidToken(): Promise<PathaoApiResponse<{ accessToken: 
   }
 }
 
-export async function revokeToken(): Promise<void> {
-  await deleteCourierToken(PATHAO_PROVIDER_CODE)
+export async function revokeToken(environment?: string): Promise<void> {
+  const env = environment ?? (await getCourierProviderByCode(PATHAO_PROVIDER_CODE))?.environment ?? "sandbox"
+  await deleteCourierToken(PATHAO_PROVIDER_CODE, env)
 }

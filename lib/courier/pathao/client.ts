@@ -38,7 +38,8 @@ export interface PathaoCredentials {
   clientSecret: string
   username: string
   password: string
-  defaultStoreId?: string
+  sandboxDefaultStoreId?: string
+  liveDefaultStoreId?: string
 }
 
 export interface PathaoEndpoints {
@@ -67,6 +68,12 @@ export async function getPathaoCredentials(): Promise<PathaoCredentials | null> 
   }
 
   return creds
+}
+
+export async function getDefaultStoreId(environment: PathaoEnvironment): Promise<string | null> {
+  const creds = await getPathaoCredentials()
+  if (!creds) return null
+  return environment === "live" ? creds.liveDefaultStoreId ?? null : creds.sandboxDefaultStoreId ?? null
 }
 
 export interface PathaoTokenResponse {
@@ -108,11 +115,12 @@ export async function pathaoRequest<T>(
     providerCode?: string
     orderId?: string
     action?: string
+    environment?: string
     logRequest?: boolean
   } = {}
 ): Promise<PathaoApiResponse<T>> {
   const startTime = Date.now()
-  const { method = "GET", body, accessToken, credentials, providerCode = PATHAO_PROVIDER_CODE, orderId, action, logRequest = true } = options
+  const { method = "GET", body, accessToken, credentials, providerCode = PATHAO_PROVIDER_CODE, orderId, action, environment = "sandbox", logRequest = true } = options
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -161,6 +169,7 @@ export async function pathaoRequest<T>(
         if (logRequest && providerCode) {
           const logData: CourierLogData = {
             providerCode,
+            environment,
             orderId: orderId ?? null,
             action: action ?? method,
             requestUrl: endpoint,
@@ -191,6 +200,7 @@ export async function pathaoRequest<T>(
     if (logRequest && providerCode) {
       const logData: CourierLogData = {
         providerCode,
+        environment,
         orderId: orderId ?? null,
         action: action ?? method,
         requestUrl: endpoint,
@@ -216,6 +226,7 @@ export async function pathaoRequest<T>(
   if (logRequest && providerCode) {
     const logData: CourierLogData = {
       providerCode,
+      environment,
       orderId: orderId ?? null,
       action: action ?? method,
       requestUrl: endpoint,
@@ -279,7 +290,8 @@ export function stringifyError(value: unknown): string {
 export async function pathaoTokenRequest(
   endpoint: string,
   body: Record<string, string>,
-  providerCode: string = PATHAO_PROVIDER_CODE
+  providerCode: string = PATHAO_PROVIDER_CODE,
+  environment: string = "sandbox"
 ): Promise<PathaoApiResponse<PathaoTokenResponse>> {
   const startTime = Date.now()
   const headers: Record<string, string> = {
@@ -316,6 +328,7 @@ export async function pathaoTokenRequest(
 
         await createCourierLog({
           providerCode,
+          environment,
           action: "token_request",
           requestUrl: endpoint,
           requestMethod: "POST",
@@ -342,6 +355,7 @@ export async function pathaoTokenRequest(
 
     await createCourierLog({
       providerCode,
+      environment,
       action: "token_request",
       requestUrl: endpoint,
       requestMethod: "POST",
@@ -366,6 +380,7 @@ export async function pathaoTokenRequest(
 
     await createCourierLog({
       providerCode,
+      environment,
       action: "token_request",
       requestUrl: endpoint,
       requestMethod: "POST",
@@ -386,6 +401,7 @@ export async function pathaoTokenRequest(
 
   await createCourierLog({
     providerCode,
+    environment,
     action: "token_request",
     requestUrl: endpoint,
     requestMethod: "POST",

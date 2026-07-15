@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Save, RefreshCw, CheckCircle, XCircle } from "lucide-react"
 import { AdminPageHeader, AdminBackLink } from "@/components/admin/admin-ui"
@@ -21,7 +22,8 @@ type PathaoSettings = {
     hasClientSecret: boolean
     hasUsername: boolean
     hasPassword: boolean
-    hasDefaultStoreId: boolean
+    hasSandboxDefaultStoreId: boolean
+    hasLiveDefaultStoreId: boolean
   } | null
   tokenStatus: {
     valid: boolean
@@ -47,10 +49,21 @@ export default function AdminPathaoSettingsPage() {
   const [clientSecret, setClientSecret] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [defaultStoreId, setDefaultStoreId] = useState("")
+  const [sandboxDefaultStoreId, setSandboxDefaultStoreId] = useState("")
+  const [liveDefaultStoreId, setLiveDefaultStoreId] = useState("")
   const [environment, setEnvironment] = useState<"sandbox" | "live">("sandbox")
   const [isActive, setIsActive] = useState(false)
   const [hasCredentials, setHasCredentials] = useState(false)
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
+  const [cleanupAction, setCleanupAction] = useState<string | null>(null)
+  const [cleaning, setCleaning] = useState(false)
+
+  function getEnvironmentBadge(env: string) {
+    if (env === "sandbox") {
+      return <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 text-[10px]">Sandbox</Badge>
+    }
+    return <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 text-[10px]">Live</Badge>
+  }
 
   async function load() {
     setLoading(true)
@@ -94,7 +107,8 @@ export default function AdminPathaoSettingsPage() {
             clientSecret,
             username,
             password,
-            defaultStoreId,
+            sandboxDefaultStoreId,
+            liveDefaultStoreId,
           },
         }),
       })
@@ -144,6 +158,47 @@ export default function AdminPathaoSettingsPage() {
     setTesting(false)
   }
 
+  async function handleCleanup(action: string) {
+    setCleaning(true)
+    try {
+      const res = await fetch("/api/admin/courier/pathao/cleanup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          environment: "sandbox",
+          deleteTokens: action === "tokens" || action === "all",
+          deleteStores: action === "stores" || action === "all",
+          deleteLocations: action === "locations" || action === "all",
+          deleteLogs: action === "logs" || action === "all",
+        }),
+      })
+      let d
+      try {
+        d = await res.json()
+      } catch {
+        toast.error(`Server error: ${res.status} ${res.statusText}`)
+        setCleaning(false)
+        setShowCleanupConfirm(false)
+        return
+      }
+      if (d.success) {
+        toast.success(d.data?.message || "Cleanup completed")
+        load()
+      } else {
+        toast.error(d.error || `Cleanup failed (${res.status})`)
+      }
+    } catch (err) {
+      toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
+    }
+    setCleaning(false)
+    setShowCleanupConfirm(false)
+  }
+
+  function confirmCleanup(action: string) {
+    setCleanupAction(action)
+    setShowCleanupConfirm(true)
+  }
+
   if (loading) {
     return (
       <div className="space-y-5">
@@ -162,6 +217,11 @@ export default function AdminPathaoSettingsPage() {
         backHref="/admin/couriers"
       />
       <AdminBackLink href="/admin/couriers" label="Back to Couriers" />
+
+      <div className="flex items-center gap-3 px-1">
+        <p className="text-xs text-slate-500">Current Environment:</p>
+        {getEnvironmentBadge(settings?.environment ?? "sandbox")}
+      </div>
 
       {settings?.tokenStatus && (
         <Card className="rounded-xl border border-slate-200/70 bg-white shadow-sm">
@@ -211,12 +271,15 @@ export default function AdminPathaoSettingsPage() {
                 <option value="live">Live</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-600">Default Store</Label>
+              <Label className="text-xs font-medium text-slate-600">Sandbox Default Store</Label>
               {stores.length > 0 ? (
-                <Select value={defaultStoreId} onValueChange={(v) => { if (v) setDefaultStoreId(v) }}>
+                <Select value={sandboxDefaultStoreId} onValueChange={(v) => { if (v) setSandboxDefaultStoreId(v) }}>
                   <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Select default store" />
+                    <SelectValue placeholder="Select sandbox default store" />
                   </SelectTrigger>
                   <SelectContent>
                     {stores.map((store) => (
@@ -230,6 +293,28 @@ export default function AdminPathaoSettingsPage() {
               ) : (
                 <p className="text-xs text-slate-400 italic pt-1.5">
                   No stores synced yet. Save credentials and sync stores first.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-slate-600">Live Default Store</Label>
+              {stores.length > 0 ? (
+                <Select value={liveDefaultStoreId} onValueChange={(v) => { if (v) setLiveDefaultStoreId(v) }}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select live default store" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stores.map((store) => (
+                      <SelectItem key={store.storeId} value={store.storeId}>
+                        {store.name || store.storeId}
+                        {store.merchantName ? ` (${store.merchantName})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-xs text-slate-400 italic pt-1.5">
+                  No stores synced yet.
                 </p>
               )}
             </div>
@@ -295,6 +380,91 @@ export default function AdminPathaoSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="rounded-xl border border-red-200/70 bg-red-50/30 shadow-sm">
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-sm text-red-700">Danger Zone - Sandbox Data Cleanup</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 py-4 space-y-3">
+          <p className="text-xs text-red-600/80">
+            These actions will permanently delete sandbox data. Live environment data is never affected.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => confirmCleanup("stores")}
+              disabled={cleaning}
+              variant="outline"
+              className="h-8 rounded-lg px-3 text-xs border-red-200 text-red-600 hover:bg-red-50"
+            >
+              Clear Sandbox Stores
+            </Button>
+            <Button
+              onClick={() => confirmCleanup("locations")}
+              disabled={cleaning}
+              variant="outline"
+              className="h-8 rounded-lg px-3 text-xs border-red-200 text-red-600 hover:bg-red-50"
+            >
+              Clear Sandbox Locations
+            </Button>
+            <Button
+              onClick={() => confirmCleanup("tokens")}
+              disabled={cleaning}
+              variant="outline"
+              className="h-8 rounded-lg px-3 text-xs border-red-200 text-red-600 hover:bg-red-50"
+            >
+              Clear Sandbox Tokens
+            </Button>
+            <Button
+              onClick={() => confirmCleanup("logs")}
+              disabled={cleaning}
+              variant="outline"
+              className="h-8 rounded-lg px-3 text-xs border-red-200 text-red-600 hover:bg-red-50"
+            >
+              Clear Sandbox Logs
+            </Button>
+            <Button
+              onClick={() => confirmCleanup("all")}
+              disabled={cleaning}
+              variant="outline"
+              className="h-8 rounded-lg px-3 text-xs border-red-300 text-red-700 hover:bg-red-100 font-semibold"
+            >
+              Clear All Sandbox Data
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {showCleanupConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm">Confirm Cleanup</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 py-4 space-y-4">
+              <p className="text-sm text-slate-600">
+                Are you sure you want to clear <span className="font-semibold">{cleanupAction === "all" ? "all sandbox data" : `sandbox ${cleanupAction}`}</span>?
+                This action cannot be undone.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  onClick={() => setShowCleanupConfirm(false)}
+                  variant="outline"
+                  className="h-8 rounded-lg px-3 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => cleanupAction && handleCleanup(cleanupAction)}
+                  disabled={cleaning}
+                  className="h-8 rounded-lg px-3 text-xs bg-red-600 hover:bg-red-700"
+                >
+                  {cleaning ? "Cleaning..." : "Confirm Cleanup"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

@@ -72,18 +72,20 @@ export async function PATCH(
     }
 
     const newStatus = filtered.orderStatus as string | undefined
-    if (newStatus && newStatus !== currentOrder.orderStatus) {
+    const forceOverride = body.adminOverride === true
+    if (newStatus && newStatus !== currentOrder.orderStatus && !forceOverride) {
       const allowed = allowedTransitions[currentOrder.orderStatus]
       if (!allowed || !allowed.includes(newStatus)) {
         const current = currentOrder.orderStatus
         console.error(`[OrderUpdate] Invalid transition: ${current} -> ${newStatus}, order: ${id}, user: ${userId}`)
-        return error(`Cannot change order status from "${current}" to "${newStatus}". Allowed transitions from "${current}": ${allowed?.join(", ") || "none"}`)
+        return error(`Cannot change order status from "${current}" to "${newStatus}". Allowed transitions from "${current}": ${allowed?.join(", ") || "none"}. Use adminOverride=true to force.`)
       }
     }
 
     if (
       filtered.orderStatus &&
-      filtered.orderStatus !== currentOrder.orderStatus
+      filtered.orderStatus !== currentOrder.orderStatus &&
+      !forceOverride
     ) {
       const stockResult = await applyInventorySideEffectsForOrderStatus(id, filtered.orderStatus as string)
       if (!stockResult.success) {
