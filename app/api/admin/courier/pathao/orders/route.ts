@@ -3,7 +3,8 @@ import { success, error } from "@/lib/api-response"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { prisma } from "@/lib/prisma"
 import { createOrder, refreshOrderStatus, getPathaoStatusLabel } from "@/lib/courier/pathao/orders"
-import { getOrderConsignment } from "@/lib/courier"
+import { getOrderConsignment, getCourierProviderByCode, getCourierToken } from "@/lib/courier"
+import { PATHAO_PROVIDER_CODE } from "@/lib/courier/pathao/client"
 import { z } from "zod"
 
 export const dynamic = "force-dynamic"
@@ -28,6 +29,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderId, storeId, deliveryType, itemType, itemWeight } = parsed.data
+
+    const provider = await getCourierProviderByCode(PATHAO_PROVIDER_CODE)
+    const environment = provider?.environment ?? "sandbox"
+
+    const courierStore = await prisma.courierStore.findUnique({
+      where: { providerCode_environment_storeId: { providerCode: PATHAO_PROVIDER_CODE, environment, storeId } },
+    })
+
+    if (!courierStore) {
+      return error(`Store ${storeId} not found in ${environment} environment. Please sync stores first.`, 400)
+    }
 
     const existingConsignment = await getOrderConsignment(orderId)
     if (existingConsignment?.consignmentId) {
@@ -54,6 +66,11 @@ export async function POST(request: NextRequest) {
     const recipientCity = order.address.district
     const recipientZone = order.address.thana
 
+    const tokenInfo = await getCourierToken(PATHAO_PROVIDER_CODE, environment)
+    if (!tokenInfo) {
+      return error(`No access token found for ${environment} environment. Please configure Pathao credentials.`, 401)
+    }
+
     const result = await createOrder(orderId, {
       storeId,
       recipient: {
@@ -78,9 +95,16 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    const isPathaoAuthError = result.code === 401
+    if (isPathaoAuthError) {
+      return error(`Pathao API unauthorized: ${result.message}`, 401)
+    }
+
     return error(result.message || "Failed to create order")
-  } catch {
-    return error("Failed to send order to Pathao")
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error"
+    console.error("[Pathao Orders] Failed:", message)
+    return error(`Failed to send order to Pathao: ${message}`)
   }
 }
 

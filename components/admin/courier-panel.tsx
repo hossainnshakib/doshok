@@ -116,7 +116,14 @@ export function CourierPanel({ orderId }: { orderId: string }) {
         setShowSendForm(false)
         loadConsignment()
       } else {
-        toast.error(d.error || `Failed to send (${res.status})`)
+        const errorMsg = d.error || `Failed to send (${res.status})`
+        if (res.status === 401) {
+          toast.error(`Admin permission denied: ${errorMsg}`)
+        } else if (errorMsg.includes("Pathao API unauthorized")) {
+          toast.error(errorMsg)
+        } else {
+          toast.error(errorMsg)
+        }
       }
     } catch (err) {
       toast.error(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`)
