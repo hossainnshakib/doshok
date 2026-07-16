@@ -139,23 +139,28 @@ export async function POST(request: NextRequest) {
         },
       }
 
-      await createCourierLog({
-        providerCode: PATHAO_PROVIDER_CODE,
-        environment,
-        orderId,
-        action: "create_order_detailed",
-        requestUrl: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
-        requestMethod: "POST",
-        requestBody: sanitizedRequestBody,
-        responseBody: result.data as object,
-        responseStatus: 200,
-        durationMs: null,
-        correlationId: requestId,
-        parsedConsignmentId: consignmentId,
-        parsedTrackingCode: trackingCode,
-        finalResponseToFrontend: finalResponse,
-        errorMessage: null,
-      })
+      try {
+        await createCourierLog({
+          providerCode: PATHAO_PROVIDER_CODE,
+          environment,
+          orderId,
+          action: "create_order_detailed",
+          requestUrl: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
+          requestMethod: "POST",
+          requestBody: sanitizedRequestBody,
+          responseBody: result.data as object,
+          responseStatus: 200,
+          durationMs: null,
+          correlationId: requestId,
+          parsedConsignmentId: consignmentId,
+          parsedTrackingCode: trackingCode,
+          finalResponseToFrontend: finalResponse,
+          errorMessage: null,
+        })
+        console.log(`[${requestId}] detailed_log_saved_success`)
+      } catch (logErr) {
+        console.error(`[${requestId}] detailed_log_save_failed:`, logErr instanceof Error ? logErr.message : logErr)
+      }
 
       console.log(`[${requestId}] returning_success with consignmentId=`, result.data.consignment_id)
       return success({
@@ -167,6 +172,32 @@ export async function POST(request: NextRequest) {
 
     const isPathaoAuthError = result.code === 401
     if (isPathaoAuthError) {
+      try {
+        await createCourierLog({
+          providerCode: PATHAO_PROVIDER_CODE,
+          environment,
+          orderId,
+          action: "create_order_detailed",
+          requestUrl: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
+          requestMethod: "POST",
+          requestBody: sanitizedRequestBody,
+          responseBody: null,
+          responseStatus: 401,
+          durationMs: null,
+          correlationId: requestId,
+          parsedConsignmentId: null,
+          parsedTrackingCode: null,
+          finalResponseToFrontend: { success: false, error: `Pathao API unauthorized: ${result.message}` },
+          errorMessage: `Pathao API unauthorized: ${result.message}`,
+        })
+      } catch (logErr) {
+        console.error(`[${requestId}] detailed_log_save_failed:`, logErr instanceof Error ? logErr.message : logErr)
+      }
+      console.log(`[${requestId}] pathao_401_error:`, result.message)
+      return error(`Pathao API unauthorized: ${result.message}`, 401)
+    }
+
+    try {
       await createCourierLog({
         providerCode: PATHAO_PROVIDER_CODE,
         environment,
@@ -176,41 +207,31 @@ export async function POST(request: NextRequest) {
         requestMethod: "POST",
         requestBody: sanitizedRequestBody,
         responseBody: null,
-        responseStatus: 401,
+        responseStatus: result.code || 500,
         durationMs: null,
         correlationId: requestId,
         parsedConsignmentId: null,
         parsedTrackingCode: null,
-        finalResponseToFrontend: { success: false, error: `Pathao API unauthorized: ${result.message}` },
-        errorMessage: `Pathao API unauthorized: ${result.message}`,
+        finalResponseToFrontend: { success: false, error: result.message || "Failed to create order" },
+        errorMessage: result.message || "Failed to create order",
       })
-      console.log(`[${requestId}] pathao_401_error:`, result.message)
-      return error(`Pathao API unauthorized: ${result.message}`, 401)
+    } catch (logErr) {
+      console.error(`[${requestId}] detailed_log_save_failed:`, logErr instanceof Error ? logErr.message : logErr)
     }
-
-    await createCourierLog({
-      providerCode: PATHAO_PROVIDER_CODE,
-      environment,
-      orderId,
-      action: "create_order_detailed",
-      requestUrl: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
-      requestMethod: "POST",
-      requestBody: sanitizedRequestBody,
-      responseBody: null,
-      responseStatus: result.code || 500,
-      durationMs: null,
-      correlationId: requestId,
-      parsedConsignmentId: null,
-      parsedTrackingCode: null,
-      finalResponseToFrontend: { success: false, error: result.message || "Failed to create order" },
-      errorMessage: result.message || "Failed to create order",
-    })
 
     console.log(`[${requestId}] returning_error:`, result.message)
     return error(result.message || "Failed to create order")
   } catch (err) {
+    console.error(`[${requestId}] ========== FULL CATCH ==========`)
+    console.error(`[${requestId}] err:`, err)
+    console.error(`[${requestId}] typeof err:`, typeof err)
+    console.error(`[${requestId}] err?.name:`, (err as { name?: string })?.name)
+    console.error(`[${requestId}] err?.message:`, (err as { message?: string })?.message)
+    console.error(`[${requestId}] err?.stack:`, (err as Error)?.stack)
+    console.error(`[${requestId}] JSON.stringify(err):`, JSON.stringify(err, null, 2))
+    console.error(`[${requestId}] ========== END CATCH ==========`)
+
     const message = err instanceof Error ? err.message : "Unknown error"
-    console.error(`[${requestId}] [Pathao Orders] Failed:`, message)
     return error(`Failed to send order to Pathao: ${message}`)
   }
 }
