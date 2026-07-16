@@ -114,7 +114,30 @@ export function CourierPanel({ orderId }: { orderId: string }) {
       if (d.success) {
         toast.success("Order sent to Pathao")
         setShowSendForm(false)
-        loadConsignment()
+        if (d.data) {
+          setConsignment((prev) => ({
+            consignmentId: d.data.consignmentId,
+            trackingCode: d.data.trackingCode,
+            courierStatus: "Pending",
+            courierMessage: d.data.message || null,
+            deliveryFee: null,
+            syncedAt: null,
+            storeId: selectedStore,
+            providerCode: "pathao",
+          }))
+          setOrderStatus({
+            consignmentId: d.data.consignmentId,
+            trackingCode: d.data.trackingCode,
+            status: "Pending",
+            statusId: null,
+            deliveryFee: null,
+            message: d.data.message || null,
+            syncedAt: null,
+          })
+        }
+        loadConsignment().catch(() => {
+          toast.warning("Order was sent, but status refresh failed. Please refresh manually.")
+        })
       } else {
         const errorMsg = d.error || `Failed to send (${res.status})`
         if (res.status === 401) {

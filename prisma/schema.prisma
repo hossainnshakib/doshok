@@ -852,22 +852,27 @@ model CourierToken {
 }
 
 model CourierLog {
-  id             String   @id @default(cuid())
-  providerCode   String
-  environment    String   @default("sandbox")
-  orderId        String?
-  action         String
-  requestUrl     String?
-  requestMethod  String?
-  requestBody    Json?
-  responseBody   Json?
-  responseStatus Int?
-  errorMessage   String?
-  durationMs     Int?
-  createdAt      DateTime @default(now())
+  id                       String   @id @default(cuid())
+  providerCode             String
+  environment              String   @default("sandbox")
+  orderId                  String?
+  action                   String
+  requestUrl               String?
+  requestMethod            String?
+  requestBody              Json?
+  responseBody             Json?
+  responseStatus           Int?
+  errorMessage             String?
+  durationMs               Int?
+  correlationId            String?
+  parsedConsignmentId      String?
+  parsedTrackingCode       String?
+  finalResponseToFrontend  Json?
+  createdAt                DateTime @default(now())
 
   @@index([providerCode])
   @@index([environment])
   @@index([orderId])
   @@index([createdAt])
+  @@index([correlationId])
 }

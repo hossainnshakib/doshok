@@ -347,6 +347,10 @@ export interface CourierLogData {
   responseStatus?: number | null
   errorMessage?: string | null
   durationMs?: number | null
+  correlationId?: string | null
+  parsedConsignmentId?: string | null
+  parsedTrackingCode?: string | null
+  finalResponseToFrontend?: object | null
 }
 
 export async function createCourierLog(data: CourierLogData) {
@@ -363,6 +367,10 @@ export async function createCourierLog(data: CourierLogData) {
       responseStatus: data.responseStatus,
       errorMessage: data.errorMessage,
       durationMs: data.durationMs,
+      correlationId: data.correlationId,
+      parsedConsignmentId: data.parsedConsignmentId,
+      parsedTrackingCode: data.parsedTrackingCode,
+      finalResponseToFrontend: data.finalResponseToFrontend as object | undefined,
     },
   })
 }

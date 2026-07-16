@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic"
 interface LogEntry {
   id: string
   providerCode: string
+  environment: string
   orderId: string | null
   action: string
   requestUrl: string | null
@@ -17,6 +18,10 @@ interface LogEntry {
   responseStatus: number | null
   errorMessage: string | null
   durationMs: number | null
+  correlationId: string | null
+  parsedConsignmentId: string | null
+  parsedTrackingCode: string | null
+  finalResponseToFrontend: object | null
   createdAt: Date
 }
 
@@ -43,7 +48,7 @@ export async function GET(request: NextRequest) {
     const logs = (result.logs as LogEntry[]).map((log) => ({
       id: log.id,
       providerCode: log.providerCode,
-      environment: (log as { environment?: string }).environment ?? "sandbox",
+      environment: log.environment ?? "sandbox",
       orderId: log.orderId,
       action: log.action,
       requestUrl: log.requestUrl,
@@ -54,6 +59,10 @@ export async function GET(request: NextRequest) {
       createdAt: log.createdAt,
       hasRequestBody: !!log.requestBody,
       hasResponseBody: !!log.responseBody,
+      correlationId: log.correlationId,
+      parsedConsignmentId: log.parsedConsignmentId,
+      parsedTrackingCode: log.parsedTrackingCode,
+      finalResponseToFrontend: log.finalResponseToFrontend,
     }))
 
     return success({ logs, total: result.total })

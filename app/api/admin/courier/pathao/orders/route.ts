@@ -3,7 +3,7 @@ import { success, error } from "@/lib/api-response"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { prisma } from "@/lib/prisma"
 import { createOrder, refreshOrderStatus, getPathaoStatusLabel } from "@/lib/courier/pathao/orders"
-import { getOrderConsignment, getCourierProviderByCode, getCourierToken } from "@/lib/courier"
+import { getOrderConsignment, getCourierProviderByCode, getCourierToken, createCourierLog } from "@/lib/courier"
 import { PATHAO_PROVIDER_CODE } from "@/lib/courier/pathao/client"
 import { z } from "zod"
 
@@ -18,20 +18,27 @@ const sendOrderSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  console.log(`[${requestId}] send_order_start`)
+
   try {
     const session = await requireAdminPermission("operations")
+    console.log(`[${requestId}] auth_result:`, session instanceof NextResponse ? "denied" : "allowed")
     if (session instanceof NextResponse) return session
 
     const body = await request.json()
     const parsed = sendOrderSchema.safeParse(body)
     if (!parsed.success) {
+      console.log(`[${requestId}] validation_failed:`, parsed.error.issues[0]?.message)
       return error(parsed.error.issues[0]?.message ?? "Invalid input", 400)
     }
 
     const { orderId, storeId, deliveryType, itemType, itemWeight } = parsed.data
+    console.log(`[${requestId}] order=${orderId} store=${storeId}`)
 
     const provider = await getCourierProviderByCode(PATHAO_PROVIDER_CODE)
     const environment = provider?.environment ?? "sandbox"
+    console.log(`[${requestId}] provider_env=${environment}`)
 
     const courierStore = await prisma.courierStore.findUnique({
       where: { providerCode_environment_storeId: { providerCode: PATHAO_PROVIDER_CODE, environment, storeId } },
@@ -43,7 +50,17 @@ export async function POST(request: NextRequest) {
 
     const existingConsignment = await getOrderConsignment(orderId)
     if (existingConsignment?.consignmentId) {
-      return error("Order already sent to Pathao. Cannot create duplicate consignment.", 409)
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This order has already been sent to Pathao.",
+          data: {
+            consignmentId: existingConsignment.consignmentId,
+            trackingCode: existingConsignment.trackingCode,
+          },
+        },
+        { status: 409 }
+      )
     }
 
     const order = await prisma.order.findUnique({
@@ -87,23 +104,113 @@ export async function POST(request: NextRequest) {
       amountToCollect: order.total,
     })
 
-    if (result.success && result.data) {
+    console.log(`[${requestId}] pathao_create_success:`, {
+      success: result.success,
+      hasData: !!result.data,
+      consignment_id: result.data?.consignment_id,
+      code: result.code,
+      message: result.message,
+    })
+
+    const sanitizedRequestBody = {
+      store_id: storeId,
+      recipient_name: order.customerName,
+      recipient_phone: order.customerPhone,
+      recipient_address: order.address.fullAddress,
+      recipient_city: recipientCity,
+      recipient_zone: recipientZone,
+      delivery_type: deliveryType === "normal" ? 1 : deliveryType === "express" ? 5 : 3,
+      item_type: itemType === "parcel" ? 1 : itemType === "document" ? 2 : itemType === "electronics" ? 3 : itemType === "food" ? 4 : itemType === "liquid" ? 5 : 6,
+      item_quantity: order.items.length,
+      item_weight: itemWeight,
+      amount_to_collect: order.total,
+      item_description: `${order.items.length} item(s)`,
+    }
+
+    if (result.success && result.data && result.data.consignment_id !== undefined) {
+      const consignmentId = String(result.data.consignment_id)
+      const trackingCode = result.data.tracking_code || null
+      const finalResponse = {
+        success: true,
+        data: {
+          consignmentId,
+          trackingCode,
+          message: result.data.message || null,
+        },
+      }
+
+      await createCourierLog({
+        providerCode: PATHAO_PROVIDER_CODE,
+        environment,
+        orderId,
+        action: "create_order_detailed",
+        requestUrl: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
+        requestMethod: "POST",
+        requestBody: sanitizedRequestBody,
+        responseBody: result.data as object,
+        responseStatus: 200,
+        durationMs: null,
+        correlationId: requestId,
+        parsedConsignmentId: consignmentId,
+        parsedTrackingCode: trackingCode,
+        finalResponseToFrontend: finalResponse,
+        errorMessage: null,
+      })
+
+      console.log(`[${requestId}] returning_success with consignmentId=`, result.data.consignment_id)
       return success({
-        consignmentId: result.data.consignment_id,
-        trackingCode: result.data.tracking_code,
-        message: result.data.message,
+        consignmentId,
+        trackingCode,
+        message: result.data.message || null,
       })
     }
 
     const isPathaoAuthError = result.code === 401
     if (isPathaoAuthError) {
+      await createCourierLog({
+        providerCode: PATHAO_PROVIDER_CODE,
+        environment,
+        orderId,
+        action: "create_order_detailed",
+        requestUrl: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
+        requestMethod: "POST",
+        requestBody: sanitizedRequestBody,
+        responseBody: null,
+        responseStatus: 401,
+        durationMs: null,
+        correlationId: requestId,
+        parsedConsignmentId: null,
+        parsedTrackingCode: null,
+        finalResponseToFrontend: { success: false, error: `Pathao API unauthorized: ${result.message}` },
+        errorMessage: `Pathao API unauthorized: ${result.message}`,
+      })
+      console.log(`[${requestId}] pathao_401_error:`, result.message)
       return error(`Pathao API unauthorized: ${result.message}`, 401)
     }
 
+    await createCourierLog({
+      providerCode: PATHAO_PROVIDER_CODE,
+      environment,
+      orderId,
+      action: "create_order_detailed",
+      requestUrl: "https://courier-api-sandbox.pathao.com/aladdin/api/v1/create/order",
+      requestMethod: "POST",
+      requestBody: sanitizedRequestBody,
+      responseBody: null,
+      responseStatus: result.code || 500,
+      durationMs: null,
+      correlationId: requestId,
+      parsedConsignmentId: null,
+      parsedTrackingCode: null,
+      finalResponseToFrontend: { success: false, error: result.message || "Failed to create order" },
+      errorMessage: result.message || "Failed to create order",
+    })
+
+    console.log(`[${requestId}] returning_error:`, result.message)
     return error(result.message || "Failed to create order")
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error"
-    console.error("[Pathao Orders] Failed:", message)
+    console.error(`[${requestId}] [Pathao Orders] Failed:`, message)
     return error(`Failed to send order to Pathao: ${message}`)
   }
 }

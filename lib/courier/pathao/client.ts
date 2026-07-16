@@ -117,10 +117,28 @@ export async function pathaoRequest<T>(
     action?: string
     environment?: string
     logRequest?: boolean
+    correlationId?: string
+    parsedConsignmentId?: string
+    parsedTrackingCode?: string
+    finalResponseToFrontend?: object
   } = {}
 ): Promise<PathaoApiResponse<T>> {
   const startTime = Date.now()
-  const { method = "GET", body, accessToken, credentials, providerCode = PATHAO_PROVIDER_CODE, orderId, action, environment = "sandbox", logRequest = true } = options
+  const {
+    method = "GET",
+    body,
+    accessToken,
+    credentials,
+    providerCode = PATHAO_PROVIDER_CODE,
+    orderId,
+    action,
+    environment = "sandbox",
+    logRequest = true,
+    correlationId,
+    parsedConsignmentId,
+    parsedTrackingCode,
+    finalResponseToFrontend,
+  } = options
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -236,6 +254,10 @@ export async function pathaoRequest<T>(
       responseStatus,
       durationMs,
       errorMessage: !response.ok ? buildErrorMessage(responseData as PathaoApiError, responseStatus) : null,
+      correlationId: correlationId ?? null,
+      parsedConsignmentId: parsedConsignmentId ?? null,
+      parsedTrackingCode: parsedTrackingCode ?? null,
+      finalResponseToFrontend: finalResponseToFrontend ?? null,
     }
     await createCourierLog(logData)
   }
@@ -252,12 +274,24 @@ export async function pathaoRequest<T>(
   }
 
   const responseBody = responseData as unknown as Record<string, unknown>
-  if (responseBody && typeof responseBody === "object" && "data" in responseBody && responseBody.data && typeof responseBody.data === "object") {
-    const innerData = responseBody.data as Record<string, unknown>
-    if ("data" in innerData && Array.isArray(innerData.data)) {
-      return {
-        success: true,
-        data: innerData.data as T,
+  if (responseBody && typeof responseBody === "object" && "data" in responseBody) {
+    const dataField = responseBody.data
+    if (dataField && typeof dataField === "object") {
+      const innerData = dataField as Record<string, unknown>
+      if ("data" in innerData && Array.isArray(innerData.data)) {
+        return {
+          success: true,
+          data: innerData.data as T,
+        }
+      }
+      if (!("data" in innerData) || innerData.data === undefined) {
+        const resp = responseBody as unknown as PathaoApiResponse<unknown>
+        return {
+          success: resp.success !== false,
+          data: dataField as T,
+          code: resp.code,
+          message: resp.message,
+        }
       }
     }
   }
