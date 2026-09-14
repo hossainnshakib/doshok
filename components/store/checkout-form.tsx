@@ -20,8 +20,9 @@ import Link from "next/link"
 import { getPhoneDisplayE164 } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import { User, LogIn, MapPin, Home, Briefcase, Users } from "lucide-react"
-import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
+import { getDivisions, getDistrictsByDivision } from "@/lib/bangladesh-address"
 import { AddressCombobox } from "@/components/store/address-combobox"
+import { DistrictCombobox, type DistrictValue } from "@/components/store/district-combobox"
 import { normalizePhoneToE164, isValidBdPhone } from "@/lib/checkout/phone"
 import { calculatePaymentAmounts, type PaymentRuleType } from "@/lib/checkout/payment-amount-client"
 import { FirebaseOtpPanel } from "@/components/store/firebase-otp-panel"
@@ -94,8 +95,8 @@ export function CheckoutForm() {
     divisionName: "",
     districtId: "",
     districtName: "",
-    upazilaId: "",
     upazilaName: "",
+    areaName: "",
     fullAddress: "",
     note: "",
     selectedDeliveryZone: "dhaka" as DeliveryZone,
@@ -122,8 +123,8 @@ export function CheckoutForm() {
       divisionName: "",
       districtId: "",
       districtName: "",
-      upazilaId: "",
       upazilaName: "",
+      areaName: "",
       fullAddress: "",
       note: "",
       selectedDeliveryZone: "dhaka",
@@ -157,7 +158,6 @@ export function CheckoutForm() {
 
   const [divisions] = useState<Awaited<ReturnType<typeof getDivisions>>>(() => getDivisions())
   const [districts, setDistricts] = useState<Awaited<ReturnType<typeof getDistrictsByDivision>>>([])
-  const [upazilas, setUpazilas] = useState<Awaited<ReturnType<typeof getUpazilasByDistrict>>>([])
 
   const [checkoutSettings, setCheckoutSettings] = useState<CheckoutSettings | null>(null)
   const [settingsLoading, setSettingsLoading] = useState(true)
@@ -328,8 +328,8 @@ export function CheckoutForm() {
       if (saved.address.divisionName) updates.divisionName = saved.address.divisionName
       if (saved.address.districtId) updates.districtId = saved.address.districtId
       if (saved.address.districtName) updates.districtName = saved.address.districtName
-      if (saved.address.upazilaId) updates.upazilaId = saved.address.upazilaId
       if (saved.address.upazilaName) updates.upazilaName = saved.address.upazilaName
+      if (saved.address.areaName) updates.areaName = saved.address.areaName
       if (saved.address.address) updates.fullAddress = saved.address.address
       if (saved.address.notes !== undefined) updates.note = saved.address.notes
       if (saved.address.deliveryZone) {
@@ -361,10 +361,6 @@ export function CheckoutForm() {
       if (saved.address?.divisionId) {
         const restoredDistricts = getDistrictsByDivision(saved.address.divisionId)
         setDistricts(restoredDistricts)
-        if (saved.address.districtId) {
-          const restoredUpazilas = getUpazilasByDistrict(saved.address.districtId)
-          setUpazilas(restoredUpazilas)
-        }
       }
     })
 
@@ -372,8 +368,12 @@ export function CheckoutForm() {
   }, [isBuyNow])
 
   useEffect(() => {
-    if (!draft.districtId) return
-    const url = draft.districtId ? `/api/delivery-fees?districtId=${encodeURIComponent(draft.districtId)}` : "/api/delivery-fees"
+    if (!draft.districtId) {
+      setDeliveryZone("outside")
+      setDeliveryFee(100)
+      return
+    }
+    const url = `/api/delivery-fees?districtId=${encodeURIComponent(draft.districtId)}`
     fetch(url)
       .then((r) => r.json())
       .then((d) => {
@@ -442,16 +442,12 @@ export function CheckoutForm() {
           setSelectedAddressId(defaultAddr.id)
           let addrDivisionId = defaultAddr.divisionId || ""
           let addrDistrictId = defaultAddr.districtId || ""
-          let addrUpazilaId = defaultAddr.upazilaId || ""
 
           if (!addrDivisionId && (defaultAddr.divisionName || defaultAddr.city)) {
             addrDivisionId = resolveIdByName(divisions, defaultAddr.divisionName || defaultAddr.city)
           }
           if (!addrDistrictId && (defaultAddr.districtName || defaultAddr.city)) {
             addrDistrictId = resolveIdByName(districts, defaultAddr.districtName || defaultAddr.city)
-          }
-          if (!addrUpazilaId && defaultAddr.upazilaName) {
-            addrUpazilaId = resolveIdByName(upazilas, defaultAddr.upazilaName)
           }
 
           setDraft((prev) => ({
@@ -462,14 +458,12 @@ export function CheckoutForm() {
             divisionName: prev.divisionName || defaultAddr.divisionName || defaultAddr.city,
             districtId: addrDistrictId,
             districtName: prev.districtName || defaultAddr.districtName || defaultAddr.city,
-            upazilaId: addrUpazilaId,
-            upazilaName: prev.upazilaName || defaultAddr.upazilaName || defaultAddr.city,
+            upazilaName: prev.upazilaName || defaultAddr.upazilaName || "",
             fullAddress: prev.fullAddress || (defaultAddr.addressLine1 + (defaultAddr.addressLine2 ? `, ${defaultAddr.addressLine2}` : "")),
             selectedDeliveryZone: (defaultAddr.zone as DeliveryZone) || prev.selectedDeliveryZone,
           }))
           setDeliveryZone(defaultAddr.zone as DeliveryZone)
           if (addrDivisionId) setDistricts(getDistrictsByDivision(addrDivisionId))
-          if (addrDistrictId) setUpazilas(getUpazilasByDistrict(addrDistrictId))
         }
       })
       .catch(() => {})
@@ -512,8 +506,8 @@ export function CheckoutForm() {
           divisionName: draft.divisionName,
           districtId: draft.districtId,
           districtName: draft.districtName,
-          upazilaId: draft.upazilaId,
           upazilaName: draft.upazilaName,
+          areaName: draft.areaName,
           address: draft.fullAddress,
           notes: draft.note,
           deliveryZone,
@@ -556,8 +550,8 @@ export function CheckoutForm() {
                 divisionName: draft.divisionName,
                 districtId: draft.districtId,
                 districtName: draft.districtName,
-                upazilaId: draft.upazilaId,
                 upazilaName: draft.upazilaName,
+                areaName: draft.areaName,
                 address: draft.fullAddress,
                 notes: draft.note,
                 deliveryZone,
@@ -604,8 +598,8 @@ export function CheckoutForm() {
     draft.divisionName,
     draft.districtId,
     draft.districtName,
-    draft.upazilaId,
     draft.upazilaName,
+    draft.areaName,
     draft.fullAddress,
     draft.note,
     draft.selectedPaymentMethod,
@@ -632,7 +626,6 @@ export function CheckoutForm() {
   function applyAddressToDraft(addr: UserAddress) {
     let addrDivisionId = addr.divisionId || ""
     let addrDistrictId = addr.districtId || ""
-    let addrUpazilaId = addr.upazilaId || ""
 
     // Fallback: resolve ID from name for legacy addresses that lack IDs
     if (!addrDivisionId && (addr.divisionName || addr.city)) {
@@ -640,9 +633,6 @@ export function CheckoutForm() {
     }
     if (!addrDistrictId && (addr.districtName || addr.city)) {
       addrDistrictId = resolveIdByName(districts, addr.districtName || addr.city)
-    }
-    if (!addrUpazilaId && addr.upazilaName) {
-      addrUpazilaId = resolveIdByName(upazilas, addr.upazilaName)
     }
 
     const resolvedDivisionName = addrDivisionId
@@ -653,10 +643,6 @@ export function CheckoutForm() {
       ? (districts.find((d) => d.id === addrDistrictId)?.name ?? addr.districtName ?? addr.city)
       : addr.districtName || addr.city
 
-    const resolvedUpazilaName = addrUpazilaId
-      ? (upazilas.find((u) => u.id === addrUpazilaId)?.name ?? addr.upazilaName ?? "")
-      : addr.upazilaName || ""
-
     updateFields({
       name: addr.recipientName,
       phone: getLocalFromSaved(addr.phone),
@@ -664,14 +650,12 @@ export function CheckoutForm() {
       divisionName: resolvedDivisionName,
       districtId: addrDistrictId,
       districtName: resolvedDistrictName,
-      upazilaId: addrUpazilaId,
-      upazilaName: resolvedUpazilaName,
+      upazilaName: addr.upazilaName || "",
       fullAddress: addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ""),
       selectedDeliveryZone: addr.zone as DeliveryZone,
     })
     setDeliveryZone(addr.zone as DeliveryZone)
     if (addrDivisionId) setDistricts(getDistrictsByDivision(addrDivisionId))
-    if (addrDistrictId) setUpazilas(getUpazilasByDistrict(addrDistrictId))
   }
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
@@ -712,8 +696,8 @@ export function CheckoutForm() {
       }
       case 1: {
         if (!draft.divisionId) errors.push("Division is required")
-        if (!draft.districtId) errors.push("District is required")
-        if (!draft.upazilaId) errors.push("Upazila / Thana is required")
+        if (!draft.districtName.trim()) errors.push("District is required")
+        if (!draft.upazilaName.trim()) errors.push("Thana / Upazila is required")
         if (!draft.fullAddress.trim()) errors.push("Full address is required")
         break
       }
@@ -969,10 +953,10 @@ export function CheckoutForm() {
         phone: e164Phone,
         divisionId: draft.divisionId,
         divisionName: draft.divisionName,
-        districtId: draft.districtId,
+        districtId: draft.districtId || null,
         districtName: draft.districtName,
-        upazilaId: draft.upazilaId,
         upazilaName: draft.upazilaName,
+        areaName: draft.areaName,
         fullAddress: draft.fullAddress,
         notes: draft.note,
         paymentMethod,
@@ -1029,7 +1013,6 @@ export function CheckoutForm() {
               postalCode: "",
               divisionId: draft.divisionId || null,
               districtId: draft.districtId || null,
-              upazilaId: draft.upazilaId || null,
               divisionName: draft.divisionName || null,
               districtName: draft.districtName || null,
               upazilaName: draft.upazilaName || null,
@@ -1475,11 +1458,10 @@ export function CheckoutForm() {
                               divisionName: div.name,
                               districtId: "",
                               districtName: "",
-                              upazilaId: "",
                               upazilaName: "",
+                              areaName: "",
                             })
                             setDistricts(getDistrictsByDivision(v))
-                            setUpazilas([])
                             setSelectedAddressId(null)
                           }
                         }}
@@ -1490,46 +1472,39 @@ export function CheckoutForm() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="district">District</Label>
-                      <AddressCombobox
+                      <DistrictCombobox
                         options={districts}
-                        value={draft.districtId}
-                        onChange={(v) => {
-                          if (!v) return
-                          const dist = districts.find((d) => d.id === v)
-                          if (dist) {
-                            updateFields({
-                              districtId: dist.id,
-                              districtName: dist.name,
-                              upazilaId: "",
-                              upazilaName: "",
-                            })
-                            setUpazilas(getUpazilasByDistrict(v))
-                            setSelectedAddressId(null)
-                          }
+                        value={{ districtId: draft.districtId, districtName: draft.districtName }}
+                        onChange={(val) => {
+                          updateFields({
+                            districtId: val.districtId || "",
+                            districtName: val.districtName,
+                            upazilaName: "",
+                          })
+                          setSelectedAddressId(null)
                         }}
-                        placeholder={draft.divisionId ? "Select district" : "Select division first"}
+                        placeholder={draft.divisionId ? "Search district..." : "Select division first"}
                         disabled={!draft.divisionId}
                         className="h-11 rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="upazila">Upazila / Thana</Label>
-                      <AddressCombobox
-                        options={upazilas}
-                        value={draft.upazilaId}
-                        onChange={(v) => {
-                          if (!v) return
-                          const upa = upazilas.find((u) => u.id === v)
-                          if (upa) {
-                            updateFields({
-                              upazilaId: upa.id,
-                              upazilaName: upa.name,
-                            })
-                            setSelectedAddressId(null)
-                          }
-                        }}
-                        placeholder={draft.districtId ? "Select upazila/thana" : "Select district first"}
-                        disabled={!draft.districtId}
+                      <Label htmlFor="upazila">Thana / Upazila</Label>
+                      <Input
+                        id="upazila"
+                        value={draft.upazilaName}
+                        onChange={(e) => { updateField("upazilaName", e.target.value); setSelectedAddressId(null) }}
+                        placeholder="e.g. Halishahar, Raozan, Mirpur"
+                        className="h-11 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="area">Area / Locality</Label>
+                      <Input
+                        id="area"
+                        value={draft.areaName}
+                        onChange={(e) => { updateField("areaName", e.target.value); setSelectedAddressId(null) }}
+                        placeholder="e.g. Agrabad, GEC Circle, Mohammadpur"
                         className="h-11 rounded-xl"
                       />
                     </div>
@@ -1819,7 +1794,10 @@ export function CheckoutForm() {
                         </button>
                       </div>
                       <p className="text-sm">{draft.fullAddress}</p>
-                      <p className="text-sm">{draft.upazilaName}, {draft.districtName}, Bangladesh</p>
+                      <p className="text-sm">
+                        {[draft.areaName, draft.upazilaName, draft.districtName].filter(Boolean).join(", ")}
+                        {draft.divisionName ? `, ${draft.divisionName}` : ""}, Bangladesh
+                      </p>
                       <p className="text-sm">{DELIVERY_ZONE_NAMES[deliveryZone as keyof typeof DELIVERY_ZONE_NAMES] || deliveryZone}</p>
                       {draft.note && <p className="text-sm text-muted-foreground italic">Note: {draft.note}</p>}
                     </div>

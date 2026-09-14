@@ -10,9 +10,9 @@ import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/mailer
 import {
   getDivisionById,
   getDistrictById,
-  getUpazilaById,
 } from "@/lib/bangladesh-address"
 import { getPhoneServerValue } from "@/lib/utils"
+import type { DeliveryZone } from "@/types"
 import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
 import { isCheckoutVerificationTokenValid } from "@/lib/checkout/otp.service"
 import { generateSuccessToken } from "@/lib/checkout/success-token"
@@ -45,16 +45,13 @@ export async function POST(request: NextRequest) {
     const division = getDivisionById(customer.divisionId)
     if (!division) return error("Invalid division selected")
 
-    const district = getDistrictById(customer.districtId)
-    if (!district) return error("Invalid district selected")
-    if (district.divisionId !== customer.divisionId) {
-      return error("District does not belong to the selected division")
-    }
-
-    const upazila = getUpazilaById(customer.upazilaId)
-    if (!upazila) return error("Invalid upazila/thana selected")
-    if (upazila.districtId !== customer.districtId) {
-      return error("Upazila/thana does not belong to the selected district")
+    // districtId is optional for custom districts
+    if (customer.districtId) {
+      const district = getDistrictById(customer.districtId)
+      if (!district) return error("Invalid district selected")
+      if (district.divisionId !== customer.divisionId) {
+        return error("District does not belong to the selected division")
+      }
     }
 
     if (userId) {
@@ -67,7 +64,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { zone: deliveryZone, fee: deliveryFee } = await getDeliveryFeeByDistrict(customer.districtId)
+    const { zone: deliveryZone, fee: deliveryFee } = customer.districtId
+      ? await getDeliveryFeeByDistrict(customer.districtId)
+      : { zone: "outside" as DeliveryZone, fee: 100 }
     const orderNumber = await generateOrderNumber()
 
     const productIds = [...new Set(items.map((i) => i.productId))]
@@ -368,7 +367,7 @@ export async function POST(request: NextRequest) {
               division: customer.divisionName,
               district: customer.districtName,
               thana: customer.upazilaName,
-              fullAddress: customer.fullAddress,
+              fullAddress: [customer.areaName, customer.fullAddress].filter(Boolean).join(", "),
               phone: customerPhone,
             },
           },

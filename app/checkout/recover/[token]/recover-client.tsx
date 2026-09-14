@@ -24,8 +24,8 @@ type RecoveryResponse = {
       divisionName?: string
       districtId?: string
       districtName?: string
-      upazilaId?: string
       upazilaName?: string
+      areaName?: string
       address?: string
       notes?: string
       deliveryZone?: string
@@ -84,8 +84,8 @@ export function RecoverCheckoutClient({ token }: { token: string }) {
                 divisionName: checkoutData.address.divisionName ?? "",
                 districtId: checkoutData.address.districtId ?? "",
                 districtName: checkoutData.address.districtName ?? "",
-                upazilaId: checkoutData.address.upazilaId ?? "",
                 upazilaName: checkoutData.address.upazilaName ?? "",
+                areaName: checkoutData.address.areaName ?? "",
                 address: checkoutData.address.address ?? "",
                 notes: checkoutData.address.notes ?? "",
                 deliveryZone: checkoutData.address.deliveryZone ?? ("dhaka" satisfies DeliveryZone),

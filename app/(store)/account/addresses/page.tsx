@@ -34,9 +34,10 @@ import {
 import type { UserAddress, AddressLabel } from "@/types"
 import { ADDRESS_LABELS } from "@/types"
 import { getPhoneDisplayE164, getPhoneInputValue, normalizePhoneToLocal } from "@/lib/utils"
-import { getDivisions, getDistrictsByDivision, getUpazilasByDistrict } from "@/lib/bangladesh-address"
-import type { Division, District, Upazila } from "@/lib/bangladesh-address"
+import { getDivisions, getDistrictsByDivision } from "@/lib/bangladesh-address"
+import type { Division, District } from "@/lib/bangladesh-address"
 import { AddressCombobox } from "@/components/store/address-combobox"
+import { DistrictCombobox, type DistrictValue } from "@/components/store/district-combobox"
 
 const LABEL_ICONS: Record<AddressLabel, typeof Home> = {
   Home,
@@ -70,7 +71,6 @@ type FormData = {
   postalCode: string
   divisionId: string
   districtId: string
-  upazilaId: string
   divisionName: string
   districtName: string
   upazilaName: string
@@ -88,7 +88,6 @@ const emptyForm: FormData = {
   postalCode: "",
   divisionId: "",
   districtId: "",
-  upazilaId: "",
   divisionName: "",
   districtName: "",
   upazilaName: "",
@@ -105,7 +104,6 @@ export default function AccountAddressesPage() {
   const [errors, setErrors] = useState<string[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [districts, setDistricts] = useState<District[]>([])
-  const [upazilas, setUpazilas] = useState<Upazila[]>([])
   const divisions = getDivisions()
 
   const fetchAddresses = useCallback(async () => {
@@ -128,7 +126,6 @@ export default function AccountAddressesPage() {
     setEditingId(null)
     setForm(emptyForm)
     setDistricts([])
-    setUpazilas([])
     setErrors([])
     setDialogOpen(true)
   }
@@ -146,7 +143,6 @@ export default function AccountAddressesPage() {
       postalCode: addr.postalCode || "",
       divisionId: addr.divisionId || "",
       districtId: addr.districtId || "",
-      upazilaId: addr.upazilaId || "",
       divisionName: addr.divisionName || "",
       districtName: addr.districtName || "",
       upazilaName: addr.upazilaName || "",
@@ -154,9 +150,6 @@ export default function AccountAddressesPage() {
     })
     if (addr.divisionId) {
       setDistricts(getDistrictsByDivision(addr.divisionId))
-    }
-    if (addr.districtId) {
-      setUpazilas(getUpazilasByDistrict(addr.districtId))
     }
     setErrors([])
     setDialogOpen(true)
@@ -189,7 +182,6 @@ export default function AccountAddressesPage() {
         phone: normalizePhoneToLocal(form.phone),
         divisionId: form.divisionId || null,
         districtId: form.districtId || null,
-        upazilaId: form.upazilaId || null,
         divisionName: form.divisionName || null,
         districtName: form.districtName || null,
         upazilaName: form.upazilaName || null,
@@ -253,7 +245,6 @@ export default function AccountAddressesPage() {
           postalCode: addr.postalCode || "",
           divisionId: addr.divisionId || null,
           districtId: addr.districtId || null,
-          upazilaId: addr.upazilaId || null,
           divisionName: addr.divisionName || null,
           districtName: addr.districtName || null,
           upazilaName: addr.upazilaName || null,
@@ -487,12 +478,10 @@ export default function AccountAddressesPage() {
                         divisionName: div.name,
                         districtId: "",
                         districtName: "",
-                        upazilaId: "",
                         upazilaName: "",
                         city: div.name,
                       })
                       setDistricts(getDistrictsByDivision(v))
-                      setUpazilas([])
                     }
                   }}
                   placeholder="Select division"
@@ -501,25 +490,19 @@ export default function AccountAddressesPage() {
               </div>
               <div className="space-y-2">
                 <Label>District</Label>
-                <AddressCombobox
+                <DistrictCombobox
                   options={districts}
-                  value={form.districtId}
-                  onChange={(v) => {
-                    if (!v) return
-                    const dist = districts.find((d) => d.id === v)
-                    if (dist) {
-                      setForm({
-                        ...form,
-                        districtId: dist.id,
-                        districtName: dist.name,
-                        upazilaId: "",
-                        upazilaName: "",
-                        city: dist.name,
-                      })
-                      setUpazilas(getUpazilasByDistrict(v))
-                    }
+                  value={{ districtId: form.districtId, districtName: form.districtName }}
+                  onChange={(val) => {
+                    setForm({
+                      ...form,
+                      districtId: val.districtId || "",
+                      districtName: val.districtName,
+                      upazilaName: "",
+                      city: val.districtName || form.city,
+                    })
                   }}
-                  placeholder={form.divisionId ? "Select district" : "Select division first"}
+                  placeholder={form.divisionId ? "Search district..." : "Select division first"}
                   disabled={!form.divisionId}
                   className=""
                 />
@@ -527,24 +510,13 @@ export default function AccountAddressesPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Upazila / Thana</Label>
-                <AddressCombobox
-                  options={upazilas}
-                  value={form.upazilaId}
-                  onChange={(v) => {
-                    if (!v) return
-                    const upa = upazilas.find((u) => u.id === v)
-                    if (upa) {
-                      setForm({
-                        ...form,
-                        upazilaId: upa.id,
-                        upazilaName: upa.name,
-                      })
-                    }
-                  }}
-                  placeholder={form.districtId ? "Select upazila/thana" : "Select district first"}
-                  disabled={!form.districtId}
-                  className=""
+                <Label htmlFor="upazilaName">Thana / Upazila</Label>
+                <Input
+                  id="upazilaName"
+                  value={form.upazilaName}
+                  onChange={(e) => setForm({ ...form, upazilaName: e.target.value })}
+                  placeholder="e.g. Halishahar, Raozan, Mirpur"
+                  className="h-11 rounded-xl"
                 />
               </div>
               <div className="space-y-2">
