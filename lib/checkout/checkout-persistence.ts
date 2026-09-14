@@ -18,8 +18,8 @@ export interface CheckoutPersistenceData {
     divisionName: string
     districtId: string
     districtName: string
-    upazilaId: string
     upazilaName: string
+    areaName: string
     address: string
     notes: string
     deliveryZone: string
