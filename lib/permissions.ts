@@ -48,6 +48,7 @@ export type PermissionGroup =
   | "operations"
   | "import_export"
   | "short_links"
+  | "landing_pages"
 
 export const PERMISSION_GROUPS: PermissionGroup[] = [
   "dashboard",
@@ -63,6 +64,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   "operations",
   "import_export",
   "short_links",
+  "landing_pages",
 ]
 
 export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
@@ -80,6 +82,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
     "operations",
     "import_export",
     "short_links",
+    "landing_pages",
   ],
   admin: [
     "dashboard",
@@ -95,6 +98,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
     "operations",
     "import_export",
     "short_links",
+    "landing_pages",
   ],
   manager: [
     "dashboard",
@@ -117,6 +121,7 @@ export const ROLE_PERMISSIONS: Record<string, PermissionGroup[]> = {
     "cms",
     "careers",
     "short_links",
+    "landing_pages",
   ],
   support_agent: [
     "dashboard",

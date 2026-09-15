@@ -16,6 +16,7 @@ const FOLDER_MAP: Record<string, string> = {
   stories: "doshok/stories",
   promo: "doshok/homepage",
   seo: "doshok/products",
+  "landing-pages": "doshok/landing-pages",
 }
 
 const FOLDER_PERMISSIONS: Record<string, PermissionGroup> = {
@@ -27,6 +28,7 @@ const FOLDER_PERMISSIONS: Record<string, PermissionGroup> = {
   stories: "cms",
   promo: "cms",
   branding: "settings",
+  "landing-pages": "landing_pages",
 }
 
 export async function POST(request: NextRequest) {

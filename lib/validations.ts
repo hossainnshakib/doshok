@@ -322,3 +322,134 @@ export const shortLinkSchema = z.object({
   },
   { message: "Internal URLs must start with / and external URLs must start with http:// or https://" },
 )
+
+export const LANDING_PAGE_SLUGS_RESERVED = ["admin", "api", "account", "auth", "checkout", "cart", "products", "stories", "p", "go", "feed", "order", "search", "track-order", "l"]
+
+export const landingPageCreateSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens only")
+    .refine((val) => !LANDING_PAGE_SLUGS_RESERVED.includes(val), "This slug is reserved"),
+  creationMode: z.enum(["existing_product", "custom"]).default("existing_product"),
+  sourceProductId: z.string().optional(),
+  seoTitle: z.string().max(200).optional().or(z.literal("")),
+  seoDescription: z.string().max(500).optional().or(z.literal("")),
+  ogTitle: z.string().max(200).optional().or(z.literal("")),
+  ogDescription: z.string().max(500).optional().or(z.literal("")),
+  ogImage: z.string().optional().or(z.literal("")),
+  canonicalUrl: z.string().optional().or(z.literal("")),
+})
+
+export const landingPageUpdateSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  slug: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens only")
+    .refine((val) => !LANDING_PAGE_SLUGS_RESERVED.includes(val), "This slug is reserved")
+    .optional(),
+  status: z.enum(["draft", "published", "archived"]).optional(),
+  template: z.string().optional(),
+  seoTitle: z.string().max(200).optional().or(z.literal("")),
+  seoDescription: z.string().max(500).optional().or(z.literal("")),
+  ogTitle: z.string().max(200).optional().or(z.literal("")),
+  ogDescription: z.string().max(500).optional().or(z.literal("")),
+  ogImage: z.string().optional().or(z.literal("")),
+  canonicalUrl: z.string().optional().or(z.literal("")),
+  robotsIndex: z.boolean().optional(),
+  robotsFollow: z.boolean().optional(),
+})
+
+export const landingPageProductSchema = z.object({
+  productId: z.string().min(1),
+  sortOrder: z.number().int().default(0),
+  displayTitle: z.string().trim().max(160).optional().or(z.literal("")),
+  displayDescription: z.string().trim().max(1000).optional().or(z.literal("")),
+  displayImage: z.string().trim().max(2000).optional().or(z.literal("")),
+  ctaLabel: z.string().trim().max(40).optional().or(z.literal("")),
+  overridePrice: z.number().int().positive().optional(),
+})
+
+export const landingPageProductUpdateSchema = z.object({
+  displayTitle: z.string().trim().max(160).optional().or(z.literal("")),
+  displayDescription: z.string().trim().max(1000).optional().or(z.literal("")),
+  displayImage: z.string().trim().max(2000).optional().or(z.literal("")),
+  ctaLabel: z.string().trim().max(40).optional().or(z.literal("")),
+  sortOrder: z.number().int().nonnegative().optional(),
+}).refine(
+  (data) => Object.values(data).some((v) => v !== undefined),
+  { message: "At least one field is required" }
+)
+
+export const landingPageReorderSchema = z.object({
+  orderedIds: z.array(z.string().min(1)).min(1),
+})
+
+export const MAX_OFFER_QUANTITY = 20
+export const MAX_OFFER_ITEMS = 10
+
+const landingPageOfferItemSchema = z.object({
+  landingPageProductId: z.string().min(1, "Product is required"),
+  quantity: z.number().int().min(1, "Quantity must be at least 1").max(MAX_OFFER_QUANTITY, `Quantity cannot exceed ${MAX_OFFER_QUANTITY}`),
+})
+
+export const landingPageOfferCreateSchema = z.object({
+  name: z.string().trim().min(1, "Offer name is required").max(120),
+  badge: z.string().trim().max(40).optional().or(z.literal("")),
+  pricingType: z.enum(["FIXED"]).default("FIXED"),
+  offerPrice: z.number().int().min(1, "Offer price must be a positive amount"),
+  enabled: z.boolean().optional().default(true),
+  items: z.array(landingPageOfferItemSchema).min(1, "An offer needs at least one item").max(MAX_OFFER_ITEMS),
+})
+
+export const landingPageOfferUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  badge: z.string().trim().max(40).optional().or(z.literal("")),
+  offerPrice: z.number().int().min(1, "Offer price must be a positive amount").optional(),
+  enabled: z.boolean().optional(),
+  items: z.array(landingPageOfferItemSchema).min(1, "An offer needs at least one item").max(MAX_OFFER_ITEMS).optional(),
+}).refine(
+  (data) => Object.values(data).some((v) => v !== undefined),
+  { message: "At least one field is required" }
+)
+
+const landingCheckoutSelectionSchema = z.object({
+  landingPageProductId: z.string().min(1),
+  unitIndex: z.number().int().nonnegative(),
+  variantId: z.string().min(1),
+})
+
+export const landingCheckoutSchema = z.object({
+  offerId: z.string().min(1, "Offer is required"),
+  selections: z.array(landingCheckoutSelectionSchema).min(1, "Variant selection is required").max(100),
+  customer: z.object({
+    name: z.string().trim().min(1, "Name is required").max(100),
+    email: z.string().trim().email("Valid email is required").max(255).optional().or(z.literal("")),
+    phone: z.string().regex(/^\+8801[3-9]\d{8}$/, "Enter a valid Bangladeshi mobile number (+8801XXXXXXXXX)."),
+  }),
+  address: z.object({
+    divisionId: z.string().min(1, "Division is required"),
+    districtId: z.string().optional().nullable(),
+    districtName: z.string().trim().min(1, "District is required").max(100),
+    upazilaName: z.string().trim().min(1, "Thana / Upazila is required").max(100),
+    areaName: z.string().trim().max(100).optional().or(z.literal("")).default(""),
+    fullAddress: z.string().trim().min(1, "Full address is required").max(500),
+  }),
+  note: z.string().trim().max(500).optional().or(z.literal("")),
+  paymentMethod: z.enum(["cod"]).optional().default("cod"),
+  idempotencyKey: z.string().max(128).optional(),
+  checkoutVerificationToken: z.string().optional(),
+  // Client-visible amounts echoed back for staleness detection only.
+  // Server values always win; mismatches are rejected, never trusted.
+  priceFingerprint: z.object({
+    offerPrice: z.number().int(),
+    total: z.number().int(),
+  }).optional(),
+})
+
+export const landingCheckoutQuoteSchema = z.object({
+  offerId: z.string().min(1, "Offer is required"),
+  districtId: z.string().optional().nullable(),
+})

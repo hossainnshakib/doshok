@@ -26,6 +26,19 @@ export function rateLimitByIp(
   return rateLimitByKey(key, maxRequests, windowMs)
 }
 
+// Per-route scope variant: different endpoints must not share one budget.
+// Existing callers of rateLimitByIp are intentionally left untouched.
+export function rateLimitByIpFor(
+  request: Request,
+  scope: string,
+  maxRequests: number,
+  windowMs: number,
+): { limited: boolean; remaining: number } {
+  const forwarded = request.headers.get("x-forwarded-for")
+  const ip = forwarded?.split(",")[0]?.trim() ?? "127.0.0.1"
+  return rateLimitByKey(`rl:${scope}:${ip}`, maxRequests, windowMs)
+}
+
 export function rateLimitByKey(
   key: string,
   maxRequests: number,

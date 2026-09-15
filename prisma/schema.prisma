@@ -148,6 +148,8 @@ model Product {
 
   relatedProducts    ProductRelation[] @relation("ProductRelations")
   targetRelations    ProductRelation[] @relation("ProductTargets")
+  landingPages       LandingPage[]     @relation("LandingPageSource")
+  landingPageProducts LandingPageProduct[]
 }
 
 model ProductSpecification {
@@ -296,10 +298,16 @@ model Order {
   refundTrxId    String?
   transactions   PaymentTransaction[]
   reviews       ProductReview[]
+  landingPageId  String?
+  landingPage    LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: SetNull)
+  landingPageOfferId String?
+  landingPageOffer   LandingPageOffer? @relation(fields: [landingPageOfferId], references: [id], onDelete: SetNull)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   @@index([userId])
+  @@index([landingPageId])
+  @@index([landingPageOfferId])
 }
 
 model OrderItem {
@@ -849,6 +857,117 @@ model CourierToken {
   @@unique([providerCode, environment])
   @@index([providerCode])
   @@index([environment])
+}
+
+model LandingPage {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  status          String   @default("draft") // draft | published | archived
+  creationMode    String   @default("existing_product") // existing_product | custom
+
+  sourceProductId String?
+  sourceProduct   Product? @relation("LandingPageSource", fields: [sourceProductId], references: [id], onDelete: SetNull)
+
+  template        String?
+
+  seoTitle        String?
+  seoDescription  String?
+  canonicalUrl    String?
+  ogTitle         String?
+  ogDescription   String?
+  ogImage         String?
+  robotsIndex     Boolean  @default(false)
+  robotsFollow    Boolean  @default(true)
+
+  publishedAt     DateTime?
+  archivedAt      DateTime?
+
+  products        LandingPageProduct[]
+  sections        LandingPageSection[]
+  offers          LandingPageOffer[]
+  orders          Order[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([sourceProductId])
+  @@index([createdAt])
+}
+
+model LandingPageProduct {
+  id               String      @id @default(cuid())
+  landingPageId    String
+  landingPage      LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder        Int         @default(0)
+
+  displayTitle     String?
+  displayDescription String?
+  displayImage     String?
+  ctaLabel         String?
+
+  overridePrice    Int?
+  offerItems       LandingPageOfferItem[]
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@unique([landingPageId, productId])
+  @@index([landingPageId])
+  @@index([productId])
+}
+
+model LandingPageOffer {
+  id            String   @id @default(cuid())
+  landingPageId String
+  landingPage   LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  name          String
+  badge         String?
+  pricingType   String   @default("FIXED") // FIXED only in V1: final fixed offerPrice
+  offerPrice    Int
+  enabled       Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  items         LandingPageOfferItem[]
+  orders        Order[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([landingPageId])
+  @@index([enabled])
+}
+
+model LandingPageOfferItem {
+  id                   String   @id @default(cuid())
+  offerId              String
+  offer                LandingPageOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  landingPageProductId String
+  landingPageProduct   LandingPageProduct @relation(fields: [landingPageProductId], references: [id], onDelete: Cascade)
+  quantity             Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([offerId, landingPageProductId])
+  @@index([offerId])
+  @@index([landingPageProductId])
+}
+
+model LandingPageSection {
+  id            String      @id @default(cuid())
+  landingPageId String
+  landingPage   LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  type          String      // HERO | BENEFITS | PRODUCTS | OFFERS | GALLERY | REVIEWS | FAQ | CHECKOUT
+  enabled       Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  content       Json        @default("{}")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([landingPageId])
+  @@index([type])
 }
 
 model CourierLog {

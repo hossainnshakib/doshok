@@ -37,6 +37,7 @@ import {
   Shield,
   Layers,
   Truck,
+  Megaphone,
 } from "lucide-react"
 import { canAccessSection, hasSettingsAccess } from "@/lib/permissions"
 import type { PermissionGroup } from "@/lib/permissions"
@@ -131,6 +132,13 @@ const navGroups: NavGroup[] = [
       { href: "/admin/cms/stories", label: "Stories", icon: BookOpen },
       { href: "/admin/cms/story-categories", label: "Story Categories", icon: Layers },
       { href: "/admin/cms/short-links", label: "Short Links", icon: ExternalLink, permission: "short_links" },
+    ],
+  },
+  {
+    label: "Landing Pages",
+    permission: "landing_pages",
+    items: [
+      { href: "/admin/landing-pages", label: "Landing Pages", icon: Megaphone },
     ],
   },
   {

@@ -16,6 +16,7 @@ import type { DeliveryZone } from "@/types"
 import { applyScopedCoupon } from "@/lib/checkout/coupon-engine.service"
 import { isCheckoutVerificationTokenValid } from "@/lib/checkout/otp.service"
 import { generateSuccessToken } from "@/lib/checkout/success-token"
+import { createCommerceOrder } from "@/lib/checkout/order-creation"
 import crypto from "crypto"
 
 export async function POST(request: NextRequest) {
@@ -207,7 +208,6 @@ export async function POST(request: NextRequest) {
       return error("Only Cash on Delivery is available at this time.")
     }
     const normalizedPaymentMethod = "cod"
-
     // Backend COD guard: reject COD if disabled in PaymentMethodSetting
     if (paymentMethod && paymentMethod.toLowerCase() === "cod") {
       const codSetting = await prisma.paymentMethodSetting.findUnique({
@@ -218,9 +218,6 @@ export async function POST(request: NextRequest) {
         return error("Cash on Delivery is currently unavailable. Please contact support.")
       }
     }
-
-    let otpVerified = false
-    let otpVerifiedAtValue: Date | null = null
 
     if (isV2 && otpRequired) {
       if (!checkoutVerificationToken) {
@@ -249,198 +246,61 @@ export async function POST(request: NextRequest) {
 
     let reusedExistingOrder = false
 
-    const order = await prisma.$transaction(async (tx) => {
-      if (resolvedIdempotencyKey) {
-        const existingOrder = await tx.order.findUnique({
-          where: { idempotencyKey: resolvedIdempotencyKey },
-          include: { items: true, address: true },
-        })
-        if (existingOrder) {
-          reusedExistingOrder = true
-          return existingOrder
-        }
-      }
-
-      if (isV2 && otpRequired) {
-        const result = await tx.phoneOtpVerification.updateMany({
-          where: {
-            checkoutToken: checkoutVerificationToken,
-            checkoutTokenUsedAt: null,
-            checkoutTokenExpiresAt: { gt: new Date() },
-            phone: customerPhone,
-          },
-          data: {
-            checkoutTokenUsedAt: new Date(),
-          },
-        })
-
-        if (result.count !== 1) {
-          const record = await tx.phoneOtpVerification.findUnique({
-            where: { checkoutToken: checkoutVerificationToken },
-          })
-          if (!record) throw new Error("Invalid verification token.")
-          if (record.phone !== customerPhone) throw new Error("Verification token does not match the provided phone number.")
-          if (!record.checkoutTokenExpiresAt || new Date() > record.checkoutTokenExpiresAt) {
-            throw new Error("Verification token has expired.")
-          }
-          throw new Error("Verification token has already been used.")
-        }
-
-        otpVerified = true
-        otpVerifiedAtValue = new Date()
-      }
-
-      for (const item of validatedItems) {
-        if (item.variant) {
-          const result = await tx.$executeRaw`
-            UPDATE "ProductVariant"
-            SET "reservedStock" = "reservedStock" + ${item.quantity}
-            WHERE id = ${item.variant.id}
-              AND "productId" = ${item.product.id}
-              AND ("stock" - "reservedStock") >= ${item.quantity}
-          `
-          if (result === 0) {
-            const variant = await tx.productVariant.findUnique({ where: { id: item.variant.id } })
-            const availableStock = variant ? Math.max(0, variant.stock - variant.reservedStock) : 0
-            throw new Error(
-              `Insufficient stock for "${item.product.name}". Available: ${availableStock}, requested: ${item.quantity}`
-            )
-          }
-        }
-      }
-
-      if (couponCode && discount > 0) {
-        const coupon = await tx.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
-        if (!coupon) throw new Error("Coupon not found")
-        if (!coupon.active) throw new Error("Coupon is inactive")
-        if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) throw new Error("Coupon has expired")
-
-        if (coupon.maxUses !== null) {
-          const result = await tx.coupon.updateMany({
-            where: { code: couponCode.toUpperCase(), usedCount: { lt: coupon.maxUses } },
-            data: { usedCount: { increment: 1 } },
-          })
-          if (result.count === 0) throw new Error("This coupon has reached its maximum usage limit")
-        } else {
-          await tx.coupon.update({
-            where: { code: couponCode.toUpperCase() },
-            data: { usedCount: { increment: 1 } },
-          })
-        }
-      }
-
-      const createdOrder = await tx.order.create({
-        data: {
-          orderNumber,
-          userId,
-          customerName: customer.name,
-          customerEmail: customer.email || "",
-          customerPhone: customerPhone,
-          subtotal,
-          deliveryFee,
-          discount,
-          total,
-          paidAmount: 0,
-          paymentMethod: normalizedPaymentMethod,
-          paymentStatus: "pending",
-          orderStatus: "pending",
-          couponCode: couponCode || null,
-          couponType: couponScope,
-          productSubtotal: subtotal,
-          productDiscount,
-          deliveryDiscount,
-          discountedProductTotal,
-          finalDeliveryFee: finalDeliveryFeeCalc,
-          payNow: paymentResult.payNow,
-          dueAmount: paymentResult.dueAmount,
-          paymentRule: paymentResult.paymentRule,
-          paymentRuleValue: paymentResult.paymentRuleValue,
-          paymentRuleSource: paymentResult.source,
-          notes: notes || null,
-          idempotencyKey: resolvedIdempotencyKey,
-          reservationExpiresAt,
-          otpVerified,
-          otpVerifiedAt: otpVerifiedAtValue,
-          ...(isV2 && paymentResult.payNow > 0 ? { paymentExpiresAt: reservationExpiresAt } : {}),
-          address: {
-            create: {
-              division: customer.divisionName,
-              district: customer.districtName,
-              thana: customer.upazilaName,
-              fullAddress: [customer.areaName, customer.fullAddress].filter(Boolean).join(", "),
-              phone: customerPhone,
-            },
-          },
-          items: {
-            create: validatedItems.map((item) => {
-              return {
-                productId: item.product.id,
-                variantId: item.variant?.id ?? null,
-                name: item.product.name,
-                size: item.variant?.size ?? null,
-                color: item.variant?.color ?? null,
-                quantity: item.quantity,
-                price: item.price,
-              }
-            }),
-          },
-        },
-        include: { items: true, address: true },
-      })
-
-if (couponCode && discount > 0) {
-          const coupon = await tx.coupon.findUnique({ where: { code: couponCode.toUpperCase() } })
-          if (coupon) {
-            const customerKey = userId ?? customer.email ?? ""
-            if (coupon.maxUsesPerCustomer) {
-              const usageCount = await tx.couponUsage.count({
-                where: {
-                  couponId: coupon.id,
-                  customerKey,
-                },
-              })
-              if (usageCount >= coupon.maxUsesPerCustomer) {
-                throw new Error(`You have already used this coupon ${coupon.maxUsesPerCustomer} time(s)`)
-              }
-            }
-
-            await tx.couponUsage.create({
-              data: {
-                couponId: coupon.id,
-                userId,
-                email: customer.email || "",
-                customerKey,
-                orderId: createdOrder.id,
-              },
-            })
-          }
-        }
-
-        for (const item of validatedItems) {
-          if (item.variant) {
-            const variant = await tx.productVariant.findUnique({ where: { id: item.variant.id } })
-            if (variant) {
-              await tx.stockMovement.create({
-                data: {
-                  productId: item.product.id,
-                  variantId: item.variant.id,
-                  orderId: createdOrder.id,
-                  orderItemId: createdOrder.items.find(oi => oi.variantId === item.variant?.id)?.id,
-                  type: "order_reserved",
-                  quantity: item.quantity,
-                  beforeStock: variant.stock,
-                  afterStock: variant.stock,
-                  beforeReserved: variant.reservedStock - item.quantity,
-                  afterReserved: variant.reservedStock,
-                  reason: "Order created",
-                },
-              })
-            }
-          }
-        }
-
-        return createdOrder
+    // Trusted commerce core shared with landing-page checkout. All inputs
+    // below are validated/server-derived above — nothing comes from the
+    // client at this point except identifiers and customer data.
+    const { order, reusedExistingOrder: reused } = await createCommerceOrder({
+      orderNumber,
+      customer: {
+        userId,
+        name: customer.name,
+        email: customer.email,
+        phone: customerPhone,
+        divisionName: customer.divisionName,
+        districtName: customer.districtName,
+        upazilaName: customer.upazilaName,
+        areaName: customer.areaName,
+        fullAddress: customer.fullAddress,
+        notes: notes || null,
+      },
+      lines: validatedItems.map((item) => ({
+        productId: item.product.id,
+        variantId: item.variant?.id ?? null,
+        name: item.product.name,
+        size: item.variant?.size ?? null,
+        color: item.variant?.color ?? null,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      pricing: {
+        subtotal,
+        deliveryFee,
+        discount,
+        productSubtotal: subtotal,
+        productDiscount,
+        deliveryDiscount,
+        discountedProductTotal,
+        finalDeliveryFee: finalDeliveryFeeCalc,
+        total,
+        payNow: paymentResult.payNow,
+        dueAmount: paymentResult.dueAmount,
+        paymentRule: paymentResult.paymentRule,
+        paymentRuleValue: paymentResult.paymentRuleValue,
+        paymentRuleSource: paymentResult.source,
+      },
+      paymentMethod: normalizedPaymentMethod,
+      couponCode: couponCode || null,
+      couponScope,
+      idempotencyKey: resolvedIdempotencyKey,
+      reservationExpiresAt,
+      paymentExpiresAt: isV2 && paymentResult.payNow > 0 ? reservationExpiresAt : null,
+      otpVerified: false,
+      otpVerifiedAt: null,
+      otpConsume: isV2 && otpRequired && checkoutVerificationToken
+        ? { token: checkoutVerificationToken, phone: customerPhone }
+        : null,
     })
+    reusedExistingOrder = reused
 
     const paymentInitData: { paymentId?: string; paymentUrl?: string } | null = null
 

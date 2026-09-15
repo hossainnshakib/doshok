@@ -39,6 +39,8 @@ export default async function AdminOrderDetailPage({
       transactions: {
         orderBy: { verifiedAt: "desc" },
       },
+      landingPage: { select: { id: true, title: true, slug: true } },
+      landingPageOffer: { select: { id: true, name: true } },
     },
   })
 
@@ -221,6 +223,31 @@ export default async function AdminOrderDetailPage({
           </div>
         </AdminSectionCard>
       </div>
+
+      {(order.landingPage || order.landingPageOffer) && (
+        <AdminSectionCard title="Landing Source" description="Campaign attribution for this order.">
+          <div className="space-y-2 text-xs">
+            {order.landingPage && (
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Landing Page</span>
+                <Link
+                  href={`/admin/landing-pages/${order.landingPage.id}`}
+                  className="font-medium text-slate-800 hover:underline text-right"
+                >
+                  {order.landingPage.title}
+                  <span className="ml-1 font-mono font-normal text-slate-400">/l/{order.landingPage.slug}</span>
+                </Link>
+              </div>
+            )}
+            {order.landingPageOffer && (
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Landing Offer</span>
+                <span className="font-medium text-slate-800 text-right">{order.landingPageOffer.name}</span>
+              </div>
+            )}
+          </div>
+        </AdminSectionCard>
+      )}
 
       <CourierPanel orderId={order.id} />
 
