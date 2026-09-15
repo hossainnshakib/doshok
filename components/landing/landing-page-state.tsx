@@ -3,20 +3,44 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react"
 import type { ResolvedOffer } from "@/lib/landing-pages/types"
 
-// Landing-page-scoped checkout state. Shared by the offer selector and the
-// inline checkout section on the same page — never global, never persisted
-// until order submit.
+// Landing-page-scoped checkout state. Product-driven: customers select
+// products, server auto-resolves the best offer.
 //
-// Selection keys are deterministic: `${offerId}:${landingPageProductId}:${unitIndex}`
-// so switching offers can never leak stale cross-offer selections.
+// This replaces the old offer-driven state where customers manually
+// selected an offer first.
 
-export type SlotPick = { size: string; variantId: string }
+type VariantPick = { variantId: string; size: string; color: string }
 
 type LandingPageState = {
-  selectedOfferId: string | null
-  selectOffer: (offerId: string) => void
-  picks: Record<string, SlotPick>
-  setPick: (offerId: string, landingPageProductId: string, unitIndex: number, patch: Partial<SlotPick>) => void
+  // Product selection
+  selectedProductIds: string[]
+  toggleProduct: (landingPageProductId: string) => void
+  selectProduct: (landingPageProductId: string) => void
+  deselectProduct: (landingPageProductId: string) => void
+  isProductSelected: (landingPageProductId: string) => boolean
+  clearProducts: () => void
+
+  // Variant picks for products that require variants
+  variantPicks: Record<string, VariantPick>
+  setVariantPick: (landingPageProductId: string, pick: VariantPick) => void
+  clearVariantPick: (landingPageProductId: string) => void
+
+  // Auto-resolved offer (server-computed, read-only)
+  matchedOffer: ResolvedOffer | null
+  setMatchedOffer: (offer: ResolvedOffer | null) => void
+
+  // Quote from server
+  quote: {
+    regularTotal: number
+    offerPrice: number
+    savings: number
+    deliveryFee: number
+    total: number
+    zone: string
+  } | null
+  setQuote: (quote: LandingPageState["quote"]) => void
+
+  // Reset everything
   resetAll: () => void
 }
 
@@ -29,56 +53,100 @@ export function useLandingPageState(): LandingPageState {
 }
 
 export function LandingPageProvider({
-  offers,
-  initialSelectedOfferId,
+  defaultProductIds,
   children,
 }: {
-  offers: ResolvedOffer[]
-  initialSelectedOfferId: string | null
+  defaultProductIds?: string[]
   children: React.ReactNode
 }) {
-  const validIds = useMemo(() => new Set(offers.filter((o) => o.valid).map((o) => o.offerId)), [offers])
-  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(
-    initialSelectedOfferId && validIds.has(initialSelectedOfferId) ? initialSelectedOfferId : null
+  const initialProductIds = useMemo(
+    () => (defaultProductIds && defaultProductIds.length > 0 ? [defaultProductIds[0]] : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // Only compute once on mount
   )
-  const [picks, setPicks] = useState<Record<string, SlotPick>>({})
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>(initialProductIds)
+  const [variantPicks, setVariantPicksState] = useState<Record<string, VariantPick>>({})
+  const [matchedOffer, setMatchedOffer] = useState<ResolvedOffer | null>(null)
+  const [quote, setQuote] = useState<LandingPageState["quote"]>(null)
 
-  const selectOffer = useCallback(
-    (offerId: string) => {
-      if (!validIds.has(offerId)) return
-      setSelectedOfferId(offerId)
-      // Drop picks from other offers; keep this offer's picks if present.
-      setPicks((prev) => {
-        const next: Record<string, SlotPick> = {}
-        for (const [key, value] of Object.entries(prev)) {
-          if (key.startsWith(`${offerId}:`)) next[key] = value
-        }
-        return next
-      })
-    },
-    [validIds]
+  const toggleProduct = useCallback((id: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    )
+  }, [])
+
+  const selectProduct = useCallback((id: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(id) ? prev : [...prev, id]
+    )
+  }, [])
+
+  const deselectProduct = useCallback((id: string) => {
+    setSelectedProductIds((prev) => prev.filter((p) => p !== id))
+  }, [])
+
+  const isProductSelected = useCallback(
+    (id: string) => selectedProductIds.includes(id),
+    [selectedProductIds]
   )
 
-  const setPick = useCallback(
-    (offerId: string, landingPageProductId: string, unitIndex: number, patch: Partial<SlotPick>) => {
-      const key = `${offerId}:${landingPageProductId}:${unitIndex}`
-      setPicks((prev) => {
-        const current = prev[key] ?? { size: "", variantId: "" }
-        return { ...prev, [key]: { ...current, ...patch } }
-      })
-    },
-    []
-  )
+  const clearProducts = useCallback(() => {
+    setSelectedProductIds([])
+    setVariantPicksState({})
+  }, [])
+
+  const setVariantPick = useCallback((landingPageProductId: string, pick: VariantPick) => {
+    setVariantPicksState((prev) => ({ ...prev, [landingPageProductId]: pick }))
+  }, [])
+
+  const clearVariantPick = useCallback((landingPageProductId: string) => {
+    setVariantPicksState((prev) => {
+      const next = { ...prev }
+      delete next[landingPageProductId]
+      return next
+    })
+  }, [])
 
   const resetAll = useCallback(() => {
-    const first = offers.find((o) => o.valid)?.offerId ?? null
-    setSelectedOfferId(first)
-    setPicks({})
-  }, [offers])
+    setSelectedProductIds([])
+    setVariantPicksState({})
+    setMatchedOffer(null)
+    setQuote(null)
+  }, [])
 
   const value = useMemo(
-    () => ({ selectedOfferId, selectOffer, picks, setPick, resetAll }),
-    [selectedOfferId, selectOffer, picks, setPick, resetAll]
+    () => ({
+      selectedProductIds,
+      toggleProduct,
+      selectProduct,
+      deselectProduct,
+      isProductSelected,
+      clearProducts,
+      variantPicks,
+      setVariantPick,
+      clearVariantPick,
+      matchedOffer,
+      setMatchedOffer,
+      quote,
+      setQuote,
+      resetAll,
+    }),
+    [
+      selectedProductIds,
+      toggleProduct,
+      selectProduct,
+      deselectProduct,
+      isProductSelected,
+      clearProducts,
+      variantPicks,
+      setVariantPick,
+      clearVariantPick,
+      matchedOffer,
+      setMatchedOffer,
+      quote,
+      setQuote,
+      resetAll,
+    ]
   )
 
   return <LandingPageContext.Provider value={value}>{children}</LandingPageContext.Provider>

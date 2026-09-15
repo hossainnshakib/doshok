@@ -50,6 +50,7 @@ async function getLandingPage(slug: string, allowAnyStatus: boolean): Promise<La
       products: {
         orderBy: { sortOrder: "asc" },
         select: {
+          id: true,
           displayTitle: true,
           displayDescription: true,
           displayImage: true,

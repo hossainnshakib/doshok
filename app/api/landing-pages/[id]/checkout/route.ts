@@ -8,8 +8,7 @@ import { generateSuccessToken } from "@/lib/checkout/success-token"
 import { prisma } from "@/lib/prisma"
 
 // Public landing-page checkout. No admin auth; the page must be published.
-// Only identifiers + customer data are accepted — every commercial value
-// is re-resolved server-side by createLandingPageOrder.
+// Supports both product-based (new) and offer-based (legacy) flows.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -30,6 +29,10 @@ export async function POST(
     try {
       result = await createLandingPageOrder({
         landingPageId: id,
+        // New product-based flow
+        selectedProductIds: parsed.data.selectedProductIds,
+        productSelections: parsed.data.productSelections,
+        // Legacy offer-based flow
         offerId: parsed.data.offerId,
         selections: parsed.data.selections,
         customer: {
@@ -59,7 +62,6 @@ export async function POST(
     }
 
     // Same post-order notifications as normal checkout (fire-and-forget).
-    // No Pathao dispatch: courier consignments are created from admin only.
     const created = await prisma.order.findUnique({
       where: { orderNumber: result.orderNumber },
       include: { items: true },

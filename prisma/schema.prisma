@@ -928,6 +928,8 @@ model LandingPageOffer {
   name          String
   badge         String?
   pricingType   String   @default("FIXED") // FIXED only in V1: final fixed offerPrice
+  matchType     String   @default("EXACT_COMBINATION") // EXACT_COMBINATION | QUANTITY_TIER
+  minQuantity   Int?     // Required for QUANTITY_TIER: min items to trigger
   offerPrice    Int
   enabled       Boolean  @default(true)
   sortOrder     Int      @default(0)

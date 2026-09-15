@@ -7,6 +7,8 @@ type OfferWithRelations = {
   name: string
   badge: string | null
   pricingType: string
+  matchType: string
+  minQuantity: number | null
   offerPrice: number
   enabled: boolean
   sortOrder: number
@@ -93,6 +95,8 @@ function resolveOne(offer: OfferWithRelations): ResolvedOffer {
     offerName: offer.name,
     badge: offer.badge,
     pricingType: offer.pricingType === "FIXED" ? "FIXED" : "FIXED",
+    matchType: offer.matchType === "QUANTITY_TIER" ? "QUANTITY_TIER" : "EXACT_COMBINATION",
+    minQuantity: offer.minQuantity ?? null,
     enabled: offer.enabled,
     sortOrder: offer.sortOrder,
     items,
@@ -177,4 +181,81 @@ export async function computeRegularTotal(
     total += link.product.price * item.quantity
   }
   return total
+}
+
+/**
+ * Resolve live prices for a set of selected landing page product IDs.
+ * Returns the regular total and per-item details for product-based checkout.
+ */
+export async function resolveLandingProductPrices(
+  landingPageId: string,
+  selectedLandingPageProductIds: string[]
+): Promise<{ regularTotal: number; items: { landingPageProductId: string; productId: string; price: number }[] } | null> {
+  if (selectedLandingPageProductIds.length === 0) return null
+  const links = await prisma.landingPageProduct.findMany({
+    where: { landingPageId, id: { in: selectedLandingPageProductIds } },
+    select: {
+      id: true,
+      product: { select: { id: true, price: true, status: true } },
+    },
+  })
+  if (links.length !== selectedLandingPageProductIds.length) return null
+  let regularTotal = 0
+  const items: { landingPageProductId: string; productId: string; price: number }[] = []
+  for (const link of links) {
+    if (!link.product || link.product.status !== "Active") return null
+    regularTotal += link.product.price
+    items.push({ landingPageProductId: link.id, productId: link.product.id, price: link.product.price })
+  }
+  return { regularTotal, items }
+}
+
+/**
+ * Automatic offer resolution for product-based selection.
+ * Given a set of selected landing page product IDs, finds the best (lowest price)
+ * valid offer that matches the selection. Returns null if no offer applies.
+ *
+ * EXACT_COMBINATION: offer items must exactly match the selection (same products, same quantities).
+ * QUANTITY_TIER: selected products must be eligible and total quantity >= minQuantity.
+ */
+export async function resolveBestOfferForSelection(
+  landingPageId: string,
+  selectedLandingPageProductIds: string[]
+): Promise<ResolvedOffer | null> {
+  if (selectedLandingPageProductIds.length === 0) return null
+
+  const offers = await resolveLandingOffers(landingPageId)
+  const eligible: ResolvedOffer[] = []
+
+  for (const offer of offers) {
+    if (!offer.valid) continue
+
+    if (offer.matchType === "QUANTITY_TIER") {
+      // QUANTITY_TIER: all selected products must be in the offer's eligible items,
+      // and total quantity must meet minQuantity.
+      const eligibleProductIds = new Set(offer.items.map((i) => i.landingPageProductId))
+      const allEligible = selectedLandingPageProductIds.every((id) => eligibleProductIds.has(id))
+      if (!allEligible) continue
+      if (offer.minQuantity && selectedLandingPageProductIds.length < offer.minQuantity) continue
+      eligible.push(offer)
+    } else {
+      // EXACT_COMBINATION: offer items must exactly match the selection.
+      // Build expected product list from offer items.
+      const expected: string[] = []
+      for (const item of offer.items) {
+        for (let i = 0; i < item.quantity; i++) {
+          expected.push(item.landingPageProductId)
+        }
+      }
+      const sortedExpected = [...expected].sort()
+      const sortedSelected = [...selectedLandingPageProductIds].sort()
+      if (JSON.stringify(sortedExpected) !== JSON.stringify(sortedSelected)) continue
+      eligible.push(offer)
+    }
+  }
+
+  // Return the valid offer with the lowest price (best deal for customer).
+  if (eligible.length === 0) return null
+  eligible.sort((a, b) => a.offerPrice - b.offerPrice)
+  return eligible[0]
 }

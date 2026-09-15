@@ -9,7 +9,8 @@ import { toast } from "sonner"
 import { CheckCircle2, Loader2, Lock } from "lucide-react"
 import { getDistrictsByDivision, getDivisions } from "@/lib/bangladesh-address"
 import { isValidBdPhone, normalizePhoneToE164 } from "@/lib/checkout/phone"
-import type { CheckoutContent, ResolvedOffer } from "@/lib/landing-pages/types"
+import type { CheckoutContent } from "@/lib/landing-pages/types"
+import type { PublicProductLink } from "./landing-sections"
 import { useLandingPageState } from "./landing-page-state"
 import { cn } from "@/lib/utils"
 
@@ -17,23 +18,20 @@ const inputCls =
   "h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
 const labelCls = "text-xs font-medium text-slate-600"
 
-type Quote = { deliveryFee: number; zone: string; total: number; offerPrice: number } | null
-
 type PlacedOrder = { orderNumber: string; total: number; successToken: string }
 
 export function CheckoutSection({
   pageId,
   content,
-  offers,
+  links,
   isPreview,
 }: {
   pageId: string
   content: CheckoutContent
-  offers: ResolvedOffer[]
+  links: PublicProductLink[]
   isPreview: boolean
 }) {
-  const { selectedOfferId, picks, resetAll } = useLandingPageState()
-  const selected = offers.find((o) => o.offerId === selectedOfferId && o.valid) ?? null
+  const { selectedProductIds, variantPicks, resetAll, matchedOffer, quote, setQuote, setMatchedOffer } = useLandingPageState()
 
   const [settings, setSettings] = useState<{ checkoutV2Enabled: boolean; otpRequired: boolean } | null>(null)
   const [name, setName] = useState("")
@@ -46,7 +44,6 @@ export function CheckoutSection({
   const [fullAddress, setFullAddress] = useState("")
   const [note, setNote] = useState("")
   const [otpToken, setOtpToken] = useState<string | null>(null)
-  const [quote, setQuote] = useState<Quote>(null)
   const [quoting, setQuoting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -70,12 +67,12 @@ export function CheckoutSection({
       .catch(() => setSettings({ checkoutV2Enabled: false, otpRequired: false }))
   }, [])
 
-  // Authoritative delivery/total estimate for the selected offer + district.
-  // The final submit recalculates and wins.
+  // Authoritative quote when selection or district changes.
   useEffect(() => {
-    if (!selected || isPreview) {
+    if (selectedProductIds.length === 0 || isPreview) {
       startTransition(() => {
         setQuote(null)
+        setMatchedOffer(null)
       })
       return
     }
@@ -85,11 +82,18 @@ export function CheckoutSection({
         const res = await fetch(`/api/landing-pages/${pageId}/checkout/quote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ offerId: selected.offerId, districtId: district.districtId }),
+          body: JSON.stringify({ selectedProductIds, districtId: district.districtId }),
         })
         const data = await res.json()
         if (data.success) {
-          setQuote({ deliveryFee: data.data.deliveryFee, zone: data.data.zone, total: data.data.total, offerPrice: data.data.offerPrice })
+          setQuote({
+            deliveryFee: data.data.deliveryFee,
+            zone: data.data.zone,
+            total: data.data.total,
+            offerPrice: data.data.offerPrice,
+            regularTotal: data.data.regularTotal,
+            savings: data.data.savings,
+          })
         } else {
           setQuote(null)
         }
@@ -100,18 +104,8 @@ export function CheckoutSection({
       }
     }, 350)
     return () => clearTimeout(t)
-  }, [selected, district.districtId, pageId, isPreview])
+  }, [selectedProductIds, district.districtId, pageId, isPreview, setQuote, setMatchedOffer])
 
-  const requiredSlots = useMemo(() => {
-    if (!selected) return []
-    const slots: { key: string; linkId: string; slot: number }[] = []
-    for (const item of selected.items) {
-      for (let s = 0; s < item.quantity; s++) slots.push({ key: `${selected.offerId}:${item.landingPageProductId}:${s}`, linkId: item.landingPageProductId, slot: s })
-    }
-    return slots
-  }, [selected])
-
-  const missingVariants = requiredSlots.filter((s) => !picks[s.key]?.variantId)
   const phoneOk = isValidBdPhone(phone.trim())
   const formOk =
     name.trim().length > 0 &&
@@ -120,12 +114,31 @@ export function CheckoutSection({
     district.districtName.trim() !== "" &&
     thana.trim() !== "" &&
     fullAddress.trim() !== ""
+
+  // Check if all required variants are selected
+  const missingVariants = useMemo(() => {
+    const missing: string[] = []
+    for (const link of links) {
+      if (!selectedProductIds.includes(link.id)) continue
+      const requiresVariant = link.product.variants.length > 0
+      if (requiresVariant && !variantPicks[link.id]) {
+        missing.push(link.id)
+      }
+    }
+    return missing
+  }, [links, selectedProductIds, variantPicks])
+
   const canSubmit =
-    !isPreview && !submitting && selected && missingVariants.length === 0 && formOk && (!otpRequired || !!otpToken)
+    !isPreview &&
+    !submitting &&
+    selectedProductIds.length > 0 &&
+    missingVariants.length === 0 &&
+    formOk &&
+    (!otpRequired || !!otpToken)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit || !selected) return
+    if (!canSubmit) return
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -137,17 +150,25 @@ export function CheckoutSection({
         setSubmitting(false)
         return
       }
-      const selections = requiredSlots.map((s) => ({
-        landingPageProductId: s.linkId,
-        unitIndex: s.slot,
-        variantId: picks[s.key].variantId,
-      }))
+
+      // Build product selections with variant info
+      const productSelections = selectedProductIds.map((lpId) => {
+        const link = links.find((l) => l.id === lpId)
+        const pick = variantPicks[lpId]
+        return {
+          landingPageProductId: lpId,
+          productId: link?.product?.slug ?? "",
+          quantity: 1,
+          variantId: pick?.variantId,
+        }
+      })
+
       const res = await fetch(`/api/landing-pages/${pageId}/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          offerId: selected.offerId,
-          selections,
+          selectedProductIds,
+          productSelections,
           customer: { name: name.trim(), email: email.trim() || undefined, phone: e164 },
           address: {
             divisionId,
@@ -161,7 +182,7 @@ export function CheckoutSection({
           paymentMethod: "cod",
           idempotencyKey,
           checkoutVerificationToken: otpToken ?? undefined,
-          priceFingerprint: quote ? { offerPrice: selected.offerPrice, total: quote.total } : undefined,
+          priceFingerprint: quote ? { offerPrice: quote.offerPrice, total: quote.total } : undefined,
         }),
       })
       const data = await res.json()
@@ -171,8 +192,6 @@ export function CheckoutSection({
         setIdempotencyKey(crypto.randomUUID())
         setOtpToken(null)
       } else {
-        // Price/stock conflicts come back as 409 with guidance; surface them
-        // plainly and let the customer refresh or reselect.
         setSubmitError(data.error ?? "Failed to place order. Please try again.")
         if (res.status === 409) toast.error(data.error ?? "Order could not be placed")
       }
@@ -220,9 +239,9 @@ export function CheckoutSection({
         </p>
       )}
 
-      {!selected ? (
+      {selectedProductIds.length === 0 ? (
         <p className="mx-auto mt-6 max-w-xl rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
-          Select an offer above to continue.
+          Select products above to continue.
         </p>
       ) : (
         <form
@@ -308,7 +327,7 @@ export function CheckoutSection({
             )}
 
             <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-              Payment: <span className="font-semibold text-slate-800">Cash on Delivery</span> — pay ৳{(quote?.total ?? selected.offerPrice).toLocaleString()} when you receive your order.
+              Payment: <span className="font-semibold text-slate-800">Cash on Delivery</span> — pay ৳{(quote?.total ?? 0).toLocaleString()} when you receive your order.
             </div>
 
             {submitError && (
@@ -325,56 +344,59 @@ export function CheckoutSection({
               )}
             </Button>
             {missingVariants.length > 0 && (
-              <p className="text-center text-xs text-amber-600">Choose variations for every unit in the offer section above to continue.</p>
+              <p className="text-center text-xs text-amber-600">Choose variations for all selected products to continue.</p>
             )}
           </fieldset>
 
           {content.showOrderSummary && (
             <aside className="h-fit rounded-2xl border border-slate-200 p-4 sm:p-5 lg:sticky lg:top-6" aria-label="Order summary">
               <p className="text-sm font-bold">Order summary</p>
-              <p className="mt-1 text-xs font-medium text-slate-600">{selected.offerName}</p>
+              {matchedOffer && (
+                <p className="mt-1 text-xs font-medium text-emerald-600">
+                  Auto-applied: {matchedOffer.offerName}
+                </p>
+              )}
               <ul className="mt-3 space-y-2">
-                {selected.items.map((item) => (
-                  <li key={item.landingPageProductId} className="text-xs text-slate-500">
-                    <span className="font-medium text-slate-700">{item.displayName} ×{item.quantity}</span>
-                    {item.requiresVariant && (
-                      <ul className="mt-1 space-y-0.5 pl-3">
-                        {Array.from({ length: item.quantity }, (_, s) => {
-                          const pick = picks[`${selected.offerId}:${item.landingPageProductId}:${s}`]
-                          const variant = item.variants.find((v) => v.id === pick?.variantId)
-                          return (
-                            <li key={s}>
-                              Unit {s + 1}: {variant ? `${variant.size} / ${variant.color}` : <span className="text-amber-600">variation not chosen</span>}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </li>
-                ))}
+                {links
+                  .filter((l) => selectedProductIds.includes(l.id))
+                  .map((lp) => {
+                    const p = lp.product
+                    const pick = variantPicks[lp.id]
+                    return (
+                      <li key={lp.id} className="text-xs text-slate-500">
+                        <span className="font-medium text-slate-700">{lp.displayTitle?.trim() || p.name}</span>
+                        {pick && (
+                          <span className="ml-1 text-slate-400">({pick.size} / {pick.color})</span>
+                        )}
+                        <span className="float-right font-semibold tabular-nums">৳{p.price.toLocaleString()}</span>
+                      </li>
+                    )
+                  })}
               </ul>
               <dl className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-xs tabular-nums">
-                <div className="flex justify-between text-slate-500">
-                  <dt>Offer price</dt>
-                  <dd className="font-semibold text-slate-800">৳{selected.offerPrice.toLocaleString()}</dd>
-                </div>
-                <div className="flex justify-between text-slate-500">
-                  <dt>Regular total</dt>
-                  <dd className="line-through">৳{selected.regularTotal.toLocaleString()}</dd>
-                </div>
-                {selected.savings > 0 && (
-                  <div className="flex justify-between font-medium text-emerald-600">
-                    <dt>You save</dt>
-                    <dd>৳{selected.savings.toLocaleString()}</dd>
-                  </div>
+                {matchedOffer && matchedOffer.savings > 0 && (
+                  <>
+                    <div className="flex justify-between text-slate-500">
+                      <dt>Regular total</dt>
+                      <dd className="line-through">৳{quote?.regularTotal?.toLocaleString() ?? 0}</dd>
+                    </div>
+                    <div className="flex justify-between font-medium text-emerald-600">
+                      <dt>You save</dt>
+                      <dd>৳{quote?.savings?.toLocaleString() ?? 0}</dd>
+                    </div>
+                  </>
                 )}
+                <div className="flex justify-between text-slate-500">
+                  <dt>Subtotal</dt>
+                  <dd className="font-semibold text-slate-800">৳{(quote?.offerPrice ?? quote?.regularTotal ?? 0).toLocaleString()}</dd>
+                </div>
                 <div className="flex justify-between text-slate-500">
                   <dt>Delivery {quoting ? "(calculating...)" : district.districtName ? `(${district.districtName})` : ""}</dt>
                   <dd>{quote ? `৳${quote.deliveryFee.toLocaleString()}` : "—"}</dd>
                 </div>
                 <div className="flex justify-between border-t border-slate-100 pt-2 text-sm font-bold text-slate-900">
                   <dt>Total</dt>
-                  <dd>৳{(quote?.total ?? selected.offerPrice).toLocaleString()}</dd>
+                  <dd>৳{(quote?.total ?? 0).toLocaleString()}</dd>
                 </div>
               </dl>
               {content.showTrustNote && content.trustNote && (

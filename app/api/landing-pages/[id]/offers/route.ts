@@ -48,7 +48,7 @@ export async function POST(
       )
     }
 
-    const { name, badge, pricingType, offerPrice, enabled, items } = parsed.data
+    const { name, badge, pricingType, matchType, minQuantity, offerPrice, enabled, items } = parsed.data
 
     const linkIds = items.map((i) => i.landingPageProductId)
     if (new Set(linkIds).size !== linkIds.length) {
@@ -88,6 +88,8 @@ export async function POST(
           name: name.trim(),
           badge: badge?.trim() || null,
           pricingType,
+          matchType: matchType ?? "EXACT_COMBINATION",
+          minQuantity: matchType === "QUANTITY_TIER" ? minQuantity : null,
           offerPrice,
           enabled,
           sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,

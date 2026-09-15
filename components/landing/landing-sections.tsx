@@ -31,16 +31,17 @@ import type {
   ReviewsContent,
 } from "@/lib/landing-pages/types"
 import { cn } from "@/lib/utils"
-import { OfferSelector } from "./offer-selector"
 import { FaqAccordion } from "./faq-accordion"
 import { LandingPageProvider } from "./landing-page-state"
 import { CheckoutSection } from "./landing-checkout"
+import { ProductSelector } from "./product-selector"
 
 // ---------------------------------------------------------------------------
 // Data shapes (as selected by the public page query)
 // ---------------------------------------------------------------------------
 
 export type PublicProductLink = {
+  id: string
   displayTitle: string | null
   displayDescription: string | null
   displayImage: string | null
@@ -97,15 +98,6 @@ const BENEFIT_ICON_MAP: Record<BenefitIcon, LucideIcon> = {
   zap: Zap,
 }
 
-function availableStock(variants: { stock: number; reservedStock: number }[]): number {
-  return variants.reduce((sum, v) => sum + Math.max(0, v.stock - v.reservedStock), 0)
-}
-
-function truncate(text: string, max: number): string {
-  const v = text.trim()
-  return v.length > max ? `${v.slice(0, max).trimEnd()}…` : v
-}
-
 function resolveCtaHref(cta: HeroCta, linkedSlugs: Set<string>): string | null {
   switch (cta.target) {
     case "products":
@@ -145,9 +137,33 @@ function CtaButton({ cta, links, variant }: { cta: HeroCta; links: Set<string>; 
 // HERO
 // ---------------------------------------------------------------------------
 
-function HeroMedia({ media, title, linkedSlugs }: { media: HeroContent["media"]; title: string; linkedSlugs: Set<string> }) {
-  if (media.length === 0) return null
-  const renderImg = (m: (typeof media)[number], i: number, cls: string, eager: boolean) => {
+// Image resolution chain:
+// 1. Hero section configured media (content.media)
+// 2. Landing product display image override
+// 3. Product real primary image (Product.images[0])
+// 4. Safe fallback (no image)
+function resolveHeroImages(
+  content: HeroContent,
+  links: PublicProductLink[]
+): { url: string; alt: string }[] {
+  // 1. If hero section has configured media, use it
+  if (content.media.length > 0) {
+    return content.media.map((m) => ({ url: m.url, alt: m.alt || "" }))
+  }
+  // 2-3. Fall back to product images from linked products
+  const images: { url: string; alt: string }[] = []
+  for (const link of links.slice(0, 3)) {
+    const img = link.displayImage || link.product.images[0]
+    if (img) {
+      images.push({ url: img, alt: link.displayTitle || link.product.name })
+    }
+  }
+  return images
+}
+
+function HeroMedia({ images, title }: { images: { url: string; alt: string }[]; title: string }) {
+  if (images.length === 0) return null
+  const renderImg = (m: { url: string; alt: string }, i: number, cls: string, eager: boolean) => {
     const img = (
       <Image
         src={m.url}
@@ -159,23 +175,18 @@ function HeroMedia({ media, title, linkedSlugs }: { media: HeroContent["media"];
         className={cn("h-full w-full object-cover", cls)}
       />
     )
-    const slug = m.productSlug && linkedSlugs.has(m.productSlug) ? m.productSlug : null
-    return slug ? (
-      <Link key={`${m.url}-${i}`} href={`/products/${slug}`} className="block h-full w-full" aria-label={`View ${title}`}>
-        {img}
-      </Link>
-    ) : (
+    return (
       <span key={`${m.url}-${i}`} className="block h-full w-full">{img}</span>
     )
   }
 
-  if (media.length === 1) {
-    return <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[4/3]">{renderImg(media[0], 0, "", true)}</div>
+  if (images.length === 1) {
+    return <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[4/3]">{renderImg(images[0], 0, "", true)}</div>
   }
-  if (media.length === 2) {
+  if (images.length === 2) {
     return (
       <div className="grid grid-cols-2 gap-3">
-        {media.map((m, i) => (
+        {images.map((m, i) => (
           <div key={`${m.url}-${i}`} className="overflow-hidden rounded-2xl border border-slate-100 aspect-[3/4]">{renderImg(m, i, "", i === 0)}</div>
         ))}
       </div>
@@ -183,9 +194,9 @@ function HeroMedia({ media, title, linkedSlugs }: { media: HeroContent["media"];
   }
   return (
     <div className="grid grid-cols-2 gap-3">
-      <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[3/4] row-span-2">{renderImg(media[0], 0, "", true)}</div>
-      <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[3/4]">{renderImg(media[1], 1, "", false)}</div>
-      <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[3/4]">{renderImg(media[2], 2, "", false)}</div>
+      <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[3/4] row-span-2">{renderImg(images[0], 0, "", true)}</div>
+      <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[3/4]">{renderImg(images[1], 1, "", false)}</div>
+      <div className="overflow-hidden rounded-2xl border border-slate-100 aspect-[3/4]">{renderImg(images[2], 2, "", false)}</div>
     </div>
   )
 }
@@ -193,7 +204,8 @@ function HeroMedia({ media, title, linkedSlugs }: { media: HeroContent["media"];
 function HeroSection({ content, links }: { content: HeroContent; links: PublicProductLink[] }) {
   const linkedSlugs = new Set(links.map((l) => l.product.slug))
   const hasCopy = content.eyebrow || content.headline || content.subheadline || content.description
-  if (!hasCopy && content.media.length === 0) return null
+  const resolvedImages = resolveHeroImages(content, links)
+  if (!hasCopy && resolvedImages.length === 0) return null
 
   const firstPrice = links[0]?.product.price
 
@@ -220,20 +232,20 @@ function HeroSection({ content, links }: { content: HeroContent; links: PublicPr
     </div>
   )
 
-  const media = <HeroMedia media={content.media} title={content.headline || "Landing"} linkedSlugs={linkedSlugs} />
+  const media = <HeroMedia images={resolvedImages} title={content.headline || "Landing"} />
 
   if (content.layout === "centered") {
     return (
       <section aria-label="Hero" className="text-center">
         <div className="mx-auto max-w-2xl">{copy}</div>
-        {content.media.length > 0 && <div className="mx-auto mt-8 max-w-2xl">{media}</div>}
+        {resolvedImages.length > 0 && <div className="mx-auto mt-8 max-w-2xl">{media}</div>}
       </section>
     )
   }
   if (content.layout === "media-first") {
     return (
       <section aria-label="Hero">
-        {content.media.length > 0 && <div className="mx-auto max-w-2xl">{media}</div>}
+        {resolvedImages.length > 0 && <div className="mx-auto max-w-2xl">{media}</div>}
         <div className="mx-auto mt-8 max-w-2xl text-center">{copy}</div>
       </section>
     )
@@ -242,7 +254,7 @@ function HeroSection({ content, links }: { content: HeroContent; links: PublicPr
   return (
     <section aria-label="Hero" className="grid items-center gap-8 md:grid-cols-2">
       {copy}
-      {content.media.length > 0 ? media : null}
+      {resolvedImages.length > 0 ? media : null}
     </section>
   )
 }
@@ -281,73 +293,18 @@ function BenefitsSection({ content }: { content: BenefitsContent }) {
 }
 
 // ---------------------------------------------------------------------------
-// PRODUCTS
+// PRODUCTS (now using ProductSelector for interactive selection)
 // ---------------------------------------------------------------------------
 
 function ProductsSection({ content, links }: { content: ProductsContent; links: PublicProductLink[] }) {
-  const active = links.filter((l) => l.product.status === "Active")
-  if (active.length === 0) return null
   return (
-    <section aria-label={content.heading || "Products"} id="lp-products" className="mt-14 scroll-mt-6">
-      <div className="text-center">
-        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{content.heading || "Featured Products"}</h2>
-        {content.subheading && <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">{content.subheading}</p>}
-      </div>
-      <div className="mt-6 space-y-3">
-        {active.map((lp) => {
-          const p = lp.product
-          const stock = availableStock(p.variants)
-          const label = lp.ctaLabel?.trim() || content.ctaLabel.trim() || "View"
-          return (
-            <article key={`${p.slug}-${lp.sortOrder}`} className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
-              {(lp.displayImage || p.images[0]) ? (
-                <Image
-                  src={lp.displayImage || p.images[0]}
-                  alt={lp.displayTitle || p.name}
-                  width={72}
-                  height={72}
-                  className="h-[72px] w-[72px] shrink-0 rounded-xl object-cover"
-                />
-              ) : (
-                <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-xl bg-slate-100 text-lg font-bold text-slate-300" aria-hidden>D</span>
-              )}
-              <div className="min-w-0 flex-1">
-                <h3 className="truncate text-sm font-semibold">{lp.displayTitle?.trim() || p.name}</h3>
-                {(lp.displayDescription || p.shortDescription || p.description) && (
-                  <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
-                    {truncate(lp.displayDescription?.trim() || p.shortDescription?.trim() || p.description?.trim() || "", 160)}
-                  </p>
-                )}
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  {content.showPrice && (
-                    <p className="text-sm font-bold tabular-nums">
-                      ৳{p.price.toLocaleString()}
-                      {content.showOldPrice && p.oldPrice && p.oldPrice > p.price && (
-                        <span className="ml-2 text-xs font-medium text-slate-400 line-through">৳{p.oldPrice.toLocaleString()}</span>
-                      )}
-                    </p>
-                  )}
-                  {content.showStock && (
-                    <span className={cn(
-                      "text-[11px] font-semibold",
-                      stock <= 0 ? "text-slate-400" : stock <= 5 ? "text-amber-600" : "text-emerald-600"
-                    )}>
-                      {stock <= 0 ? "Out of stock" : stock <= 5 ? `Only ${stock} left` : "In stock"}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Link
-                href={`/products/${p.slug}`}
-                className="inline-flex h-9 shrink-0 items-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white transition hover:bg-slate-700"
-              >
-                {label}
-              </Link>
-            </article>
-          )
-        })}
-      </div>
-    </section>
+    <ProductSelector
+      links={links}
+      heading={content.heading || "Featured Products"}
+      subheading={content.subheading}
+      ctaLabel={content.ctaLabel}
+      showPrice={content.showPrice}
+    />
   )
 }
 
@@ -391,7 +348,7 @@ function GallerySection({ content }: { content: GalleryContent }) {
 }
 
 // ---------------------------------------------------------------------------
-// OFFERS (relational offers + presentation-only section content)
+// OFFERS (kept for backward compat, but now shows as info banner)
 // ---------------------------------------------------------------------------
 
 function OffersSection({
@@ -411,15 +368,6 @@ function OffersSection({
         <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{content.heading || "Choose Your Bundle"}</h2>
         {content.subheading && <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">{content.subheading}</p>}
       </div>
-      <OfferSelector
-        offers={offers}
-        selectionLabel={content.selectionLabel}
-        layout={content.layout}
-        showRegularPrice={content.showRegularPrice}
-        showSavings={content.showSavings}
-        helperText={content.helperText}
-        showInvalid={isPreview}
-      />
     </section>
   )
 }
@@ -453,8 +401,6 @@ function ReviewsSection({ content, liveReviews }: { content: ReviewsContent; liv
         productName: null,
       })
     } else {
-      // References read the live review: only still-approved reviews render,
-      // and verified state always comes from the source model.
       const live = liveReviews.get(item.reviewId)
       if (!live) continue
       resolved.push({
@@ -550,10 +496,9 @@ export function LandingPageView({
   previewStatus: string
 }) {
   const ordered = [...sections].sort((a, b) => a.sortOrder - b.sortOrder).filter((s) => s.enabled)
-  // Checkout consumes the same valid offers the selector shows; in preview
-  // it also sees invalid ones (rendered as unavailable, never purchasable).
-  const checkoutOffers = isPreview ? offers : offers.filter((o) => o.valid)
-  const initialSelectedOfferId = checkoutOffers.find((o) => o.valid)?.offerId ?? null
+
+  // Default product selection: first linked product by sortOrder
+  const defaultProductIds = links.length > 0 ? [links[0].id] : []
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -570,11 +515,9 @@ export function LandingPageView({
           </Link>
         </header>
 
-        <LandingPageProvider offers={checkoutOffers} initialSelectedOfferId={initialSelectedOfferId}>
+        <LandingPageProvider defaultProductIds={defaultProductIds}>
         <div className="mt-6">
           {ordered.map((section) => {
-            // Each section is validated and isolated: invalid or
-            // unimplemented content renders nothing, never a crash.
             try {
               switch (section.type) {
                 case "HERO": {
@@ -612,7 +555,7 @@ export function LandingPageView({
                       key={section.id}
                       pageId={pageId}
                       content={parsed}
-                      offers={checkoutOffers}
+                      links={links}
                       isPreview={isPreview}
                     />
                   ) : null

@@ -399,6 +399,8 @@ export const landingPageOfferCreateSchema = z.object({
   name: z.string().trim().min(1, "Offer name is required").max(120),
   badge: z.string().trim().max(40).optional().or(z.literal("")),
   pricingType: z.enum(["FIXED"]).default("FIXED"),
+  matchType: z.enum(["EXACT_COMBINATION", "QUANTITY_TIER"]).default("EXACT_COMBINATION"),
+  minQuantity: z.number().int().min(2).max(20).optional().nullable(),
   offerPrice: z.number().int().min(1, "Offer price must be a positive amount"),
   enabled: z.boolean().optional().default(true),
   items: z.array(landingPageOfferItemSchema).min(1, "An offer needs at least one item").max(MAX_OFFER_ITEMS),
@@ -407,6 +409,8 @@ export const landingPageOfferCreateSchema = z.object({
 export const landingPageOfferUpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   badge: z.string().trim().max(40).optional().or(z.literal("")),
+  matchType: z.enum(["EXACT_COMBINATION", "QUANTITY_TIER"]).optional(),
+  minQuantity: z.number().int().min(2).max(20).optional().nullable(),
   offerPrice: z.number().int().min(1, "Offer price must be a positive amount").optional(),
   enabled: z.boolean().optional(),
   items: z.array(landingPageOfferItemSchema).min(1, "An offer needs at least one item").max(MAX_OFFER_ITEMS).optional(),
@@ -421,9 +425,20 @@ const landingCheckoutSelectionSchema = z.object({
   variantId: z.string().min(1),
 })
 
+const landingProductSelectionSchema = z.object({
+  landingPageProductId: z.string().min(1),
+  productId: z.string().min(1),
+  quantity: z.number().int().min(1).max(20),
+  variantId: z.string().optional(),
+})
+
 export const landingCheckoutSchema = z.object({
-  offerId: z.string().min(1, "Offer is required"),
-  selections: z.array(landingCheckoutSelectionSchema).min(1, "Variant selection is required").max(100),
+  // New product-based checkout: send selectedProductIds, server auto-resolves offer.
+  selectedProductIds: z.array(z.string().min(1)).min(1, "Select at least one product").max(20).optional(),
+  productSelections: z.array(landingProductSelectionSchema).min(1).max(20).optional(),
+  // Legacy offer-based checkout: send offerId + selections (still supported for backward compat).
+  offerId: z.string().optional(),
+  selections: z.array(landingCheckoutSelectionSchema).max(100).optional(),
   customer: z.object({
     name: z.string().trim().min(1, "Name is required").max(100),
     email: z.string().trim().email("Valid email is required").max(255).optional().or(z.literal("")),
@@ -441,15 +456,22 @@ export const landingCheckoutSchema = z.object({
   paymentMethod: z.enum(["cod"]).optional().default("cod"),
   idempotencyKey: z.string().max(128).optional(),
   checkoutVerificationToken: z.string().optional(),
-  // Client-visible amounts echoed back for staleness detection only.
-  // Server values always win; mismatches are rejected, never trusted.
   priceFingerprint: z.object({
     offerPrice: z.number().int(),
     total: z.number().int(),
   }).optional(),
-})
+}).refine(
+  (data) => (data.selectedProductIds && data.selectedProductIds.length > 0) || (data.offerId && data.selections && data.selections.length > 0),
+  { message: "Either selectedProductIds or offerId with selections is required" }
+)
 
 export const landingCheckoutQuoteSchema = z.object({
-  offerId: z.string().min(1, "Offer is required"),
+  // New product-based quote
+  selectedProductIds: z.array(z.string().min(1)).min(1).max(20).optional(),
+  // Legacy offer-based quote
+  offerId: z.string().optional(),
   districtId: z.string().optional().nullable(),
-})
+}).refine(
+  (data) => (data.selectedProductIds && data.selectedProductIds.length > 0) || data.offerId,
+  { message: "Either selectedProductIds or offerId is required" }
+)

@@ -30,11 +30,13 @@ export async function PATCH(
       )
     }
 
-    const { name, badge, offerPrice, enabled, items } = parsed.data
+    const { name, badge, matchType, minQuantity, offerPrice, enabled, items } = parsed.data
 
     // Final item set after this update (provided or currently stored).
     const finalItems = items ?? offer.items.map((i) => ({ landingPageProductId: i.landingPageProductId, quantity: i.quantity }))
     const finalPrice = offerPrice ?? offer.offerPrice
+    const finalMatchType = matchType ?? offer.matchType
+    const finalMinQuantity = matchType === "QUANTITY_TIER" ? minQuantity : (matchType !== undefined ? null : offer.minQuantity)
 
     if (items) {
       const linkIds = items.map((i) => i.landingPageProductId)
@@ -69,6 +71,8 @@ export async function PATCH(
         data: {
           ...(name !== undefined ? { name: name.trim() } : {}),
           ...(badge !== undefined ? { badge: badge?.trim() || null } : {}),
+          ...(matchType !== undefined ? { matchType: finalMatchType } : {}),
+          ...(matchType !== undefined ? { minQuantity: finalMinQuantity } : {}),
           ...(offerPrice !== undefined ? { offerPrice } : {}),
           ...(enabled !== undefined ? { enabled } : {}),
         },

@@ -242,7 +242,7 @@ function OfferManager({ pageId, links }: { pageId: string; links: LandingProduct
                 <OfferForm
                   pageId={pageId}
                   links={links}
-                  initial={{ name: offer.offerName, badge: offer.badge ?? "", offerPrice: offer.offerPrice, enabled: offer.enabled,
+                  initial={{ name: offer.offerName, badge: offer.badge ?? "", offerPrice: offer.offerPrice, enabled: offer.enabled, matchType: offer.matchType, minQuantity: offer.minQuantity,
                     items: offer.items.map((it) => ({ landingPageProductId: it.landingPageProductId, quantity: it.quantity })) }}
                   offerId={offer.offerId}
                   busy={busy}
@@ -293,7 +293,7 @@ function OfferForm({
 }: {
   pageId: string
   links: LandingProductLink[]
-  initial?: { name: string; badge: string; offerPrice: number; enabled: boolean; items: ItemQty[] }
+  initial?: { name: string; badge: string; offerPrice: number; enabled: boolean; matchType?: string; minQuantity?: number | null; items: ItemQty[] }
   offerId?: string
   busy: boolean
   setBusy: (v: boolean) => void
@@ -304,6 +304,8 @@ function OfferForm({
   const [badge, setBadge] = useState(initial?.badge ?? "")
   const [offerPrice, setOfferPrice] = useState(initial ? String(initial.offerPrice) : "")
   const [enabled, setEnabled] = useState(initial?.enabled ?? true)
+  const [matchType, setMatchType] = useState(initial?.matchType ?? "EXACT_COMBINATION")
+  const [minQuantity, setMinQuantity] = useState(initial?.minQuantity ? String(initial.minQuantity) : "")
   const [qtys, setQtys] = useState<Record<string, number>>(() => {
     const map: Record<string, number> = {}
     for (const l of links) map[l.id] = initial?.items.find((i) => i.landingPageProductId === l.id)?.quantity ?? 0
@@ -335,13 +337,26 @@ function OfferForm({
       toast.error("Offer price must be a positive amount")
       return
     }
+    const minQtyNum = minQuantity ? parseInt(minQuantity, 10) : null
+    if (matchType === "QUANTITY_TIER" && (!minQtyNum || minQtyNum < 2)) {
+      toast.error("Minimum quantity must be at least 2 for quantity-tier offers")
+      return
+    }
     setBusy(true)
     try {
       const url = offerId ? `/api/landing-pages/${pageId}/offers/${offerId}` : `/api/landing-pages/${pageId}/offers`
       const res = await fetch(url, {
         method: offerId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), badge: badge.trim() || null, offerPrice: priceNum, enabled, items }),
+        body: JSON.stringify({
+          name: name.trim(),
+          badge: badge.trim() || null,
+          offerPrice: priceNum,
+          enabled,
+          matchType,
+          minQuantity: matchType === "QUANTITY_TIER" ? minQtyNum : null,
+          items,
+        }),
       })
       const data = await res.json()
       if (data.success) {
@@ -371,6 +386,19 @@ function OfferForm({
             <input value={offerPrice} inputMode="numeric" onChange={(e) => setOfferPrice(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2100" className={cn(inputCls, "tabular-nums")} />
           </Field>
         </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Match type" hint="How this offer applies to customer selections">
+          <select value={matchType} onChange={(e) => setMatchType(e.target.value)} className={inputCls}>
+            <option value="EXACT_COMBINATION">Exact combination (specific products + quantities)</option>
+            <option value="QUANTITY_TIER">Quantity tier (any N eligible products)</option>
+          </select>
+        </Field>
+        {matchType === "QUANTITY_TIER" && (
+          <Field label="Minimum quantity" hint="Min products needed to trigger this offer">
+            <input value={minQuantity} inputMode="numeric" onChange={(e) => setMinQuantity(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" min="2" max="20" className={cn(inputCls, "tabular-nums")} />
+          </Field>
+        )}
       </div>
       <div className="space-y-1.5">
         <p className={labelCls}>Products & quantities</p>

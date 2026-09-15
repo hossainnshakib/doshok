@@ -192,6 +192,7 @@ export type CheckoutContent = {
 // ---------------------------------------------------------------------------
 
 export type OfferPricingType = "FIXED"
+export type OfferMatchType = "EXACT_COMBINATION" | "QUANTITY_TIER"
 
 export type VariantOption = {
   id: string
@@ -221,6 +222,8 @@ export type ResolvedOffer = {
   offerName: string
   badge: string | null
   pricingType: OfferPricingType
+  matchType: OfferMatchType
+  minQuantity: number | null
   enabled: boolean
   sortOrder: number
   items: ResolvedOfferItem[]
@@ -230,4 +233,37 @@ export type ResolvedOffer = {
   savingsPercent: number
   valid: boolean
   invalidReason: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Product-based selection types (new commerce model)
+// ---------------------------------------------------------------------------
+
+export type ProductSelection = {
+  landingPageProductId: string
+  productId: string
+  quantity: number
+  variantId?: string
+}
+
+export type ProductSelectionQuote = {
+  selections: ProductSelection[]
+  items: {
+    landingPageProductId: string
+    productId: string
+    productName: string
+    displayName: string
+    image: string | null
+    unitPrice: number
+    quantity: number
+    requiresVariant: boolean
+    variants: VariantOption[]
+  }[]
+  regularTotal: number
+  matchedOffer: ResolvedOffer | null
+  offerPrice: number | null
+  savings: number
+  deliveryFee: number
+  total: number
+  zone: string
 }
