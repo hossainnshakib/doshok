@@ -2,182 +2,183 @@
 
 import Image from "next/image"
 import { Check } from "lucide-react"
-import type { PublicProductLink } from "./landing-sections"
+import type { PublicLandingItem } from "./landing-sections"
 import { useLandingPageState } from "./landing-page-state"
 import { cn } from "@/lib/utils"
-import { useMemo, useCallback } from "react"
-
-// Product selection UI for the new product-driven flow.
-// Customers select products; server auto-resolves the best offer.
-// Includes integrated pricing summary (matching prototype's "Add More & Save").
+import { useMemo, useCallback, useState } from "react"
 
 type ProductSelectorProps = {
-  links: PublicProductLink[]
+  items: PublicLandingItem[]
   heading?: string
   subheading?: string
-  ctaLabel?: string
   showPrice?: boolean
+  onContinue?: () => void
 }
 
-function availableStock(variants: { stock: number; reservedStock: number }[]): number {
-  return variants.reduce((sum, v) => sum + Math.max(0, v.stock - v.reservedStock), 0)
+function availableStock(item: PublicLandingItem): number {
+  const activeVariants = item.variants.filter((v) => v.active)
+  if (activeVariants.length > 0) {
+    return activeVariants.reduce((sum, v) => sum + Math.max(0, v.stock - v.reservedStock), 0)
+  }
+  return Math.max(0, item.stock - item.reservedStock)
 }
 
 export function ProductSelector({
-  links,
-  heading = "Choose Your Products",
+  items,
+  heading = "Add More & Save",
   subheading,
   showPrice = true,
+  onContinue,
 }: ProductSelectorProps) {
-  const { selectedProductIds, toggleProduct, isProductSelected, quote } = useLandingPageState()
-  const active = useMemo(() => links.filter((l) => l.product.status === "Active"), [links])
+  const { selectedItemIds, toggleItem, isItemSelected, quote } = useLandingPageState()
+  const [msg, setMsg] = useState("")
+  const active = useMemo(() => items.filter((i) => i.active), [items])
+  const count = selectedItemIds.length
+  const hasOffer = quote && quote.savings > 0
 
-  // Prevent removing the last selected product
   const handleToggle = useCallback(
     (id: string) => {
-      if (selectedProductIds.includes(id) && selectedProductIds.length === 1) {
-        // Don't allow removing the last product
+      if (selectedItemIds.includes(id) && selectedItemIds.length === 1) {
+        setMsg("Choose at least one item to continue.")
+        setTimeout(() => setMsg(""), 2500)
         return
       }
-      toggleProduct(id)
+      toggleItem(id)
     },
-    [selectedProductIds, toggleProduct]
+    [selectedItemIds, toggleItem]
   )
 
   if (active.length === 0) return null
 
-  const count = selectedProductIds.length
-  const hasOffer = quote && quote.savings > 0
-
   return (
-    <section aria-label={heading} id="lp-products" className="scroll-mt-6">
-      <div className="text-center">
-        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{heading}</h2>
-        {subheading && <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">{subheading}</p>}
-      </div>
+    <section className="bg-stone-50 border-y border-stone-200">
+      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-6 md:py-10">
+        <h2 className="text-lg md:text-xl font-bold text-stone-900 mb-1">
+          {heading}
+        </h2>
+        {subheading && (
+          <p className="text-sm text-stone-500 mb-5">{subheading}</p>
+        )}
 
-      <div className="mt-6 space-y-2">
-        {active.map((lp) => {
-          const p = lp.product
-          const stock = availableStock(p.variants)
-          const selected = isProductSelected(lp.id)
-          const outOfStock = stock <= 0
+        {/* Item rows */}
+        <div className="space-y-2 mb-5">
+          {active.map((item) => {
+            const stock = availableStock(item)
+            const selected = isItemSelected(item.id)
+            const outOfStock = stock <= 0
+            const img = item.displayImage || item.images[0]
 
-          return (
-            <article
-              key={`${p.slug}-${lp.sortOrder}`}
-              onClick={() => !outOfStock && handleToggle(lp.id)}
-              onKeyDown={(e) => {
-                if (e.key === " " || e.key === "Enter") {
-                  e.preventDefault()
-                  if (!outOfStock) handleToggle(lp.id)
-                }
-              }}
-              tabIndex={outOfStock ? undefined : 0}
-              role="checkbox"
-              aria-checked={selected}
-              aria-disabled={outOfStock}
-              className={cn(
-                "relative flex items-center gap-4 py-3 px-3 text-left transition-all rounded-sm",
-                outOfStock
-                  ? "cursor-not-allowed bg-white border border-slate-100 opacity-60"
-                  : "cursor-pointer",
-                selected && !outOfStock
-                  ? "bg-white border border-slate-900/10"
-                  : !outOfStock
-                    ? "bg-white border border-slate-200 hover:border-slate-400"
-                    : "bg-white border border-slate-100"
-              )}
-            >
-              {/* Product image */}
-              {(lp.displayImage || p.images[0]) ? (
-                <Image
-                  src={lp.displayImage || p.images[0]}
-                  alt={lp.displayTitle || p.name}
-                  width={72}
-                  height={72}
-                  className="h-14 w-14 md:h-[4.5rem] md:w-[4.5rem] shrink-0 rounded-sm object-cover"
-                />
-              ) : (
-                <span className="grid h-14 w-14 md:h-[4.5rem] md:w-[4.5rem] shrink-0 place-items-center rounded-sm bg-slate-100 text-lg font-bold text-slate-300" aria-hidden>
-                  D
-                </span>
-              )}
-
-              {/* Product info */}
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm md:text-[15px] font-semibold text-slate-900">{lp.displayTitle?.trim() || p.name}</h3>
-                {showPrice && (
-                  <p className="text-sm font-semibold text-slate-800 mt-0.5">
-                    ৳{p.price.toLocaleString()}
-                  </p>
+            return (
+              <button
+                key={`${item.id}-${item.sortOrder}`}
+                onClick={() => !outOfStock && handleToggle(item.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 md:gap-4 py-3 px-3 text-left transition-all rounded-sm",
+                  selected
+                    ? "bg-white border border-stone-900/10"
+                    : "bg-white border border-stone-200 hover:border-stone-400",
+                  outOfStock && "opacity-50 cursor-not-allowed"
                 )}
-                <span
-                  className={cn(
-                    "text-[11px] font-semibold",
-                    outOfStock ? "text-slate-400" : stock <= 5 ? "text-amber-600" : "text-emerald-600"
+                disabled={outOfStock}
+              >
+                {img ? (
+                  <Image
+                    src={img}
+                    alt={item.displayTitle || item.name}
+                    width={72}
+                    height={72}
+                    className="w-14 h-[4.5rem] md:w-[4.5rem] md:h-[5.5rem] shrink-0 rounded-sm object-cover"
+                  />
+                ) : (
+                  <span className="grid w-14 h-[4.5rem] md:w-[4.5rem] md:h-[5.5rem] shrink-0 place-items-center rounded-sm bg-stone-100 text-sm font-bold text-stone-300">
+                    D
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm md:text-[15px] font-semibold text-stone-900">
+                    {item.displayTitle?.trim() || item.name}
+                  </h3>
+                  {showPrice && (
+                    <p className="text-sm font-semibold text-stone-800 mt-0.5">
+                      ৳{item.price.toLocaleString()}
+                    </p>
                   )}
-                >
-                  {outOfStock ? "Out of stock" : stock <= 5 ? `Only ${stock} left` : ""}
-                </span>
-              </div>
-
-              {/* Add/remove indicator */}
-              {!outOfStock && (
+                  <span className={cn(
+                    "text-[11px] font-medium",
+                    outOfStock ? "text-stone-400" : stock <= 5 ? "text-amber-600" : "text-stone-400"
+                  )}>
+                    {outOfStock ? "Out of stock" : stock <= 5 ? `Only ${stock} left` : "Free Size"}
+                  </span>
+                </div>
                 <span
                   className={cn(
                     "shrink-0 flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-sm transition-all",
                     selected
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-stone-900 text-white"
+                      : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                   )}
                 >
-                  {selected ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Added</> : "+ Add"}
+                  {selected ? (
+                    <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Added</>
+                  ) : (
+                    "+ Add"
+                  )}
                 </span>
-              )}
-            </article>
-          )
-        })}
-      </div>
+              </button>
+            )
+          })}
+        </div>
 
-      {/* Integrated pricing summary */}
-      {count > 0 && (
-        <div className="mt-5 bg-white border border-slate-200 p-4 md:p-5">
+        {msg && <p className="text-sm text-stone-500 mb-3 animate-in fade-in">{msg}</p>}
+
+        {/* Integrated pricing summary */}
+        <div className="bg-white border border-stone-200 p-4 md:p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-slate-700">{count} {count === 1 ? "item" : "items"} selected</span>
+            <span className="text-sm font-medium text-stone-700">
+              {count} {count === 1 ? "item" : "items"} selected
+            </span>
             {hasOffer && (
               <span className="text-[11px] font-semibold tracking-wide text-purple-700">
-                Set price applied
+                {count === 2 ? "2-piece set price applied" : "Best value unlocked"}
               </span>
             )}
             {!hasOffer && count === 1 && active.length > 1 && (
-              <span className="text-[11px] text-slate-400">Add another to unlock set pricing</span>
+              <span className="text-[11px] text-stone-400">Add another to unlock set pricing</span>
             )}
           </div>
 
           {hasOffer ? (
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-500">Regular</span>
-                <span className="text-slate-400 line-through">৳{quote.regularTotal.toLocaleString()}</span>
+                <span className="text-stone-500">Regular</span>
+                <span className="text-stone-400 line-through">৳{quote!.regularTotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-purple-600 font-medium">Set saving</span>
-                <span className="text-purple-600 font-medium">-৳{quote.savings.toLocaleString()}</span>
+                <span className="text-purple-600 font-medium">-৳{quote!.savings.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between font-bold text-base pt-2 border-t border-slate-100">
-                <span className="text-slate-900">Your Total</span>
-                <span className="text-slate-900">৳{quote.offerPrice.toLocaleString()}</span>
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-stone-100">
+                <span className="text-stone-900">Your Total</span>
+                <span className="text-stone-900">৳{quote!.offerPrice.toLocaleString()}</span>
               </div>
             </div>
           ) : (
             <div className="flex justify-between font-bold text-base">
-              <span className="text-slate-900">Your Total</span>
-              <span className="text-slate-900">৳{quote?.regularTotal?.toLocaleString() ?? active[0]?.product.price.toLocaleString() ?? "0"}</span>
+              <span className="text-stone-900">Your Total</span>
+              <span className="text-stone-900">
+                ৳{quote?.regularTotal?.toLocaleString() ?? active[0]?.price.toLocaleString() ?? "0"}
+              </span>
             </div>
           )}
+
+          <button
+            onClick={onContinue}
+            className="w-full mt-4 bg-stone-900 text-white text-sm font-semibold py-3.5 tracking-wider uppercase hover:bg-stone-800 transition-colors"
+          >
+            Continue to Order
+          </button>
         </div>
-      )}
+      </div>
     </section>
   )
 }

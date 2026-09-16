@@ -19,13 +19,6 @@ function getTrakonCredentials() {
   }
 }
 
-function getGa4Credentials() {
-  const ga4_measurement_id = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID
-  const ga4_api_secret = process.env.NEXT_PUBLIC_GA4_API_SECRET
-  if (!ga4_measurement_id || !ga4_api_secret) return {}
-  return { ga4_measurement_id, ga4_api_secret }
-}
-
 function getGa4ClientId(): string | undefined {
   if (typeof window === "undefined") return
   let id = localStorage.getItem("ga4_client_id")
@@ -39,10 +32,12 @@ function getGa4ClientId(): string | undefined {
 export async function trackEvent(event_name: string, eventData: TrakonEventData = {}) {
   try {
     if (typeof window !== "undefined") {
+      // Client-side: send ONLY non-secret analytics data.
+      // GA4 API secret is read server-side in /api/trakon.
       await fetch(DEFAULT_CLIENT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_name, ...eventData, ...getGa4Credentials(), ga4_client_id: getGa4ClientId() }),
+        body: JSON.stringify({ event_name, ...eventData, ga4_client_id: getGa4ClientId() }),
         keepalive: true,
       })
       return
@@ -53,9 +48,12 @@ export async function trackEvent(event_name: string, eventData: TrakonEventData 
 
     if (!server || !credentials.pixel_id || !credentials.access_token) return
 
+    const ga4_measurement_id = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID
+    const ga4_api_secret = process.env.GA4_API_SECRET
+
     const payload: TrakonPayload = {
       ...eventData,
-      ...getGa4Credentials(),
+      ...(ga4_measurement_id && ga4_api_secret ? { ga4_measurement_id, ga4_api_secret } : {}),
       pixel_id: credentials.pixel_id,
       access_token: credentials.access_token,
       event_name,

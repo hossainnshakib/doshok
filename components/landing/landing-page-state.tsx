@@ -3,27 +3,24 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react"
 import type { ResolvedOffer } from "@/lib/landing-pages/types"
 
-// Landing-page-scoped checkout state. Product-driven: customers select
-// products, server auto-resolves the best offer.
-//
-// This replaces the old offer-driven state where customers manually
-// selected an offer first.
+// Landing-page-scoped checkout state. Item-driven: customers select
+// items, server auto-resolves the best offer.
 
 type VariantPick = { variantId: string; size: string; color: string }
 
 type LandingPageState = {
-  // Product selection
-  selectedProductIds: string[]
-  toggleProduct: (landingPageProductId: string) => void
-  selectProduct: (landingPageProductId: string) => void
-  deselectProduct: (landingPageProductId: string) => void
-  isProductSelected: (landingPageProductId: string) => boolean
-  clearProducts: () => void
+  // Item selection
+  selectedItemIds: string[]
+  toggleItem: (landingPageItemId: string) => void
+  selectItem: (landingPageItemId: string) => void
+  deselectItem: (landingPageItemId: string) => void
+  isItemSelected: (landingPageItemId: string) => boolean
+  clearItems: () => void
 
-  // Variant picks for products that require variants
+  // Variant picks for items that require variants
   variantPicks: Record<string, VariantPick>
-  setVariantPick: (landingPageProductId: string, pick: VariantPick) => void
-  clearVariantPick: (landingPageProductId: string) => void
+  setVariantPick: (landingPageItemId: string, pick: VariantPick) => void
+  clearVariantPick: (landingPageItemId: string) => void
 
   // Auto-resolved offer (server-computed, read-only)
   matchedOffer: ResolvedOffer | null
@@ -53,62 +50,73 @@ export function useLandingPageState(): LandingPageState {
 }
 
 export function LandingPageProvider({
-  defaultProductIds,
+  defaultItemIds,
   children,
 }: {
-  defaultProductIds?: string[]
+  defaultItemIds?: string[]
   children: React.ReactNode
 }) {
-  const initialProductIds = useMemo(
-    () => (defaultProductIds && defaultProductIds.length > 0 ? [defaultProductIds[0]] : []),
+  const initialItemIds = useMemo(
+    () => (defaultItemIds && defaultItemIds.length > 0 ? [defaultItemIds[0]] : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [] // Only compute once on mount
   )
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>(initialProductIds)
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>(initialItemIds)
   const [variantPicks, setVariantPicksState] = useState<Record<string, VariantPick>>({})
   const [matchedOffer, setMatchedOffer] = useState<ResolvedOffer | null>(null)
   const [quote, setQuote] = useState<LandingPageState["quote"]>(null)
 
-  const toggleProduct = useCallback((id: string) => {
-    setSelectedProductIds((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    )
+  const toggleItem = useCallback((id: string) => {
+    setSelectedItemIds((prev) => {
+      const removing = prev.includes(id)
+      if (removing) {
+        // Clear variant pick for deselected item
+        setVariantPicksState((prevPicks) => {
+          if (!prevPicks[id]) return prevPicks
+          const nextPicks = { ...prevPicks }
+          delete nextPicks[id]
+          return nextPicks
+        })
+        return prev.filter((p) => p !== id)
+      }
+      return [...prev, id]
+    })
   }, [])
 
-  const selectProduct = useCallback((id: string) => {
-    setSelectedProductIds((prev) =>
+  const selectItem = useCallback((id: string) => {
+    setSelectedItemIds((prev) =>
       prev.includes(id) ? prev : [...prev, id]
     )
   }, [])
 
-  const deselectProduct = useCallback((id: string) => {
-    setSelectedProductIds((prev) => prev.filter((p) => p !== id))
+  const deselectItem = useCallback((id: string) => {
+    setSelectedItemIds((prev) => prev.filter((p) => p !== id))
   }, [])
 
-  const isProductSelected = useCallback(
-    (id: string) => selectedProductIds.includes(id),
-    [selectedProductIds]
+  const isItemSelected = useCallback(
+    (id: string) => selectedItemIds.includes(id),
+    [selectedItemIds]
   )
 
-  const clearProducts = useCallback(() => {
-    setSelectedProductIds([])
+  const clearItems = useCallback(() => {
+    setSelectedItemIds([])
     setVariantPicksState({})
   }, [])
 
-  const setVariantPick = useCallback((landingPageProductId: string, pick: VariantPick) => {
-    setVariantPicksState((prev) => ({ ...prev, [landingPageProductId]: pick }))
+  const setVariantPick = useCallback((landingPageItemId: string, pick: VariantPick) => {
+    setVariantPicksState((prev) => ({ ...prev, [landingPageItemId]: pick }))
   }, [])
 
-  const clearVariantPick = useCallback((landingPageProductId: string) => {
+  const clearVariantPick = useCallback((landingPageItemId: string) => {
     setVariantPicksState((prev) => {
       const next = { ...prev }
-      delete next[landingPageProductId]
+      delete next[landingPageItemId]
       return next
     })
   }, [])
 
   const resetAll = useCallback(() => {
-    setSelectedProductIds([])
+    setSelectedItemIds([])
     setVariantPicksState({})
     setMatchedOffer(null)
     setQuote(null)
@@ -116,12 +124,12 @@ export function LandingPageProvider({
 
   const value = useMemo(
     () => ({
-      selectedProductIds,
-      toggleProduct,
-      selectProduct,
-      deselectProduct,
-      isProductSelected,
-      clearProducts,
+      selectedItemIds,
+      toggleItem,
+      selectItem,
+      deselectItem,
+      isItemSelected,
+      clearItems,
       variantPicks,
       setVariantPick,
       clearVariantPick,
@@ -132,12 +140,12 @@ export function LandingPageProvider({
       resetAll,
     }),
     [
-      selectedProductIds,
-      toggleProduct,
-      selectProduct,
-      deselectProduct,
-      isProductSelected,
-      clearProducts,
+      selectedItemIds,
+      toggleItem,
+      selectItem,
+      deselectItem,
+      isItemSelected,
+      clearItems,
       variantPicks,
       setVariantPick,
       clearVariantPick,

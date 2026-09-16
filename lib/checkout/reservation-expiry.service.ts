@@ -29,8 +29,8 @@ export async function releaseExpiredReservations(): Promise<ReleaseResult> {
     },
     include: {
       items: {
-        where: { variantId: { not: null } },
-        select: { id: true, variantId: true, productId: true, quantity: true },
+        where: { OR: [{ variantId: { not: null } }, { landingPageItemId: { not: null } }] },
+        select: { id: true, variantId: true, productId: true, quantity: true, landingPageItemId: true, landingPageItemVariantId: true },
       },
     },
   })
@@ -64,8 +64,8 @@ export async function releaseExpiredReservationByOrderId(orderId: string): Promi
     where: { id: orderId },
     include: {
       items: {
-        where: { variantId: { not: null } },
-        select: { id: true, variantId: true, productId: true, quantity: true },
+        where: { OR: [{ variantId: { not: null } }, { landingPageItemId: { not: null } }] },
+        select: { id: true, variantId: true, productId: true, quantity: true, landingPageItemId: true, landingPageItemVariantId: true },
       },
     },
   })
@@ -104,7 +104,37 @@ export async function releaseExpiredReservationByOrderId(orderId: string): Promi
     if (alreadyExpiredRecheck) return
 
     for (const item of order.items) {
-      if (!item.variantId) continue
+      if (item.landingPageItemId) {
+        if (item.landingPageItemVariantId) {
+          const variant = await tx.landingPageItemVariant.findUnique({ where: { id: item.landingPageItemVariantId } })
+          if (!variant) continue
+
+          const result = await tx.$executeRaw`
+            UPDATE "LandingPageItemVariant"
+            SET "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+            WHERE id = ${item.landingPageItemVariantId}
+              AND "reservedStock" >= ${item.quantity}
+          `
+
+          if (result === 0) continue
+        } else {
+          const landingItem = await tx.landingPageItem.findUnique({ where: { id: item.landingPageItemId } })
+          if (!landingItem) continue
+
+          const result = await tx.$executeRaw`
+            UPDATE "LandingPageItem"
+            SET "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+            WHERE id = ${item.landingPageItemId}
+              AND "reservedStock" >= ${item.quantity}
+          `
+
+          if (result === 0) continue
+        }
+
+        continue
+      }
+
+      if (!item.variantId || !item.productId) continue
 
       const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
       if (!variant) continue

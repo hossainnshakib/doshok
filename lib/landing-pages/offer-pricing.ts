@@ -14,20 +14,25 @@ type OfferWithRelations = {
   sortOrder: number
   items: {
     quantity: number
-    landingPageProductId: string
-    landingPageProduct: {
+    landingPageItemId: string
+    landingPageItem: {
       id: string
-      displayTitle: string | null
-      displayImage: string | null
-      product: {
+      name: string
+      description: string | null
+      price: number
+      images: string[]
+      active: boolean
+      stock: number
+      reservedStock: number
+      variants: {
         id: string
-        name: string
-        slug: string
-        images: string[]
-        price: number
-        status: string
-        variants: { id: string; size: string; color: string; stock: number; reservedStock: number }[]
-      } | null
+        size: string | null
+        color: string | null
+        colorHex: string | null
+        stock: number
+        reservedStock: number
+        active: boolean
+      }[]
     } | null
   }[]
 }
@@ -38,33 +43,30 @@ function resolveOne(offer: OfferWithRelations): ResolvedOffer {
   let hasInactive = false
 
   for (const item of offer.items) {
-    const link = item.landingPageProduct
-    const product = link?.product
-    // Orphan rows are skipped (FK + cascade hygiene); inactive products are
-    // kept visible so the offer is marked unavailable instead of silently
-    // shrinking to a misleading smaller bundle at the same price.
-    if (!link || !product) continue
-    if (product.status !== "Active") hasInactive = true
-    // overridePrice is deliberately ignored: checkout can only honor the
-    // real Product price, so regular totals must derive from it.
-    const unitPrice = product.price
-    const available = product.variants.reduce((sum, v) => sum + Math.max(0, v.stock - v.reservedStock), 0)
+    const link = item.landingPageItem
+    if (!link) continue
+    if (!link.active) hasInactive = true
+    const unitPrice = link.price
+    const activeVariants = link.variants.filter((v) => v.active)
+    const available =
+      activeVariants.length > 0
+        ? activeVariants.reduce((sum, v) => sum + Math.max(0, v.stock - v.reservedStock), 0)
+        : Math.max(0, link.stock - link.reservedStock)
     items.push({
-      landingPageProductId: link.id,
-      productId: product.id,
-      productSlug: product.slug,
-      productName: product.name,
-      displayName: link.displayTitle?.trim() || product.name,
-      image: link.displayImage || product.images[0] || null,
+      landingPageItemId: link.id,
+      itemName: link.name,
+      displayName: link.name,
+      image: link.images[0] || null,
       quantity: item.quantity,
       unitPrice,
       lineRegularTotal: unitPrice * item.quantity,
       available,
-      requiresVariant: product.variants.length > 0,
-      variants: product.variants.map((v) => ({
-        id: v.id,
-        size: v.size,
-        color: v.color,
+      requiresVariant: activeVariants.length > 0,
+      variants: activeVariants.map((v) => ({
+        variantId: v.id,
+        size: v.size ?? "",
+        color: v.color ?? "",
+        colorHex: v.colorHex ?? undefined,
         available: Math.max(0, v.stock - v.reservedStock),
       })),
     })
@@ -77,18 +79,14 @@ function resolveOne(offer: OfferWithRelations): ResolvedOffer {
   if (!offer.enabled) {
     invalidReason = "Offer is disabled"
   } else if (hasInactive) {
-    invalidReason = "Contains a product that is no longer available"
+    invalidReason = "Contains an item that is no longer available"
   } else if (items.length === 0) {
     invalidReason = "Offer has no items"
   } else {
     const bad = items.find((i) => i.quantity > i.available)
-    // Aggregate stock is an upper bound: exceeding it can never be fulfilled.
-    // Variant-mix exactness is validated at Batch 4 checkout.
     if (bad) invalidReason = `Only ${bad.available} available for ${bad.displayName}`
   }
 
-  // Non-Active products invalidate the offer (see above) instead of being
-  // silently dropped, so a bundle can never shrink without its price changing.
   return {
     offerId: offer.id,
     landingPageId: offer.landingPageId,
@@ -113,17 +111,27 @@ const OFFER_INCLUDE = {
   items: {
     orderBy: { createdAt: "asc" as const },
     include: {
-      landingPageProduct: {
-        include: {
-          product: {
+      landingPageItem: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          images: true,
+          active: true,
+          stock: true,
+          reservedStock: true,
+          variants: {
+            where: { active: true },
+            orderBy: { sortOrder: "asc" as const },
             select: {
               id: true,
-              name: true,
-              slug: true,
-              images: true,
-              price: true,
-              status: true,
-              variants: { select: { id: true, size: true, color: true, stock: true, reservedStock: true } },
+              size: true,
+              color: true,
+              colorHex: true,
+              stock: true,
+              reservedStock: true,
+              active: true,
             },
           },
         },
@@ -135,7 +143,7 @@ const OFFER_INCLUDE = {
 /**
  * Server-authoritative offer resolution for Batch 4 checkout.
  * Never trusts client prices: regular totals always derive from live
- * Product.price. Returns null when the offer doesn't belong to the page.
+ * LandingPageItem.price. Returns null when the offer doesn't belong to the page.
  */
 export async function resolveLandingOffer(
   landingPageId: string,
@@ -160,69 +168,67 @@ export async function resolveLandingOffers(landingPageId: string): Promise<Resol
 }
 
 /**
- * Live regular total for a set of {landingPageProductId, quantity} pairs.
+ * Live regular total for a set of {landingPageItemId, quantity} pairs.
  * Used by offer write endpoints to validate offerPrice against current
- * real prices. Returns null when any link is missing/inactive.
+ * real prices. Returns null when any item is missing/inactive.
  */
 export async function computeRegularTotal(
   landingPageId: string,
-  items: { landingPageProductId: string; quantity: number }[]
+  items: { landingPageItemId: string; quantity: number }[]
 ): Promise<number | null> {
   if (items.length === 0) return null
-  const links = await prisma.landingPageProduct.findMany({
-    where: { landingPageId, id: { in: items.map((i) => i.landingPageProductId) } },
-    select: { id: true, product: { select: { price: true, status: true } } },
+  const itemIds = items.map((i) => i.landingPageItemId)
+  const landingItems = await prisma.landingPageItem.findMany({
+    where: { id: { in: itemIds }, landingPageId },
+    select: { id: true, price: true, active: true },
   })
-  if (links.length !== items.length) return null
+  if (landingItems.length !== items.length) return null
   let total = 0
   for (const item of items) {
-    const link = links.find((l) => l.id === item.landingPageProductId)
-    if (!link?.product || link.product.status !== "Active") return null
-    total += link.product.price * item.quantity
+    const li = landingItems.find((l) => l.id === item.landingPageItemId)
+    if (!li || !li.active) return null
+    total += li.price * item.quantity
   }
   return total
 }
 
 /**
- * Resolve live prices for a set of selected landing page product IDs.
+ * Resolve live prices for a set of selected landing page item IDs.
  * Returns the regular total and per-item details for product-based checkout.
  */
-export async function resolveLandingProductPrices(
+export async function resolveLandingItemPrices(
   landingPageId: string,
-  selectedLandingPageProductIds: string[]
-): Promise<{ regularTotal: number; items: { landingPageProductId: string; productId: string; price: number }[] } | null> {
-  if (selectedLandingPageProductIds.length === 0) return null
-  const links = await prisma.landingPageProduct.findMany({
-    where: { landingPageId, id: { in: selectedLandingPageProductIds } },
-    select: {
-      id: true,
-      product: { select: { id: true, price: true, status: true } },
-    },
+  selectedLandingPageItemIds: string[]
+): Promise<{ regularTotal: number; items: { landingPageItemId: string; price: number }[] } | null> {
+  if (selectedLandingPageItemIds.length === 0) return null
+  const landingItems = await prisma.landingPageItem.findMany({
+    where: { id: { in: selectedLandingPageItemIds }, landingPageId },
+    select: { id: true, price: true, active: true },
   })
-  if (links.length !== selectedLandingPageProductIds.length) return null
+  if (landingItems.length !== selectedLandingPageItemIds.length) return null
   let regularTotal = 0
-  const items: { landingPageProductId: string; productId: string; price: number }[] = []
-  for (const link of links) {
-    if (!link.product || link.product.status !== "Active") return null
-    regularTotal += link.product.price
-    items.push({ landingPageProductId: link.id, productId: link.product.id, price: link.product.price })
+  const items: { landingPageItemId: string; price: number }[] = []
+  for (const li of landingItems) {
+    if (!li.active) return null
+    regularTotal += li.price
+    items.push({ landingPageItemId: li.id, price: li.price })
   }
   return { regularTotal, items }
 }
 
 /**
  * Automatic offer resolution for product-based selection.
- * Given a set of selected landing page product IDs, finds the best (lowest price)
+ * Given a set of selected landing page item IDs, finds the best (lowest price)
  * valid offer that matches the selection. Returns null if no offer applies.
  *
- * EXACT_COMBINATION: offer items must exactly match the selection (same products, same quantities).
- * QUANTITY_TIER: selected products must be eligible and total quantity >= minQuantity.
+ * EXACT_COMBINATION: offer items must exactly match the selection (same items, same quantities).
+ * QUANTITY_TIER: selected items must be eligible and total quantity >= minQuantity.
  */
 export async function resolveBestOfferForSelection(
   landingPageId: string,
-  selectedLandingPageProductIds: string[]
+  selectedLandingPageItemIds: string[]
 ): Promise<ResolvedOffer | null> {
-  if (selectedLandingPageProductIds.length === 0) return null
+  if (selectedLandingPageItemIds.length === 0) return null
 
   const offers = await resolveLandingOffers(landingPageId)
   const eligible: ResolvedOffer[] = []
@@ -231,30 +237,25 @@ export async function resolveBestOfferForSelection(
     if (!offer.valid) continue
 
     if (offer.matchType === "QUANTITY_TIER") {
-      // QUANTITY_TIER: all selected products must be in the offer's eligible items,
-      // and total quantity must meet minQuantity.
-      const eligibleProductIds = new Set(offer.items.map((i) => i.landingPageProductId))
-      const allEligible = selectedLandingPageProductIds.every((id) => eligibleProductIds.has(id))
+      const eligibleItemIds = new Set(offer.items.map((i) => i.landingPageItemId))
+      const allEligible = selectedLandingPageItemIds.every((id) => eligibleItemIds.has(id))
       if (!allEligible) continue
-      if (offer.minQuantity && selectedLandingPageProductIds.length < offer.minQuantity) continue
+      if (offer.minQuantity && selectedLandingPageItemIds.length < offer.minQuantity) continue
       eligible.push(offer)
     } else {
-      // EXACT_COMBINATION: offer items must exactly match the selection.
-      // Build expected product list from offer items.
       const expected: string[] = []
       for (const item of offer.items) {
         for (let i = 0; i < item.quantity; i++) {
-          expected.push(item.landingPageProductId)
+          expected.push(item.landingPageItemId)
         }
       }
       const sortedExpected = [...expected].sort()
-      const sortedSelected = [...selectedLandingPageProductIds].sort()
+      const sortedSelected = [...selectedLandingPageItemIds].sort()
       if (JSON.stringify(sortedExpected) !== JSON.stringify(sortedSelected)) continue
       eligible.push(offer)
     }
   }
 
-  // Return the valid offer with the lowest price (best deal for customer).
   if (eligible.length === 0) return null
   eligible.sort((a, b) => a.offerPrice - b.offerPrice)
   return eligible[0]

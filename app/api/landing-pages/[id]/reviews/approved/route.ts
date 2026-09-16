@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAdminPermission } from "@/lib/auth/admin"
 
-// Approved product reviews for this page's linked products — the only pool
-// admins may reference from a REVIEWS section. Unapproved reviews are never
-// exposed here and can never be selected or rendered.
+// Approved product reviews for products that were imported into this page's items.
+// Only products referenced via importedFromProductId are included.
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,13 +15,16 @@ export async function GET(
     const { id } = await params
     const page = await prisma.landingPage.findUnique({
       where: { id },
-      select: { id: true, products: { select: { productId: true } } },
+      select: { id: true, items: { select: { importedFromProductId: true } } },
     })
     if (!page) {
       return NextResponse.json({ success: false, error: "Landing page not found" }, { status: 404 })
     }
 
-    const productIds = page.products.map((p) => p.productId)
+    const productIds = page.items
+      .map((item) => item.importedFromProductId)
+      .filter((pid): pid is string => pid !== null)
+
     if (productIds.length === 0) {
       return NextResponse.json({ success: true, data: [] })
     }

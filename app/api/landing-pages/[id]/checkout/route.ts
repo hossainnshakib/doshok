@@ -29,12 +29,8 @@ export async function POST(
     try {
       result = await createLandingPageOrder({
         landingPageId: id,
-        // New product-based flow
-        selectedProductIds: parsed.data.selectedProductIds,
-        productSelections: parsed.data.productSelections,
-        // Legacy offer-based flow
-        offerId: parsed.data.offerId,
-        selections: parsed.data.selections,
+        selectedItemIds: parsed.data.selectedItemIds,
+        itemSelections: parsed.data.itemSelections,
         customer: {
           name: parsed.data.customer.name,
           email: parsed.data.customer.email || undefined,

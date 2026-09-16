@@ -120,7 +120,7 @@ async function getHomepageData() {
               take: maxBestProducts,
             })
             if (orderProducts.length > 0) {
-              const productIds = orderProducts.map((op) => op.productId)
+              const productIds = orderProducts.map((op) => op.productId).filter((id): id is string => id !== null)
               const products = await prisma.product.findMany({
                 where: { id: { in: productIds }, status: "Active" },
                 include: { variants: true, category: true },

@@ -8,7 +8,7 @@ import { ArrowDown, ArrowUp, Minus, Pencil, Plus, Trash2 } from "lucide-react"
 import type { OffersContent } from "@/lib/landing-pages/types"
 import { OFFERS_LAYOUTS } from "@/lib/landing-pages/section-schemas"
 import type { ResolvedOffer } from "@/lib/landing-pages/types"
-import type { LandingProductLink } from "./landing-sections-panel"
+import type { LandingPageItem } from "./landing-sections-panel"
 import { cn } from "@/lib/utils"
 
 const inputCls =
@@ -32,13 +32,13 @@ function Field({ label, children, hint }: { label: string; children: React.React
 export function OffersEditor({
   initial,
   pageId,
-  links,
+  items,
   onSave,
   saving,
 }: {
   initial: OffersContent
   pageId: string
-  links: LandingProductLink[]
+  items: LandingPageItem[]
   onSave: (content: OffersContent) => void
   saving: boolean
 }) {
@@ -84,7 +84,7 @@ export function OffersEditor({
         {saving ? "Saving..." : "Save Offers Display"}
       </Button>
 
-      <OfferManager pageId={pageId} links={links} />
+      <OfferManager pageId={pageId} items={items} />
     </div>
   )
 }
@@ -93,9 +93,9 @@ export function OffersEditor({
 // Offer CRUD
 // ---------------------------------------------------------------------------
 
-type ItemQty = { landingPageProductId: string; quantity: number }
+type ItemQty = { landingPageItemId: string; quantity: number }
 
-function OfferManager({ pageId, links }: { pageId: string; links: LandingProductLink[] }) {
+function OfferManager({ pageId, items }: { pageId: string; items: LandingPageItem[] }) {
   const [offers, setOffers] = useState<ResolvedOffer[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -195,7 +195,7 @@ function OfferManager({ pageId, links }: { pageId: string; links: LandingProduct
     <div className="rounded-xl border border-slate-200/70 p-4">
       <p className="text-sm font-semibold text-slate-800">Offers ({offers.length})</p>
       <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-        Fixed campaign prices. Regular totals and savings are recalculated server-side from live product prices.
+        Fixed campaign prices. Regular totals and savings are recalculated server-side from live item prices.
       </p>
       <div className="mt-3 space-y-2">
         {offers.length === 0 && <p className="text-xs text-slate-400">No offers yet. Create the first bundle below.</p>}
@@ -241,9 +241,9 @@ function OfferManager({ pageId, links }: { pageId: string; links: LandingProduct
               <div className="border-t border-slate-100 p-3">
                 <OfferForm
                   pageId={pageId}
-                  links={links}
+                  items={items}
                   initial={{ name: offer.offerName, badge: offer.badge ?? "", offerPrice: offer.offerPrice, enabled: offer.enabled, matchType: offer.matchType, minQuantity: offer.minQuantity,
-                    items: offer.items.map((it) => ({ landingPageProductId: it.landingPageProductId, quantity: it.quantity })) }}
+                    items: offer.items.map((it) => ({ landingPageItemId: it.landingPageItemId, quantity: it.quantity })) }}
                   offerId={offer.offerId}
                   busy={busy}
                   setBusy={setBusy}
@@ -255,14 +255,14 @@ function OfferManager({ pageId, links }: { pageId: string; links: LandingProduct
         ))}
       </div>
       {!creating ? (
-        <Button type="button" variant="outline" size="sm" className="mt-3 rounded-lg" disabled={busy || links.length === 0} onClick={() => setCreating(true)}>
+        <Button type="button" variant="outline" size="sm" className="mt-3 rounded-lg" disabled={busy || items.length === 0} onClick={() => setCreating(true)}>
           <Plus className="h-3.5 w-3.5 mr-1" /> New offer
         </Button>
       ) : (
         <div className="mt-3 rounded-lg border border-slate-200 p-3">
           <OfferForm
             pageId={pageId}
-            links={links}
+            items={items}
             busy={busy}
             setBusy={setBusy}
             onSaved={() => { setCreating(false); reload() }}
@@ -270,8 +270,8 @@ function OfferManager({ pageId, links }: { pageId: string; links: LandingProduct
           />
         </div>
       )}
-      {links.length === 0 && (
-        <p className="mt-2 text-[11px] text-amber-600">Link at least one product (Products section) before creating offers.</p>
+      {items.length === 0 && (
+        <p className="mt-2 text-[11px] text-amber-600">Add at least one landing item before creating offers.</p>
       )}
     </div>
   )
@@ -283,7 +283,7 @@ function OfferManager({ pageId, links }: { pageId: string; links: LandingProduct
 
 function OfferForm({
   pageId,
-  links,
+  items,
   initial,
   offerId,
   busy,
@@ -292,7 +292,7 @@ function OfferForm({
   onCancel,
 }: {
   pageId: string
-  links: LandingProductLink[]
+  items: LandingPageItem[]
   initial?: { name: string; badge: string; offerPrice: number; enabled: boolean; matchType?: string; minQuantity?: number | null; items: ItemQty[] }
   offerId?: string
   busy: boolean
@@ -308,29 +308,29 @@ function OfferForm({
   const [minQuantity, setMinQuantity] = useState(initial?.minQuantity ? String(initial.minQuantity) : "")
   const [qtys, setQtys] = useState<Record<string, number>>(() => {
     const map: Record<string, number> = {}
-    for (const l of links) map[l.id] = initial?.items.find((i) => i.landingPageProductId === l.id)?.quantity ?? 0
+    for (const item of items) map[item.id] = initial?.items.find((i) => i.landingPageItemId === item.id)?.quantity ?? 0
     return map
   })
 
   // Display-only live estimate (server recalculates authoritatively on save).
-  const regularTotal = links.reduce((sum, l) => sum + l.product.price * (qtys[l.id] ?? 0), 0)
+  const regularTotal = items.reduce((sum, item) => sum + item.price * (qtys[item.id] ?? 0), 0)
   const priceNum = parseInt(offerPrice, 10)
   const savings = !Number.isNaN(priceNum) ? Math.max(0, regularTotal - priceNum) : 0
 
-  function bump(linkId: string, dir: 1 | -1) {
-    setQtys((q) => ({ ...q, [linkId]: Math.min(20, Math.max(0, (q[linkId] ?? 0) + dir)) }))
+  function bump(itemId: string, dir: 1 | -1) {
+    setQtys((q) => ({ ...q, [itemId]: Math.min(20, Math.max(0, (q[itemId] ?? 0) + dir)) }))
   }
 
   async function handleSave() {
-    const items = Object.entries(qtys)
+    const offerItems = Object.entries(qtys)
       .filter(([, q]) => q > 0)
-      .map(([landingPageProductId, quantity]) => ({ landingPageProductId, quantity }))
+      .map(([landingPageItemId, quantity]) => ({ landingPageItemId, quantity }))
     if (!name.trim()) {
       toast.error("Offer name is required")
       return
     }
-    if (items.length === 0) {
-      toast.error("Select at least one product with quantity")
+    if (offerItems.length === 0) {
+      toast.error("Select at least one item with quantity")
       return
     }
     if (Number.isNaN(priceNum) || priceNum < 1) {
@@ -341,6 +341,13 @@ function OfferForm({
     if (matchType === "QUANTITY_TIER" && (!minQtyNum || minQtyNum < 2)) {
       toast.error("Minimum quantity must be at least 2 for quantity-tier offers")
       return
+    }
+    if (matchType === "QUANTITY_TIER" && minQtyNum) {
+      const totalQty = offerItems.reduce((sum, it) => sum + it.quantity, 0)
+      if (totalQty < minQtyNum) {
+        toast.error(`Add at least ${minQtyNum} total items to create a quantity-tier offer. Currently: ${totalQty}`)
+        return
+      }
     }
     setBusy(true)
     try {
@@ -355,7 +362,7 @@ function OfferForm({
           enabled,
           matchType,
           minQuantity: matchType === "QUANTITY_TIER" ? minQtyNum : null,
-          items,
+          items: offerItems,
         }),
       })
       const data = await res.json()
@@ -390,30 +397,35 @@ function OfferForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Match type" hint="How this offer applies to customer selections">
           <select value={matchType} onChange={(e) => setMatchType(e.target.value)} className={inputCls}>
-            <option value="EXACT_COMBINATION">Exact combination (specific products + quantities)</option>
-            <option value="QUANTITY_TIER">Quantity tier (any N eligible products)</option>
+            <option value="EXACT_COMBINATION">Exact combination (specific items + quantities)</option>
+            <option value="QUANTITY_TIER">Quantity tier (any N eligible items)</option>
           </select>
         </Field>
         {matchType === "QUANTITY_TIER" && (
-          <Field label="Minimum quantity" hint="Min products needed to trigger this offer">
+          <Field label="Minimum quantity" hint="Min items needed to trigger this offer">
             <input value={minQuantity} inputMode="numeric" onChange={(e) => setMinQuantity(e.target.value.replace(/[^0-9]/g, ""))} placeholder="2" min="2" max="20" className={cn(inputCls, "tabular-nums")} />
           </Field>
         )}
       </div>
+      {matchType === "QUANTITY_TIER" && minQuantity && parseInt(minQuantity, 10) > items.length && (
+        <p className="text-[11px] text-amber-600">
+          Add at least {parseInt(minQuantity, 10) - items.length} more {parseInt(minQuantity, 10) - items.length === 1 ? "item" : "items"} to create a Buy Any {minQuantity} offer.
+        </p>
+      )}
       <div className="space-y-1.5">
-        <p className={labelCls}>Products & quantities</p>
-        {links.map((l) => (
-          <div key={l.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-1.5">
+        <p className={labelCls}>Items & quantities</p>
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-1.5">
             <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700">
-              {l.displayTitle || l.product.name}
-              <span className="ml-1.5 font-normal text-slate-400 tabular-nums">৳{l.product.price.toLocaleString()} each</span>
+              {item.name}
+              <span className="ml-1.5 font-normal text-slate-400 tabular-nums">৳{item.price.toLocaleString()} each</span>
             </span>
             <div className="flex shrink-0 items-center gap-1">
-              <button type="button" onClick={() => bump(l.id, -1)} disabled={(qtys[l.id] ?? 0) === 0} className="grid h-6 w-6 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30" aria-label={`Decrease quantity for ${l.product.name}`}>
+              <button type="button" onClick={() => bump(item.id, -1)} disabled={(qtys[item.id] ?? 0) === 0} className="grid h-6 w-6 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30" aria-label={`Decrease quantity for ${item.name}`}>
                 <Minus className="h-3 w-3" />
               </button>
-              <span className="w-6 text-center text-xs font-bold tabular-nums" aria-live="polite">{qtys[l.id] ?? 0}</span>
-              <button type="button" onClick={() => bump(l.id, 1)} disabled={(qtys[l.id] ?? 0) >= 20} className="grid h-6 w-6 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30" aria-label={`Increase quantity for ${l.product.name}`}>
+              <span className="w-6 text-center text-xs font-bold tabular-nums" aria-live="polite">{qtys[item.id] ?? 0}</span>
+              <button type="button" onClick={() => bump(item.id, 1)} disabled={(qtys[item.id] ?? 0) >= 20} className="grid h-6 w-6 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30" aria-label={`Increase quantity for ${item.name}`}>
                 <Plus className="h-3 w-3" />
               </button>
             </div>

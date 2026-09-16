@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
         take: limitParam,
         include: {
           sourceProduct: { select: { id: true, name: true, slug: true, images: true } },
-          products: { include: { product: { select: { id: true, name: true, slug: true, images: true } } } },
-          _count: { select: { sections: true, products: true } },
+          items: { orderBy: { sortOrder: "asc" } },
+          _count: { select: { sections: true, items: true } },
         },
       }),
       prisma.landingPage.count({ where }),
@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
     let prefilledData: Record<string, unknown> = {}
     let heroContent: Prisma.InputJsonValue =
       heroPrefillFromProduct({ name: title }) as unknown as Prisma.InputJsonValue
+    let importedProduct: { name: string; description: string | null; shortDescription: string | null; images: string[]; price: number; oldPrice: number | null } | null = null
 
     if (creationMode === "existing_product" && sourceProductId) {
       const product = await prisma.product.findUnique({
@@ -104,6 +105,8 @@ export async function POST(req: NextRequest) {
           description: true,
           shortDescription: true,
           images: true,
+          price: true,
+          oldPrice: true,
           seoTitle: true,
           seoDescription: true,
           seoImage: true,
@@ -114,6 +117,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: "Source product not found" }, { status: 404 })
       }
 
+      importedProduct = product
+
       prefilledData = {
         seoTitle: product.seoTitle || product.name,
         seoDescription: product.seoDescription || product.shortDescription || product.description || undefined,
@@ -122,7 +127,6 @@ export async function POST(req: NextRequest) {
         ogImage: product.seoImage || (product.images && product.images[0]) || undefined,
       }
 
-      // Initialize HERO from the product snapshot (creation-time only).
       heroContent = heroPrefillFromProduct({
         name: product.name,
         shortDescription: product.shortDescription,
@@ -147,21 +151,27 @@ export async function POST(req: NextRequest) {
         sections: {
           create: [{ type: "HERO", sortOrder: 0, content: heroContent }, ...DEFAULT_SECTIONS],
         },
-        products: creationMode === "existing_product" && sourceProductId
+        items: creationMode === "existing_product" && importedProduct
           ? {
               create: {
-                productId: sourceProductId,
+                name: importedProduct.name,
+                description: importedProduct.description,
+                shortDescription: importedProduct.shortDescription,
+                price: importedProduct.price,
+                compareAtPrice: (importedProduct.oldPrice && importedProduct.oldPrice > importedProduct.price) ? importedProduct.oldPrice : null,
+                images: importedProduct.images,
                 sortOrder: 0,
-                displayTitle: (prefilledData.ogTitle as string) || null,
-                displayDescription: (prefilledData.ogDescription as string) || null,
-                displayImage: (prefilledData.ogImage as string) || null,
+                isPrimary: true,
+                active: true,
+                stock: 0,
+                reservedStock: 0,
+                importedFromProductId: sourceProductId,
               },
             }
           : undefined,
       },
       include: {
-        sourceProduct: { select: { id: true, name: true, slug: true, images: true } },
-        products: { include: { product: { select: { id: true, name: true, slug: true } } } },
+        items: { orderBy: { sortOrder: "asc" } },
         sections: { orderBy: { sortOrder: "asc" } },
       },
     })

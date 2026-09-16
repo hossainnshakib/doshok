@@ -53,7 +53,7 @@ function isValidMediaUrl(v: string): boolean {
 
 export type ProductLinkOption = {
   id: string
-  product: { id: string; name: string; slug: string }
+  name: string
 }
 
 // ---------------------------------------------------------------------------
@@ -94,15 +94,15 @@ function CtaFields({
         </Field>
       </div>
       {value.target === "product" && (
-        <Field label="Linked product">
+        <Field label="Linked item">
           <select
             value={value.productSlug ?? ""}
             onChange={(e) => onChange({ ...value, productSlug: e.target.value })}
             className={inputCls}
           >
-            <option value="">Select a linked product…</option>
+            <option value="">Select a linked item…</option>
             {links.map((l) => (
-              <option key={l.id} value={l.product.slug}>{l.product.name}</option>
+              <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </select>
         </Field>
@@ -119,13 +119,11 @@ function CtaFields({
 export function HeroEditor({
   initial,
   links,
-  sourceProduct,
   onSave,
   saving,
 }: {
   initial: HeroContent
   links: ProductLinkOption[]
-  sourceProduct: { name: string; shortDescription: string | null; description: string | null; images: string[] } | null
   onSave: (content: HeroContent) => void
   saving: boolean
 }) {
@@ -146,26 +144,6 @@ export function HeroEditor({
         ...(mediaSlugs[i] ? { productSlug: mediaSlugs[i] } : {}),
       })),
     }))
-  }
-
-  function handlePrefill() {
-    if (!sourceProduct) return
-    const prefilled = heroPrefillFromProduct(sourceProduct)
-    // Preserve the admin's chosen layout and CTAs; only fill empty content.
-    setForm((f) => ({
-      ...f,
-      eyebrow: f.eyebrow || prefilled.eyebrow,
-      headline: f.headline || prefilled.headline,
-      subheadline: f.subheadline || prefilled.subheadline,
-      description: f.description || prefilled.description,
-      media: f.media.length > 0 ? f.media : prefilled.media,
-      trustLine: f.trustLine || prefilled.trustLine,
-    }))
-    setMediaAlts((alts) => {
-      if (form.media.length > 0) return alts
-      return prefilled.media.map((m) => m.alt)
-    })
-    toast.success("Product content filled into empty fields")
   }
 
   function handleSave() {
@@ -193,14 +171,6 @@ export function HeroEditor({
 
   return (
     <div className="space-y-4">
-      {sourceProduct && (
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2">
-          <p className="text-[11px] text-slate-500">Fill empty fields from “{sourceProduct.name}” without touching what you already wrote.</p>
-          <Button type="button" variant="outline" size="sm" className="h-7 shrink-0 rounded-md text-[11px]" onClick={handlePrefill}>
-            Use product content
-          </Button>
-        </div>
-      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Eyebrow / badge">
           <input value={form.eyebrow} maxLength={80} onChange={(e) => set({ eyebrow: e.target.value })} className={inputCls} placeholder="New arrival" />
@@ -259,11 +229,11 @@ export function HeroEditor({
                 }))
               }}
               className={inputCls}
-              aria-label={`Product link for image ${i + 1}`}
+              aria-label={`Item link for image ${i + 1}`}
             >
-              <option value="">No product link</option>
+              <option value="">No item link</option>
               {links.map((l) => (
-                <option key={l.id} value={l.product.slug}>{l.product.name}</option>
+                <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
           </div>
@@ -288,8 +258,8 @@ export function HeroEditor({
         </Field>
         <div className="flex items-end pb-1">
           <label className="flex items-center gap-2 text-xs text-slate-600">
-            <Switch checked={form.showPrice} onCheckedChange={(v) => set({ showPrice: v })} aria-label="Show first product price in hero" />
-            Show first product’s current price
+            <Switch checked={form.showPrice} onCheckedChange={(v) => set({ showPrice: v })} aria-label="Show first item price in hero" />
+            Show first item's current price
           </label>
         </div>
       </div>
@@ -411,7 +381,7 @@ export function BenefitsEditor({
 }
 
 // ---------------------------------------------------------------------------
-// PRODUCTS presentation editor (controls only — relations managed alongside)
+// PRODUCTS presentation editor (controls only — items managed alongside)
 // ---------------------------------------------------------------------------
 
 export function ProductsEditor({
@@ -441,8 +411,8 @@ export function ProductsEditor({
       </Field>
       <div className="flex flex-wrap gap-4">
         <label className="flex items-center gap-2 text-xs text-slate-600">
-          <Switch checked={form.showPrice} onCheckedChange={(v) => set({ showPrice: v })} aria-label="Show current product price" />
-          Show current price (live from product)
+          <Switch checked={form.showPrice} onCheckedChange={(v) => set({ showPrice: v })} aria-label="Show current item price" />
+          Show current price
         </label>
         <label className="flex items-center gap-2 text-xs text-slate-600">
           <Switch checked={form.showOldPrice} onCheckedChange={(v) => set({ showOldPrice: v })} aria-label="Show compare price" />

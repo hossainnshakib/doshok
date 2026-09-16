@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAdminPermission } from "@/lib/auth/admin"
-import { landingPageProductUpdateSchema } from "@/lib/validations"
+import { landingPageItemUpdateSchema } from "@/lib/validations"
 
-// Update landing-specific presentation fields of a linked product.
-// Never touches the real Product row.
+// PATCH - Update a landing page item
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; productLinkId: string }> }
@@ -15,7 +14,7 @@ export async function PATCH(
 
     const { id, productLinkId } = await params
     const body = await req.json().catch(() => ({}))
-    const parsed = landingPageProductUpdateSchema.safeParse(body)
+    const parsed = landingPageItemUpdateSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" },
@@ -23,33 +22,48 @@ export async function PATCH(
       )
     }
 
-    const link = await prisma.landingPageProduct.findFirst({
+    const item = await prisma.landingPageItem.findFirst({
       where: { id: productLinkId, landingPageId: id },
     })
-    if (!link) {
-      return NextResponse.json({ success: false, error: "Linked product not found" }, { status: 404 })
+    if (!item) {
+      return NextResponse.json({ success: false, error: "Item not found" }, { status: 404 })
     }
 
-    const { displayTitle, displayDescription, displayImage, ctaLabel, sortOrder } = parsed.data
     const updateData: Record<string, unknown> = {}
-    if (displayTitle !== undefined) updateData.displayTitle = displayTitle || null
-    if (displayDescription !== undefined) updateData.displayDescription = displayDescription || null
-    if (displayImage !== undefined) updateData.displayImage = displayImage || null
-    if (ctaLabel !== undefined) updateData.ctaLabel = ctaLabel || null
-    if (sortOrder !== undefined) updateData.sortOrder = sortOrder
+    const d = parsed.data
+    if (d.name !== undefined) updateData.name = d.name
+    if (d.description !== undefined) updateData.description = d.description || null
+    if (d.shortDescription !== undefined) updateData.shortDescription = d.shortDescription || null
+    if (d.price !== undefined) updateData.price = d.price
+    if (d.compareAtPrice !== undefined) updateData.compareAtPrice = d.compareAtPrice || null
+    if (d.images !== undefined) updateData.images = d.images
+    if (d.sku !== undefined) updateData.sku = d.sku || null
+    if (d.sortOrder !== undefined) updateData.sortOrder = d.sortOrder
+    if (d.isPrimary !== undefined) updateData.isPrimary = d.isPrimary
+    if (d.ctaLabel !== undefined) updateData.ctaLabel = d.ctaLabel || null
+    if (d.stock !== undefined) updateData.stock = d.stock
 
-    const updated = await prisma.landingPageProduct.update({
+    // If isPrimary is being set to true, unset other primaries
+    if (d.isPrimary === true) {
+      await prisma.landingPageItem.updateMany({
+        where: { landingPageId: id, isPrimary: true, id: { not: productLinkId } },
+        data: { isPrimary: false },
+      })
+    }
+
+    const updated = await prisma.landingPageItem.update({
       where: { id: productLinkId },
       data: updateData,
-      include: { product: { select: { id: true, name: true, slug: true, images: true, price: true, oldPrice: true, status: true } } },
+      include: { variants: { orderBy: { sortOrder: "asc" } } },
     })
 
     return NextResponse.json({ success: true, data: updated })
   } catch {
-    return NextResponse.json({ success: false, error: "Failed to update linked product" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Failed to update item" }, { status: 500 })
   }
 }
 
+// DELETE - Remove a landing page item
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; productLinkId: string }> }
@@ -60,29 +74,43 @@ export async function DELETE(
 
     const { id, productLinkId } = await params
 
-    const link = await prisma.landingPageProduct.findFirst({
+    const item = await prisma.landingPageItem.findFirst({
       where: { id: productLinkId, landingPageId: id },
     })
-    if (!link) {
-      return NextResponse.json({ success: false, error: "Linked product not found" }, { status: 404 })
+    if (!item) {
+      return NextResponse.json({ success: false, error: "Item not found" }, { status: 404 })
     }
 
-    // Reject while referenced by an offer instead of silently corrupting it.
-    // (DB cascades still protect page/product deletes; this guard is the
-    // safe UX for deliberate link removal.)
-    const referencingOffers = await prisma.landingPageOfferItem.count({
-      where: { landingPageProductId: productLinkId },
+    // Reject if referenced by orders
+    const orderCount = await prisma.orderItem.count({
+      where: { landingPageItemId: productLinkId },
     })
-    if (referencingOffers > 0) {
+    if (orderCount > 0) {
       return NextResponse.json(
-        { success: false, error: "This product is part of one or more landing offers. Remove it from the offers first." },
+        { success: false, error: "This item has associated orders and cannot be deleted." },
         { status: 409 }
       )
     }
 
-    await prisma.landingPageProduct.delete({ where: { id: productLinkId } })
+    // Reject if referenced by offers (items cascade via FK)
+    const offerItemCount = await prisma.landingPageOfferItem.count({
+      where: { landingPageItemId: productLinkId },
+    })
+    if (offerItemCount > 0) {
+      return NextResponse.json(
+        { success: false, error: "This item is part of one or more offers. Remove it from offers first." },
+        { status: 409 }
+      )
+    }
+
+    // Delete variants first, then item
+    await prisma.$transaction(async (tx) => {
+      await tx.landingPageItemVariant.deleteMany({ where: { landingPageItemId: productLinkId } })
+      await tx.landingPageItem.delete({ where: { id: productLinkId } })
+    })
+
     return NextResponse.json({ success: true })
   } catch {
-    return NextResponse.json({ success: false, error: "Failed to remove product" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Failed to delete item" }, { status: 500 })
   }
 }

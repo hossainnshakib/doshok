@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { landingPageReorderSchema } from "@/lib/validations"
 
-// Persist a full linked-product ordering. The submitted link-ID list must
-// match the page's existing links exactly.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -17,31 +15,38 @@ export async function POST(
     const body = await req.json().catch(() => ({}))
     const parsed = landingPageReorderSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ success: false, error: "orderedIds must be a non-empty array" }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" },
+        { status: 400 }
+      )
     }
 
-    const page = await prisma.landingPage.findUnique({
-      where: { id },
-      select: { id: true, products: { select: { id: true } } },
+    const { orderedIds } = parsed.data
+
+    // Verify all items belong to this page
+    const items = await prisma.landingPageItem.findMany({
+      where: { id: { in: orderedIds }, landingPageId: id },
+      select: { id: true },
     })
-    if (!page) {
-      return NextResponse.json({ success: false, error: "Landing page not found" }, { status: 404 })
+    if (items.length !== orderedIds.length) {
+      return NextResponse.json(
+        { success: false, error: "One or more items do not belong to this landing page" },
+        { status: 400 }
+      )
     }
 
-    const current = new Set(page.products.map((p) => p.id))
-    const submitted = parsed.data.orderedIds
-    if (submitted.length !== current.size || !submitted.every((lid) => current.has(lid))) {
-      return NextResponse.json({ success: false, error: "orderedIds must match the linked products exactly" }, { status: 400 })
-    }
-
+    // Update sort orders
     await prisma.$transaction(
-      submitted.map((lid, index) =>
-        prisma.landingPageProduct.update({ where: { id: lid }, data: { sortOrder: index } })
+      orderedIds.map((itemId, index) =>
+        prisma.landingPageItem.update({
+          where: { id: itemId },
+          data: { sortOrder: index },
+        })
       )
     )
 
     return NextResponse.json({ success: true })
   } catch {
-    return NextResponse.json({ success: false, error: "Failed to reorder products" }, { status: 500 })
+    return NextResponse.json({ success: false, error: "Failed to reorder items" }, { status: 500 })
   }
 }

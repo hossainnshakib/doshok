@@ -7,30 +7,30 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  firstName     String?
-  lastName      String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  phone         String?
+  id              String                   @id @default(cuid())
+  name            String?
+  firstName       String?
+  lastName        String?
+  email           String?                  @unique
+  emailVerified   DateTime?
+  image           String?
+  phone           String?
   phoneVerifiedAt DateTime?
-  dateOfBirth   DateTime?
-  gender        String?
-  password      String?
-  role          String    @default("customer")
-  isActive      Boolean   @default(true)
-  status        String    @default("active")
-  accounts      Account[]
-  sessions      Session[]
-  orders        Order[]
-  addresses     UserAddress[]
-  reviews       ProductReview[]
-  emailTokens   EmailVerificationToken[]
-  resetTokens   PasswordResetToken[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  dateOfBirth     DateTime?
+  gender          String?
+  password        String?
+  role            String                   @default("customer")
+  isActive        Boolean                  @default(true)
+  status          String                   @default("active")
+  accounts        Account[]
+  sessions        Session[]
+  orders          Order[]
+  addresses       UserAddress[]
+  reviews         ProductReview[]
+  emailTokens     EmailVerificationToken[]
+  resetTokens     PasswordResetToken[]
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
 }
 
 model EmailVerificationToken {
@@ -93,9 +93,9 @@ model VerificationToken {
 }
 
 model Category {
-  id             String    @id @default(cuid())
-  name           String    @unique
-  slug           String    @unique
+  id             String     @id @default(cuid())
+  name           String     @unique
+  slug           String     @unique
   image          String?
   parentId       String?
   parent         Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
@@ -105,51 +105,50 @@ model Category {
   seoDescription String?
   seoKeywords    String?
   seoImage       String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([parentId])
 }
 
 model Product {
-  id                 String           @id @default(cuid())
-  name               String
-  slug               String           @unique
-  description        String?
-  shortDescription   String?
-  price              Int
-  oldPrice           Int?
-  images             String[]
-  categoryId         String
-  category           Category         @relation(fields: [categoryId], references: [id])
-  variants           ProductVariant[]
-  specifications     ProductSpecification[]
-  orderItems         OrderItem[]
-  stockMovements     StockMovement[]
-  sizeCharts         ProductSizeChart[]
-  reviews            ProductReview[]
-  featured           Boolean          @default(false)
-  status             String           @default("Draft")
-  defaultCouponCode  String?
-  paymentRuleOverride     String?
+  id                       String                 @id @default(cuid())
+  name                     String
+  slug                     String                 @unique
+  description              String?
+  shortDescription         String?
+  price                    Int
+  oldPrice                 Int?
+  images                   String[]
+  categoryId               String
+  category                 Category               @relation(fields: [categoryId], references: [id])
+  variants                 ProductVariant[]
+  specifications           ProductSpecification[]
+  orderItems               OrderItem[]
+  stockMovements           StockMovement[]
+  sizeCharts               ProductSizeChart[]
+  reviews                  ProductReview[]
+  featured                 Boolean                @default(false)
+  status                   String                 @default("Draft")
+  defaultCouponCode        String?
+  paymentRuleOverride      String?
   paymentRuleValueOverride Int?
-  material           String?
-  careInstructions   String?
-  seoTitle           String?
-  seoDescription     String?
-  seoKeywords        String?
-  averageRating      Float?
-  reviewCount       Int              @default(0)
-  seoImage           String?
-  brand              String           @default("Doshok")
-  condition          String           @default("new")
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  material                 String?
+  careInstructions         String?
+  seoTitle                 String?
+  seoDescription           String?
+  seoKeywords              String?
+  averageRating            Float?
+  reviewCount              Int                    @default(0)
+  seoImage                 String?
+  brand                    String                 @default("Doshok")
+  condition                String                 @default("new")
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
 
-  relatedProducts    ProductRelation[] @relation("ProductRelations")
-  targetRelations    ProductRelation[] @relation("ProductTargets")
-  landingPages       LandingPage[]     @relation("LandingPageSource")
-  landingPageProducts LandingPageProduct[]
+  relatedProducts ProductRelation[] @relation("ProductRelations")
+  targetRelations ProductRelation[] @relation("ProductTargets")
+  landingPages    LandingPage[]     @relation("LandingPageSource")
 }
 
 model ProductSpecification {
@@ -166,31 +165,31 @@ model ProductSpecification {
 }
 
 model ProductVariant {
-  id               String  @id @default(cuid())
-  productId        String
-  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  size             String
-  color            String
-  colorHex         String?
-  stock            Int     @default(0)
-  reservedStock    Int     @default(0)
-  lowStockThreshold Int    @default(5)
-  sku              String?
-  orderItems       OrderItem[]
-  stockMovements   StockMovement[]
+  id                String          @id @default(cuid())
+  productId         String
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size              String
+  color             String
+  colorHex          String?
+  stock             Int             @default(0)
+  reservedStock     Int             @default(0)
+  lowStockThreshold Int             @default(5)
+  sku               String?
+  orderItems        OrderItem[]
+  stockMovements    StockMovement[]
 
   @@unique([productId, size, color])
   @@index([productId])
 }
 
 model StockMovement {
-  id             String   @id @default(cuid())
+  id             String          @id @default(cuid())
   productId      String
-  product        Product @relation(fields: [productId], references: [id])
+  product        Product         @relation(fields: [productId], references: [id])
   variantId      String?
   variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
   orderId        String?
-  order          Order?   @relation(fields: [orderId], references: [id])
+  order          Order?          @relation(fields: [orderId], references: [id])
   orderItemId    String?
   type           String
   quantity       Int
@@ -201,7 +200,7 @@ model StockMovement {
   reason         String?
   note           String?
   createdById    String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime        @default(now())
 
   @@index([productId])
   @@index([variantId])
@@ -211,9 +210,9 @@ model StockMovement {
 }
 
 model DeliveryZone {
-  id    String @id @default(cuid())
-  name  String @unique
-  fee   Int
+  id   String @id @default(cuid())
+  name String @unique
+  fee  Int
 }
 
 model Address {
@@ -253,57 +252,56 @@ model UserAddress {
 }
 
 model Order {
-  id             String          @id @default(cuid())
-  orderNumber    String          @unique
-  customerName   String
-  customerEmail  String
-  customerPhone  String
-  userId         String?
-  user           User?           @relation(fields: [userId], references: [id])
-  items          OrderItem[]
-  address        Address?
-  stockMovements StockMovement[]
-  subtotal       Int
-  deliveryFee    Int
-  discount       Int             @default(0)
-  total          Int
-  paidAmount     Int             @default(0)
-  paymentMethod  String
-  paymentStatus  String          @default("pending")
-
-  orderStatus    String          @default("pending")
-  notes          String?
-  couponCode     String?
-  paymentExpiresAt   DateTime?
-  paymentVerifiedAt  DateTime?
-  stockRestoredAt     DateTime?
-  idempotencyKey      String?   @unique
-  productSubtotal     Int       @default(0)
-  productDiscount     Int       @default(0)
-  deliveryDiscount    Int       @default(0)
-  discountedProductTotal Int   @default(0)
-  finalDeliveryFee    Int       @default(0)
-  payNow              Int       @default(0)
-  dueAmount           Int       @default(0)
-  paymentRule         String?
-  paymentRuleValue    Int?
-  paymentRuleSource   String?
-  otpVerified         Boolean   @default(false)
-  otpVerifiedAt       DateTime?
-  couponType          String?
-  reservationExpiresAt DateTime?
-  refundedAt     DateTime?
-  refundAmount   Int              @default(0)
-  refundReason   String?
-  refundTrxId    String?
-  transactions   PaymentTransaction[]
-  reviews       ProductReview[]
-  landingPageId  String?
-  landingPage    LandingPage? @relation(fields: [landingPageId], references: [id], onDelete: SetNull)
-  landingPageOfferId String?
-  landingPageOffer   LandingPageOffer? @relation(fields: [landingPageOfferId], references: [id], onDelete: SetNull)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                     String               @id @default(cuid())
+  orderNumber            String               @unique
+  customerName           String
+  customerEmail          String
+  customerPhone          String
+  userId                 String?
+  user                   User?                @relation(fields: [userId], references: [id])
+  items                  OrderItem[]
+  address                Address?
+  stockMovements         StockMovement[]
+  subtotal               Int
+  deliveryFee            Int
+  discount               Int                  @default(0)
+  total                  Int
+  paidAmount             Int                  @default(0)
+  paymentMethod          String
+  paymentStatus          String               @default("pending")
+  orderStatus            String               @default("pending")
+  notes                  String?
+  couponCode             String?
+  paymentExpiresAt       DateTime?
+  paymentVerifiedAt      DateTime?
+  stockRestoredAt        DateTime?
+  idempotencyKey         String?              @unique
+  productSubtotal        Int                  @default(0)
+  productDiscount        Int                  @default(0)
+  deliveryDiscount       Int                  @default(0)
+  discountedProductTotal Int                  @default(0)
+  finalDeliveryFee       Int                  @default(0)
+  payNow                 Int                  @default(0)
+  dueAmount              Int                  @default(0)
+  paymentRule            String?
+  paymentRuleValue       Int?
+  paymentRuleSource      String?
+  otpVerified            Boolean              @default(false)
+  otpVerifiedAt          DateTime?
+  couponType             String?
+  reservationExpiresAt   DateTime?
+  refundedAt             DateTime?
+  refundAmount           Int                  @default(0)
+  refundReason           String?
+  refundTrxId            String?
+  transactions           PaymentTransaction[]
+  reviews                ProductReview[]
+  landingPageId          String?
+  landingPage            LandingPage?         @relation(fields: [landingPageId], references: [id], onDelete: SetNull)
+  landingPageOfferId     String?
+  landingPageOffer       LandingPageOffer?    @relation(fields: [landingPageOfferId], references: [id], onDelete: SetNull)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 
   @@index([userId])
   @@index([landingPageId])
@@ -311,18 +309,22 @@ model Order {
 }
 
 model OrderItem {
-  id        String         @id @default(cuid())
-  orderId   String
-  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product        @relation(fields: [productId], references: [id])
-  variantId String?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
-  name      String
-  size      String?
-  color     String?
-  quantity  Int
-  price     Int
+  id                       String                  @id @default(cuid())
+  orderId                  String
+  order                    Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId                String?
+  product                  Product?                @relation(fields: [productId], references: [id])
+  variantId                String?
+  variant                  ProductVariant?         @relation(fields: [variantId], references: [id])
+  name                     String
+  size                     String?
+  color                    String?
+  quantity                 Int
+  price                    Int
+  landingPageItemId        String?
+  landingPageItem          LandingPageItem?        @relation(fields: [landingPageItemId], references: [id])
+  landingPageItemVariantId String?
+  landingPageItemVariant   LandingPageItemVariant? @relation(fields: [landingPageItemVariantId], references: [id])
 }
 
 model PaymentTransaction {
@@ -344,20 +346,20 @@ model PaymentTransaction {
 }
 
 model Coupon {
-  id         String   @id @default(cuid())
-  code       String   @unique
-  discount   Int
-  type       String   @default("flat")
-  minOrder   Int      @default(0)
-  maxUses    Int?
+  id                 String        @id @default(cuid())
+  code               String        @unique
+  discount           Int
+  type               String        @default("flat")
+  minOrder           Int           @default(0)
+  maxUses            Int?
   maxUsesPerCustomer Int?
-  usedCount  Int      @default(0)
-  expiresAt  DateTime?
-  active     Boolean  @default(true)
-  scope      String   @default("product")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  usages     CouponUsage[]
+  usedCount          Int           @default(0)
+  expiresAt          DateTime?
+  active             Boolean       @default(true)
+  scope              String        @default("product")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  usages             CouponUsage[]
 }
 
 model CouponUsage {
@@ -387,21 +389,21 @@ model OtpVerification {
 }
 
 model PhoneOtpVerification {
-  id                      String    @id @default(cuid())
-  phone                   String
-  hashedOtp               String
-  provider                String    @default("mock")
-  status                  String    @default("pending")
-  attempts                Int       @default(0)
-  resendCount             Int       @default(0)
-  lastSentAt              DateTime?
-  verifiedAt              DateTime?
-  expiresAt               DateTime
-  checkoutToken           String?   @unique
-  checkoutTokenExpiresAt  DateTime?
-  checkoutTokenUsedAt     DateTime?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  id                     String    @id @default(cuid())
+  phone                  String
+  hashedOtp              String
+  provider               String    @default("mock")
+  status                 String    @default("pending")
+  attempts               Int       @default(0)
+  resendCount            Int       @default(0)
+  lastSentAt             DateTime?
+  verifiedAt             DateTime?
+  expiresAt              DateTime
+  checkoutToken          String?   @unique
+  checkoutTokenExpiresAt DateTime?
+  checkoutTokenUsedAt    DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   @@index([phone, status])
   @@index([expiresAt])
@@ -409,51 +411,51 @@ model PhoneOtpVerification {
 }
 
 model CheckoutSetting {
-  id                        String   @id @default("checkout")
-  checkoutV2Enabled         Boolean  @default(false)
-  otpRequired               Boolean  @default(true)
-  otpTtlSeconds             Int      @default(300)
-  otpCooldownSeconds        Int      @default(30)
-  otpMaxResend              Int      @default(5)
-  checkoutTokenTtlSeconds   Int      @default(900)
-  defaultPaymentRule        String   @default("cod_only")
-  defaultPaymentRuleValue   Int?
-  onlineReservationHours    Int      @default(2)
-  codReservationHours       Int      @default(24)
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id                      String   @id @default("checkout")
+  checkoutV2Enabled       Boolean  @default(false)
+  otpRequired             Boolean  @default(true)
+  otpTtlSeconds           Int      @default(300)
+  otpCooldownSeconds      Int      @default(30)
+  otpMaxResend            Int      @default(5)
+  checkoutTokenTtlSeconds Int      @default(900)
+  defaultPaymentRule      String   @default("cod_only")
+  defaultPaymentRuleValue Int?
+  onlineReservationHours  Int      @default(2)
+  codReservationHours     Int      @default(24)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model SiteSettings {
-  id                String   @id @default("default")
-  brandName         String   @default("DOSHOK")
-  tagline           String   @default("Style That Speaks")
-  supportEmail      String   @default("hello@doshok.com")
-  phone             String   @default("")
-  whatsapp          String?
-  facebookUrl       String?
-  instagramUrl      String?
-  tiktokUrl         String?
-  youtubeUrl        String?
-  address           String   @default("We deliver across all districts of Bangladesh. Our operation hub is in Chattogram.")
-  footerText        String   @default("Premium Bangladeshi fashion for the modern wardrobe.")
-  topbarText        String   @default("Inside Chattogram delivery available")
-  footerLinks       String   @default("[]")
-  headerQuickLinks  String   @default("[]")
-  accentColor       String   @default("#364152")
-  buttonRadius      String   @default("xl")
-  cardRadius        String   @default("1.5rem")
-  storefrontTone    String   @default("light")
-  adminAccentTone   String   @default("neutral")
-  headerLogo        String?
-  footerLogo        String?
-  favicon           String?
-  appleTouchIcon    String?
-  defaultSeoTitle   String?
+  id                    String   @id @default("default")
+  brandName             String   @default("DOSHOK")
+  tagline               String   @default("Style That Speaks")
+  supportEmail          String   @default("hello@doshok.com")
+  phone                 String   @default("")
+  whatsapp              String?
+  facebookUrl           String?
+  instagramUrl          String?
+  tiktokUrl             String?
+  youtubeUrl            String?
+  address               String   @default("We deliver across all districts of Bangladesh. Our operation hub is in Chattogram.")
+  footerText            String   @default("Premium Bangladeshi fashion for the modern wardrobe.")
+  topbarText            String   @default("Inside Chattogram delivery available")
+  footerLinks           String   @default("[]")
+  headerQuickLinks      String   @default("[]")
+  accentColor           String   @default("#364152")
+  buttonRadius          String   @default("xl")
+  cardRadius            String   @default("1.5rem")
+  storefrontTone        String   @default("light")
+  adminAccentTone       String   @default("neutral")
+  headerLogo            String?
+  footerLogo            String?
+  favicon               String?
+  appleTouchIcon        String?
+  defaultSeoTitle       String?
   defaultSeoDescription String?
-  defaultSeoImage   String?
-  defaultSeoKeywords String?
-  updatedAt         DateTime @updatedAt
+  defaultSeoImage       String?
+  defaultSeoKeywords    String?
+  updatedAt             DateTime @updatedAt
 }
 
 model ContactMessage {
@@ -475,23 +477,23 @@ model ContactMessage {
 }
 
 model HomepageConfig {
-  id                    String @id @default("homepage")
-  heroTitle             String @default("Doshok — Style That Speaks")
-  heroSubtitle          String @default("Premium Bangladeshi fashion for the modern wardrobe.")
-  heroImage             String?
-  heroCTAText           String @default("Shop Collection")
-  heroCTASecondaryText  String @default("About Us")
-  heroCTAUrl            String @default("/products")
-  heroCTASecondaryUrl   String @default("/new-arrivals")
-  featuredIds           String @default("[]")
-  announcementBarText   String @default("")
-  announcementBarEnabled Boolean @default(false)
-  promoBannerText       String @default("")
-  promoBannerImage      String?
-  promoBannerLink       String?
-  promoBannerEnabled    Boolean @default(false)
-  sections              String  @default("[]")
-  updatedAt             DateTime @updatedAt
+  id                     String   @id @default("homepage")
+  heroTitle              String   @default("Doshok — Style That Speaks")
+  heroSubtitle           String   @default("Premium Bangladeshi fashion for the modern wardrobe.")
+  heroImage              String?
+  heroCTAText            String   @default("Shop Collection")
+  heroCTASecondaryText   String   @default("About Us")
+  heroCTAUrl             String   @default("/products")
+  heroCTASecondaryUrl    String   @default("/new-arrivals")
+  featuredIds            String   @default("[]")
+  announcementBarText    String   @default("")
+  announcementBarEnabled Boolean  @default(false)
+  promoBannerText        String   @default("")
+  promoBannerImage       String?
+  promoBannerLink        String?
+  promoBannerEnabled     Boolean  @default(false)
+  sections               String   @default("[]")
+  updatedAt              DateTime @updatedAt
 }
 
 model PaymentMethodSetting {
@@ -510,8 +512,8 @@ model PaymentMethodSetting {
 }
 
 model AbandonedCheckout {
-  id             String   @id @default(cuid())
-  token          String   @unique
+  id             String    @id @default(cuid())
+  token          String    @unique
   userId         String?
   email          String?
   phone          String?
@@ -519,17 +521,17 @@ model AbandonedCheckout {
   cartItems      String
   checkoutData   String?
   couponCode     String?
-  subtotal       Int      @default(0)
-  deliveryFee    Int      @default(0)
-  discount       Int      @default(0)
-  total          Int      @default(0)
-  status         String   @default("active")
+  subtotal       Int       @default(0)
+  deliveryFee    Int       @default(0)
+  discount       Int       @default(0)
+  total          Int       @default(0)
+  status         String    @default("active")
   orderId        String?
   lastStep       String?
-  lastActivityAt DateTime @default(now())
+  lastActivityAt DateTime  @default(now())
   expiresAt      DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([status])
   @@index([email])
@@ -540,38 +542,38 @@ model AbandonedCheckout {
 }
 
 model SizeChart {
-  id          String         @id @default(cuid())
+  id          String             @id @default(cuid())
   name        String
-  slug        String         @unique
+  slug        String             @unique
   description String?
   rows        SizeChartRow[]
   products    ProductSizeChart[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@index([slug])
 }
 
 model SizeChartRow {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   sizeChartId  String
   sizeChart    SizeChart @relation(fields: [sizeChartId], references: [id], onDelete: Cascade)
   label        String
-  position     Int      @default(0)
+  position     Int       @default(0)
   measurements Json
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([sizeChartId])
 }
 
 model ProductSizeChart {
-  id         String    @id @default(cuid())
-  productId  String
-  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   sizeChartId String
   sizeChart   SizeChart @relation(fields: [sizeChartId], references: [id], onDelete: Cascade)
-  createdAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
 
   @@unique([productId, sizeChartId])
   @@index([productId])
@@ -579,22 +581,22 @@ model ProductSizeChart {
 }
 
 model ProductReview {
-  id            String    @id @default(cuid())
-  productId     String
-  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  userId        String?
-  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orderId       String?
-  order         Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  rating        Int
-  title         String?
-  content       String
-  isVerifiedBuyer Boolean @default(true)
-  status        String    @default("pending")
-  approvedAt    DateTime?
-  approvedBy    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId         String?
+  order           Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  rating          Int
+  title           String?
+  content         String
+  isVerifiedBuyer Boolean   @default(true)
+  status          String    @default("pending")
+  approvedAt      DateTime?
+  approvedBy      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([productId, userId])
   @@index([productId])
@@ -604,17 +606,17 @@ model ProductReview {
 }
 
 model MenuItem {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   title     String
   url       String
-  target    String    @default("_self")
+  target    String     @default("_self")
   location  String
   parentId  String?
   parent    MenuItem?  @relation("MenuItemHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children  MenuItem[] @relation("MenuItemHierarchy")
-  order     Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@index([location])
   @@index([parentId])
@@ -622,31 +624,31 @@ model MenuItem {
 }
 
 model Page {
-  id           String   @id @default(cuid())
-  title        String
-  slug         String   @unique
-  excerpt      String?
-  content      String
-  seoTitle     String?
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  excerpt        String?
+  content        String
+  seoTitle       String?
   seoDescription String?
-  seoImage     String?
-  status       String   @default("draft")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  seoImage       String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([slug])
   @@index([status])
 }
 
 model StoryCategory {
-  id          String         @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  slug        String         @unique
+  slug        String   @unique
   description String?
-  sortOrder   Int            @default(0)
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   stories     Story[]
 
   @@index([slug])
@@ -655,9 +657,9 @@ model StoryCategory {
 }
 
 model Story {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   title           String
-  slug            String        @unique
+  slug            String         @unique
   excerpt         String?
   content         String
   image           String?
@@ -668,9 +670,9 @@ model Story {
   seoDescription  String?
   seoImage        String?
   seoKeywords     String?
-  status          String        @default("draft")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  status          String         @default("draft")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([slug])
   @@index([status])
@@ -678,22 +680,22 @@ model Story {
 }
 
 model CareerPost {
-  id              String    @id @default(cuid())
-  title           String
-  slug            String    @unique
-  department      String
-  location        String
-  employmentType  String
-  salaryRange     String?
-  deadline        DateTime?
-  excerpt         String?
-  description     String
+  id               String    @id @default(cuid())
+  title            String
+  slug             String    @unique
+  department       String
+  location         String
+  employmentType   String
+  salaryRange      String?
+  deadline         DateTime?
+  excerpt          String?
+  description      String
   responsibilities String?
-  requirements    String?
-  benefits        String?
-  status          String    @default("Draft")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  requirements     String?
+  benefits         String?
+  status           String    @default("Draft")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([slug])
   @@index([status])
@@ -739,16 +741,16 @@ model ShortLink {
 }
 
 model CourierProvider {
-  id           String   @id @default(cuid())
-  code         String   @unique
-  name         String
-  isActive     Boolean  @default(false)
-  environment  String   @default("sandbox")
-  baseUrl      String?
-  credentials  Json?
-  settings     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  isActive    Boolean  @default(false)
+  environment String   @default("sandbox")
+  baseUrl     String?
+  credentials Json?
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([code])
 }
@@ -816,12 +818,12 @@ model CourierArea {
 }
 
 model CourierConsignment {
-  id               String   @id @default(cuid())
-  orderId          String   @unique
+  id               String    @id @default(cuid())
+  orderId          String    @unique
   providerCode     String
-  environment      String   @default("sandbox")
+  environment      String    @default("sandbox")
   storeId          String?
-  consignmentId    String?  @unique
+  consignmentId    String?   @unique
   trackingCode     String?
   recipientName    String?
   recipientPhone   String?
@@ -835,8 +837,8 @@ model CourierConsignment {
   courierStatus    String?
   courierMessage   String?
   responseJson     Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   syncedAt         DateTime?
 
   @@index([providerCode])
@@ -860,36 +862,30 @@ model CourierToken {
 }
 
 model LandingPage {
-  id              String   @id @default(cuid())
+  id              String               @id @default(cuid())
   title           String
-  slug            String   @unique
-  status          String   @default("draft") // draft | published | archived
-  creationMode    String   @default("existing_product") // existing_product | custom
-
+  slug            String               @unique
+  status          String               @default("draft") // draft | published | archived
+  creationMode    String               @default("existing_product") // existing_product | custom
   sourceProductId String?
-  sourceProduct   Product? @relation("LandingPageSource", fields: [sourceProductId], references: [id], onDelete: SetNull)
-
+  sourceProduct   Product?             @relation("LandingPageSource", fields: [sourceProductId], references: [id], onDelete: SetNull)
   template        String?
-
   seoTitle        String?
   seoDescription  String?
   canonicalUrl    String?
   ogTitle         String?
   ogDescription   String?
   ogImage         String?
-  robotsIndex     Boolean  @default(false)
-  robotsFollow    Boolean  @default(true)
-
+  robotsIndex     Boolean              @default(false)
+  robotsFollow    Boolean              @default(true)
   publishedAt     DateTime?
   archivedAt      DateTime?
-
-  products        LandingPageProduct[]
+  items           LandingPageItem[]
   sections        LandingPageSection[]
   offers          LandingPageOffer[]
   orders          Order[]
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
   @@index([slug])
   @@index([status])
@@ -897,71 +893,47 @@ model LandingPage {
   @@index([createdAt])
 }
 
-model LandingPageProduct {
-  id               String      @id @default(cuid())
-  landingPageId    String
-  landingPage      LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
-  productId        String
-  product          Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sortOrder        Int         @default(0)
-
-  displayTitle     String?
-  displayDescription String?
-  displayImage     String?
-  ctaLabel         String?
-
-  overridePrice    Int?
-  offerItems       LandingPageOfferItem[]
-
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-
-  @@unique([landingPageId, productId])
-  @@index([landingPageId])
-  @@index([productId])
-}
-
 model LandingPageOffer {
-  id            String   @id @default(cuid())
+  id            String                 @id @default(cuid())
   landingPageId String
-  landingPage   LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  landingPage   LandingPage            @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
   name          String
   badge         String?
-  pricingType   String   @default("FIXED") // FIXED only in V1: final fixed offerPrice
-  matchType     String   @default("EXACT_COMBINATION") // EXACT_COMBINATION | QUANTITY_TIER
-  minQuantity   Int?     // Required for QUANTITY_TIER: min items to trigger
+  pricingType   String                 @default("FIXED") // FIXED only in V1: final fixed offerPrice
+  matchType     String                 @default("EXACT_COMBINATION") // EXACT_COMBINATION | QUANTITY_TIER
+  minQuantity   Int? // Required for QUANTITY_TIER: min items to trigger
   offerPrice    Int
-  enabled       Boolean  @default(true)
-  sortOrder     Int      @default(0)
+  enabled       Boolean                @default(true)
+  sortOrder     Int                    @default(0)
   items         LandingPageOfferItem[]
   orders        Order[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 
   @@index([landingPageId])
   @@index([enabled])
 }
 
 model LandingPageOfferItem {
-  id                   String   @id @default(cuid())
-  offerId              String
-  offer                LandingPageOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
-  landingPageProductId String
-  landingPageProduct   LandingPageProduct @relation(fields: [landingPageProductId], references: [id], onDelete: Cascade)
-  quantity             Int      @default(1)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                String           @id @default(cuid())
+  offerId           String
+  offer             LandingPageOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  landingPageItemId String
+  landingPageItem   LandingPageItem  @relation(fields: [landingPageItemId], references: [id], onDelete: Cascade)
+  quantity          Int              @default(1)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  @@unique([offerId, landingPageProductId])
+  @@unique([offerId, landingPageItemId])
   @@index([offerId])
-  @@index([landingPageProductId])
+  @@index([landingPageItemId])
 }
 
 model LandingPageSection {
   id            String      @id @default(cuid())
   landingPageId String
   landingPage   LandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
-  type          String      // HERO | BENEFITS | PRODUCTS | OFFERS | GALLERY | REVIEWS | FAQ | CHECKOUT
+  type          String // HERO | BENEFITS | PRODUCTS | OFFERS | GALLERY | REVIEWS | FAQ | CHECKOUT
   enabled       Boolean     @default(true)
   sortOrder     Int         @default(0)
   content       Json        @default("{}")
@@ -973,27 +945,77 @@ model LandingPageSection {
 }
 
 model CourierLog {
-  id                       String   @id @default(cuid())
-  providerCode             String
-  environment              String   @default("sandbox")
-  orderId                  String?
-  action                   String
-  requestUrl               String?
-  requestMethod            String?
-  requestBody              Json?
-  responseBody             Json?
-  responseStatus           Int?
-  errorMessage             String?
-  durationMs               Int?
-  correlationId            String?
-  parsedConsignmentId      String?
-  parsedTrackingCode       String?
-  finalResponseToFrontend  Json?
-  createdAt                DateTime @default(now())
+  id                      String   @id @default(cuid())
+  providerCode            String
+  environment             String   @default("sandbox")
+  orderId                 String?
+  action                  String
+  requestUrl              String?
+  requestMethod           String?
+  requestBody             Json?
+  responseBody            Json?
+  responseStatus          Int?
+  errorMessage            String?
+  durationMs              Int?
+  correlationId           String?
+  parsedConsignmentId     String?
+  parsedTrackingCode      String?
+  finalResponseToFrontend Json?
+  createdAt               DateTime @default(now())
 
   @@index([providerCode])
   @@index([environment])
   @@index([orderId])
   @@index([createdAt])
   @@index([correlationId])
+}
+
+model LandingPageItem {
+  id                    String                   @id @default(cuid())
+  landingPageId         String
+  name                  String
+  description           String?
+  shortDescription      String?
+  price                 Int
+  compareAtPrice        Int?
+  images                String[]
+  sku                   String?
+  sortOrder             Int                      @default(0)
+  isPrimary             Boolean                  @default(false)
+  active                Boolean                  @default(true)
+  ctaLabel              String?
+  stock                 Int                      @default(0)
+  reservedStock         Int                      @default(0)
+  importedFromProductId String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  landingPage           LandingPage              @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+  variants              LandingPageItemVariant[]
+  offerItems            LandingPageOfferItem[]
+  orderItems            OrderItem[]
+
+  @@index([importedFromProductId])
+  @@index([landingPageId])
+}
+
+model LandingPageItemVariant {
+  id                String          @id @default(cuid())
+  landingPageItemId String
+  name              String
+  size              String?
+  color             String?
+  colorHex          String?
+  sku               String?
+  priceOverride     Int?
+  stock             Int             @default(0)
+  reservedStock     Int             @default(0)
+  active            Boolean         @default(true)
+  sortOrder         Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  landingPageItem   LandingPageItem @relation(fields: [landingPageItemId], references: [id], onDelete: Cascade)
+  orderItems        OrderItem[]
+
+  @@unique([landingPageItemId, size, color])
+  @@index([landingPageItemId])
 }

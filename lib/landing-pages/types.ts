@@ -195,17 +195,16 @@ export type OfferPricingType = "FIXED"
 export type OfferMatchType = "EXACT_COMBINATION" | "QUANTITY_TIER"
 
 export type VariantOption = {
-  id: string
+  variantId: string
   size: string
   color: string
+  colorHex?: string
   available: number
 }
 
 export type ResolvedOfferItem = {
-  landingPageProductId: string
-  productId: string
-  productSlug: string
-  productName: string
+  landingPageItemId: string
+  itemName: string
   displayName: string
   image: string | null
   quantity: number
@@ -240,8 +239,7 @@ export type ResolvedOffer = {
 // ---------------------------------------------------------------------------
 
 export type ProductSelection = {
-  landingPageProductId: string
-  productId: string
+  landingPageItemId: string
   quantity: number
   variantId?: string
 }
@@ -249,9 +247,8 @@ export type ProductSelection = {
 export type ProductSelectionQuote = {
   selections: ProductSelection[]
   items: {
-    landingPageProductId: string
-    productId: string
-    productName: string
+    landingPageItemId: string
+    itemName: string
     displayName: string
     image: string | null
     unitPrice: number

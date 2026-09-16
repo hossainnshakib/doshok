@@ -214,40 +214,42 @@ export async function finalizeStockDeductionForDeliveredOrder(
 
   if (reservedMovements.length === 0) {
     const orderItems = await prisma.orderItem.findMany({
-      where: { orderId, variantId: { not: null } },
+      where: { orderId, variantId: { not: null }, productId: { not: null } },
       select: { variantId: true, quantity: true, productId: true },
     })
 
-    if (orderItems.length === 0) return { success: true }
+    if (orderItems.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        for (const item of orderItems) {
+          if (!item.variantId || !item.productId) continue
 
-    await prisma.$transaction(async (tx) => {
-      for (const item of orderItems) {
-        if (!item.variantId) continue
+          const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
+          if (!variant) continue
 
-        const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
-        if (!variant) continue
+          await tx.productVariant.update({
+            where: { id: item.variantId },
+            data: { stock: { decrement: item.quantity } },
+          })
 
-        await tx.productVariant.update({
-          where: { id: item.variantId },
-          data: { stock: { decrement: item.quantity } },
-        })
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              variantId: item.variantId,
+              orderId,
+              type: "order_delivered_deducted",
+              quantity: item.quantity,
+              beforeStock: variant.stock,
+              afterStock: variant.stock - item.quantity,
+              beforeReserved: variant.reservedStock,
+              afterReserved: variant.reservedStock,
+              reason: "Order delivered",
+            },
+          })
+        }
+      })
+    }
 
-        await tx.stockMovement.create({
-          data: {
-            productId: item.productId,
-            variantId: item.variantId,
-            orderId,
-            type: "order_delivered_deducted",
-            quantity: item.quantity,
-            beforeStock: variant.stock,
-            afterStock: variant.stock - item.quantity,
-            beforeReserved: variant.reservedStock,
-            afterReserved: variant.reservedStock,
-            reason: "Order delivered",
-          },
-        })
-      }
-    })
+    await finalizeLandingItemsDelivered(orderId)
 
     return { success: true }
   }
@@ -296,7 +298,42 @@ export async function finalizeStockDeductionForDeliveredOrder(
     }
   })
 
+  await finalizeLandingItemsDelivered(orderId)
+
   return { success: true }
+}
+
+async function finalizeLandingItemsDelivered(orderId: string): Promise<void> {
+  const landingItems = await prisma.orderItem.findMany({
+    where: { orderId, landingPageItemId: { not: null } },
+    select: { id: true, landingPageItemId: true, landingPageItemVariantId: true, quantity: true },
+  })
+
+  if (landingItems.length === 0) return
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of landingItems) {
+      if (!item.landingPageItemId) continue
+
+      if (item.landingPageItemVariantId) {
+        const result = await tx.$executeRaw`
+          UPDATE "LandingPageItemVariant"
+          SET "stock" = "stock" - ${item.quantity}, "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+          WHERE id = ${item.landingPageItemVariantId}
+            AND "stock" >= ${item.quantity}
+        `
+        if (result === 0) continue
+      } else {
+        const result = await tx.$executeRaw`
+          UPDATE "LandingPageItem"
+          SET "stock" = "stock" - ${item.quantity}, "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+          WHERE id = ${item.landingPageItemId}
+            AND "stock" >= ${item.quantity}
+        `
+        if (result === 0) continue
+      }
+    }
+  })
 }
 
 export async function finalizeStockDeductionForConfirmedOrder(
@@ -336,40 +373,42 @@ export async function finalizeStockDeductionForConfirmedOrder(
 
   if (variantDeductions.size === 0) {
     const orderItems = await prisma.orderItem.findMany({
-      where: { orderId, variantId: { not: null } },
+      where: { orderId, variantId: { not: null }, productId: { not: null } },
       select: { variantId: true, quantity: true, productId: true },
     })
 
-    if (orderItems.length === 0) return { success: true }
+    if (orderItems.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        for (const item of orderItems) {
+          if (!item.variantId || !item.productId) continue
 
-    await prisma.$transaction(async (tx) => {
-      for (const item of orderItems) {
-        if (!item.variantId) continue
+          const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
+          if (!variant) continue
 
-        const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
-        if (!variant) continue
+          await tx.productVariant.update({
+            where: { id: item.variantId },
+            data: { stock: { decrement: item.quantity } },
+          })
 
-        await tx.productVariant.update({
-          where: { id: item.variantId },
-          data: { stock: { decrement: item.quantity } },
-        })
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              variantId: item.variantId,
+              orderId,
+              type: "order_confirmed_deducted",
+              quantity: item.quantity,
+              beforeStock: variant.stock,
+              afterStock: variant.stock - item.quantity,
+              beforeReserved: variant.reservedStock,
+              afterReserved: variant.reservedStock,
+              reason: "Order confirmed",
+            },
+          })
+        }
+      })
+    }
 
-        await tx.stockMovement.create({
-          data: {
-            productId: item.productId,
-            variantId: item.variantId,
-            orderId,
-            type: "order_confirmed_deducted",
-            quantity: item.quantity,
-            beforeStock: variant.stock,
-            afterStock: variant.stock - item.quantity,
-            beforeReserved: variant.reservedStock,
-            afterReserved: variant.reservedStock,
-            reason: "Order confirmed",
-          },
-        })
-      }
-    })
+    await finalizeLandingItemsConfirmed(orderId)
 
     return { success: true }
   }
@@ -407,20 +446,53 @@ export async function finalizeStockDeductionForConfirmedOrder(
     }
   })
 
+  await finalizeLandingItemsConfirmed(orderId)
+
   return { success: true }
+}
+
+async function finalizeLandingItemsConfirmed(orderId: string): Promise<void> {
+  const landingItems = await prisma.orderItem.findMany({
+    where: { orderId, landingPageItemId: { not: null } },
+    select: { id: true, landingPageItemId: true, landingPageItemVariantId: true, quantity: true },
+  })
+
+  if (landingItems.length === 0) return
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of landingItems) {
+      if (!item.landingPageItemId) continue
+
+      if (item.landingPageItemVariantId) {
+        const result = await tx.$executeRaw`
+          UPDATE "LandingPageItemVariant"
+          SET "stock" = "stock" - ${item.quantity}, "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+          WHERE id = ${item.landingPageItemVariantId}
+            AND "stock" >= ${item.quantity}
+        `
+        if (result === 0) continue
+      } else {
+        const result = await tx.$executeRaw`
+          UPDATE "LandingPageItem"
+          SET "stock" = "stock" - ${item.quantity}, "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+          WHERE id = ${item.landingPageItemId}
+            AND "stock" >= ${item.quantity}
+        `
+        if (result === 0) continue
+      }
+    }
+  })
 }
 
 export async function restoreStockForCancelledOrder(
   orderId: string
 ): Promise<{ success: boolean; error?: string }> {
-  // Idempotency: check order.stockRestoredAt as shared guard
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     select: { stockRestoredAt: true },
   })
   if (order?.stockRestoredAt) return { success: true }
 
-  // Keep movement-based guard as secondary
   const alreadyRestored = await prisma.stockMovement.findFirst({
     where: { orderId, type: "order_cancelled_restored" },
   })
@@ -445,7 +517,6 @@ export async function restoreStockForCancelledOrder(
   })
 
   if (confirmedDeduction) {
-    // Order was confirmed/deducted — restore stock from deductions
     const deductedMovements = await prisma.stockMovement.findMany({
       where: { orderId, type: "order_confirmed_deducted" },
       select: { variantId: true, quantity: true, productId: true },
@@ -490,7 +561,6 @@ export async function restoreStockForCancelledOrder(
       })
     })
   } else if (reservedMovements.length > 0) {
-    // Order was only reserved (pending) — release reserved stock, do NOT touch stock
     const variantReleases = new Map<string, { productId: string; quantity: number }>()
     for (const m of reservedMovements) {
       if (!m.variantId) continue
@@ -541,8 +611,11 @@ export async function restoreStockForCancelledOrder(
         data: { stockRestoredAt },
       })
     })
+
+    await restoreLandingItemsCancelledReserved(orderId)
   } else {
-    // No stock movements exist (e.g., pending COD with no reservation) — still mark restored for idempotency
+    await restoreLandingItemsCancelledReserved(orderId)
+
     await prisma.order.update({
       where: { id: orderId },
       data: { stockRestoredAt },
@@ -550,6 +623,37 @@ export async function restoreStockForCancelledOrder(
   }
 
   return { success: true }
+}
+
+async function restoreLandingItemsCancelledReserved(orderId: string): Promise<void> {
+  const landingItems = await prisma.orderItem.findMany({
+    where: { orderId, landingPageItemId: { not: null } },
+    select: { id: true, landingPageItemId: true, landingPageItemVariantId: true, quantity: true },
+  })
+
+  if (landingItems.length === 0) return
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of landingItems) {
+      if (!item.landingPageItemId) continue
+
+      if (item.landingPageItemVariantId) {
+        await tx.$executeRaw`
+          UPDATE "LandingPageItemVariant"
+          SET "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+          WHERE id = ${item.landingPageItemVariantId}
+            AND "reservedStock" >= ${item.quantity}
+        `
+      } else {
+        await tx.$executeRaw`
+          UPDATE "LandingPageItem"
+          SET "reservedStock" = GREATEST("reservedStock" - ${item.quantity}, 0)
+          WHERE id = ${item.landingPageItemId}
+            AND "reservedStock" >= ${item.quantity}
+        `
+      }
+    }
+  })
 }
 
 export async function applyInventorySideEffectsForOrderStatus(
@@ -570,15 +674,26 @@ export async function applyInventorySideEffectsForOrderStatus(
 
   if (orderStatus === "returned") {
     const items = await prisma.orderItem.findMany({
-      where: { orderId, variantId: { not: null } },
-      select: { variantId: true, productId: true, quantity: true },
+      where: { orderId, OR: [{ variantId: { not: null } }, { landingPageItemId: { not: null } }] },
+      select: { variantId: true, productId: true, quantity: true, landingPageItemId: true, landingPageItemVariantId: true },
     })
+
+    const catalogItems = items
+      .filter((item): item is { variantId: string; productId: string; quantity: number; landingPageItemId: null; landingPageItemVariantId: null } =>
+        item.variantId !== null && item.productId !== null && item.landingPageItemId === null
+      )
+      .map((item) => ({
+        variantId: item.variantId,
+        productId: item.productId,
+        quantity: item.quantity,
+      }))
 
     return restoreStockForReturnedOrder(
       orderId,
-      items.map((item) => ({
-        variantId: item.variantId!,
-        productId: item.productId,
+      catalogItems,
+      items.filter((item) => item.landingPageItemId !== null).map((item) => ({
+        id: item.landingPageItemId!,
+        variantId: item.landingPageItemVariantId,
         quantity: item.quantity,
       }))
     )
@@ -590,6 +705,7 @@ export async function applyInventorySideEffectsForOrderStatus(
 export async function restoreStockForReturnedOrder(
   orderId: string,
   items: Array<{ variantId: string; productId: string; quantity: number }>,
+  landingItems?: Array<{ id: string; variantId: string | null; quantity: number }>,
   reason?: string
 ): Promise<{ success: boolean; error?: string }> {
   const order = await prisma.order.findUnique({
@@ -673,6 +789,8 @@ export async function restoreStockForReturnedOrder(
       })
     })
 
+    await restoreLandingItemsReturned(orderId, landingItems)
+
     return { success: true }
   }
 
@@ -742,7 +860,7 @@ export async function restoreStockForReturnedOrder(
     return { success: true }
   }
 
-  if (items.length === 0) return { success: true }
+  if (items.length === 0 && (!landingItems || landingItems.length === 0)) return { success: true }
 
   await prisma.$transaction(async (tx) => {
     const recheck = await tx.order.findUnique({
@@ -790,7 +908,44 @@ export async function restoreStockForReturnedOrder(
     })
   })
 
+  await restoreLandingItemsReturned(orderId, landingItems)
+
   return { success: true }
+}
+
+async function restoreLandingItemsReturned(orderId: string, landingItems?: Array<{ id: string; variantId: string | null; quantity: number }>): Promise<void> {
+  if (!landingItems || landingItems.length === 0) {
+    const dbLandingItems = await prisma.orderItem.findMany({
+      where: { orderId, landingPageItemId: { not: null } },
+      select: { landingPageItemId: true, landingPageItemVariantId: true, quantity: true },
+    })
+
+    landingItems = dbLandingItems.map((item) => ({
+      id: item.landingPageItemId!,
+      variantId: item.landingPageItemVariantId,
+      quantity: item.quantity,
+    }))
+  }
+
+  if (landingItems.length === 0) return
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of landingItems) {
+      if (item.variantId) {
+        await tx.$executeRaw`
+          UPDATE "LandingPageItemVariant"
+          SET "stock" = "stock" + ${item.quantity}
+          WHERE id = ${item.variantId}
+        `
+      } else {
+        await tx.$executeRaw`
+          UPDATE "LandingPageItem"
+          SET "stock" = "stock" + ${item.quantity}
+          WHERE id = ${item.id}
+        `
+      }
+    }
+  })
 }
 
 export async function manualAdjustStock(

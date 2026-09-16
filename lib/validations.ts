@@ -362,26 +362,45 @@ export const landingPageUpdateSchema = z.object({
   robotsFollow: z.boolean().optional(),
 })
 
-export const landingPageProductSchema = z.object({
-  productId: z.string().min(1),
+export const landingPageItemCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(5000).optional().or(z.literal("")),
+  shortDescription: z.string().max(500).optional().or(z.literal("")),
+  price: z.number().int().positive(),
+  compareAtPrice: z.number().int().positive().optional(),
+  images: z.array(z.string()).default([]),
+  sku: z.string().max(100).optional().or(z.literal("")),
   sortOrder: z.number().int().default(0),
-  displayTitle: z.string().trim().max(160).optional().or(z.literal("")),
-  displayDescription: z.string().trim().max(1000).optional().or(z.literal("")),
-  displayImage: z.string().trim().max(2000).optional().or(z.literal("")),
+  isPrimary: z.boolean().default(false),
   ctaLabel: z.string().trim().max(40).optional().or(z.literal("")),
-  overridePrice: z.number().int().positive().optional(),
-})
+  stock: z.number().int().nonnegative().default(0),
+}).refine(
+  (data) => data.compareAtPrice === undefined || data.compareAtPrice > data.price,
+  { message: "Compare price must be greater than the current price", path: ["compareAtPrice"] }
+)
 
-export const landingPageProductUpdateSchema = z.object({
-  displayTitle: z.string().trim().max(160).optional().or(z.literal("")),
-  displayDescription: z.string().trim().max(1000).optional().or(z.literal("")),
-  displayImage: z.string().trim().max(2000).optional().or(z.literal("")),
-  ctaLabel: z.string().trim().max(40).optional().or(z.literal("")),
+export const landingPageItemUpdateSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(5000).optional().or(z.literal("")),
+  shortDescription: z.string().max(500).optional().or(z.literal("")),
+  price: z.number().int().positive().optional(),
+  compareAtPrice: z.number().int().positive().optional(),
+  images: z.array(z.string()).optional(),
+  sku: z.string().max(100).optional().or(z.literal("")),
   sortOrder: z.number().int().nonnegative().optional(),
+  isPrimary: z.boolean().optional(),
+  ctaLabel: z.string().trim().max(40).optional().or(z.literal("")),
+  stock: z.number().int().nonnegative().optional(),
 }).refine(
   (data) => Object.values(data).some((v) => v !== undefined),
   { message: "At least one field is required" }
 )
+
+export const landingPageImportProductSchema = z.object({
+  sourceProductId: z.string().min(1),
+  name: z.string().min(1).max(200).optional(),
+  price: z.number().int().positive().optional(),
+})
 
 export const landingPageReorderSchema = z.object({
   orderedIds: z.array(z.string().min(1)).min(1),
@@ -391,7 +410,7 @@ export const MAX_OFFER_QUANTITY = 20
 export const MAX_OFFER_ITEMS = 10
 
 const landingPageOfferItemSchema = z.object({
-  landingPageProductId: z.string().min(1, "Product is required"),
+  landingPageItemId: z.string().min(1, "Item is required"),
   quantity: z.number().int().min(1, "Quantity must be at least 1").max(MAX_OFFER_QUANTITY, `Quantity cannot exceed ${MAX_OFFER_QUANTITY}`),
 })
 
@@ -419,26 +438,15 @@ export const landingPageOfferUpdateSchema = z.object({
   { message: "At least one field is required" }
 )
 
-const landingCheckoutSelectionSchema = z.object({
-  landingPageProductId: z.string().min(1),
-  unitIndex: z.number().int().nonnegative(),
+const landingItemSelectionSchema = z.object({
+  landingPageItemId: z.string().min(1),
   variantId: z.string().min(1),
-})
-
-const landingProductSelectionSchema = z.object({
-  landingPageProductId: z.string().min(1),
-  productId: z.string().min(1),
   quantity: z.number().int().min(1).max(20),
-  variantId: z.string().optional(),
 })
 
 export const landingCheckoutSchema = z.object({
-  // New product-based checkout: send selectedProductIds, server auto-resolves offer.
-  selectedProductIds: z.array(z.string().min(1)).min(1, "Select at least one product").max(20).optional(),
-  productSelections: z.array(landingProductSelectionSchema).min(1).max(20).optional(),
-  // Legacy offer-based checkout: send offerId + selections (still supported for backward compat).
-  offerId: z.string().optional(),
-  selections: z.array(landingCheckoutSelectionSchema).max(100).optional(),
+  selectedItemIds: z.array(z.string().min(1)).min(1, "Select at least one item").max(20),
+  itemSelections: z.array(landingItemSelectionSchema).min(1).max(20),
   customer: z.object({
     name: z.string().trim().min(1, "Name is required").max(100),
     email: z.string().trim().email("Valid email is required").max(255).optional().or(z.literal("")),
@@ -460,18 +468,9 @@ export const landingCheckoutSchema = z.object({
     offerPrice: z.number().int(),
     total: z.number().int(),
   }).optional(),
-}).refine(
-  (data) => (data.selectedProductIds && data.selectedProductIds.length > 0) || (data.offerId && data.selections && data.selections.length > 0),
-  { message: "Either selectedProductIds or offerId with selections is required" }
-)
+})
 
 export const landingCheckoutQuoteSchema = z.object({
-  // New product-based quote
-  selectedProductIds: z.array(z.string().min(1)).min(1).max(20).optional(),
-  // Legacy offer-based quote
-  offerId: z.string().optional(),
+  selectedItemIds: z.array(z.string().min(1)).min(1).max(20),
   districtId: z.string().optional().nullable(),
-}).refine(
-  (data) => (data.selectedProductIds && data.selectedProductIds.length > 0) || data.offerId,
-  { message: "Either selectedProductIds or offerId is required" }
-)
+})

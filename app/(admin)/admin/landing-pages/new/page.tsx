@@ -32,19 +32,16 @@ export default function NewLandingPagePage() {
   const router = useRouter()
   const [mode, setMode] = useState<"existing_product" | "custom">("existing_product")
 
-  // Existing-product state
   const [query, setQuery] = useState("")
   const [hits, setHits] = useState<ProductHit[]>([])
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<ProductHit | null>(null)
 
-  // Shared state
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
   const [slugTouched, setSlugTouched] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Debounced product search
   useEffect(() => {
     if (mode !== "existing_product") return
     const t = setTimeout(async () => {
@@ -137,7 +134,7 @@ export default function NewLandingPagePage() {
               {mode === "existing_product" && <Check className="h-3.5 w-3.5 text-emerald-600" />}
             </span>
             <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
-              Pick a product — title, slug, SEO and imagery are prefilled. Commerce stays linked to the real product.
+              Pick a product — its data is copied into a new landing page item you can edit independently.
             </span>
           </span>
         </button>
@@ -163,7 +160,7 @@ export default function NewLandingPagePage() {
               {mode === "custom" && <Check className="h-3.5 w-3.5 text-emerald-600" />}
             </span>
             <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
-              Start blank with just a title and slug. Link products later from the editor.
+              Start blank with just a title and slug. Add items later from the editor.
             </span>
           </span>
         </button>

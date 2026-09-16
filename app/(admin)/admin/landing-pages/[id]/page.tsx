@@ -2,14 +2,13 @@
 
 import { startTransition, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
-import Image from "next/image"
 import { AdminPageHeader, AdminPageShell, AdminStatusBadge, AdminFormSection } from "@/components/admin/admin-ui"
 import { Button } from "@/components/ui/button"
 import { ImageUploader } from "@/components/admin/image-uploader"
 import { toast } from "sonner"
-import { Eye, Package, ExternalLink } from "lucide-react"
-import { LandingSectionsPanel, type LandingProductLink, type LandingSectionRow } from "@/components/admin/landing-sections-panel"
+import { Eye } from "lucide-react"
+import { LandingSectionsPanel, type LandingPageItem, type LandingSectionRow } from "@/components/admin/landing-sections-panel"
+import { DeleteLandingPageButton } from "@/components/admin/delete-landing-page-button"
 
 type LandingPageDetail = {
   id: string
@@ -28,17 +27,7 @@ type LandingPageDetail = {
   robotsFollow: boolean
   publishedAt: string | null
   archivedAt: string | null
-  sourceProduct: {
-    id: string
-    name: string
-    slug: string
-    images: string[]
-    price: number
-    status: string
-    shortDescription: string | null
-    description: string | null
-  } | null
-  products: LandingProductLink[]
+  items: LandingPageItem[]
   sections: LandingSectionRow[]
 }
 
@@ -206,6 +195,11 @@ export default function EditLandingPagePage() {
               Archive
             </Button>
           )}
+          <DeleteLandingPageButton
+            pageId={page.id}
+            pageTitle={page.title}
+            onDeleted={() => router.push("/admin/landing-pages")}
+          />
         </div>
       </div>
 
@@ -279,41 +273,10 @@ export default function EditLandingPagePage() {
         </div>
       </form>
 
-      <AdminFormSection
-        title="Source product"
-        description="Read-only. Editing landing content never modifies the original product."
-      >
-        {page.sourceProduct ? (
-          <div className="flex items-center gap-3">
-            {page.sourceProduct.images[0] ? (
-              <Image src={page.sourceProduct.images[0]} alt={page.sourceProduct.name} width={44} height={44} className="h-11 w-11 rounded-lg object-cover" />
-            ) : (
-              <span className="grid h-11 w-11 place-items-center rounded-lg bg-slate-100">
-                <Package className="h-4 w-4 text-slate-400" />
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-800">{page.sourceProduct.name}</p>
-              <p className="font-mono text-[11px] text-slate-500">/{page.sourceProduct.slug} · ৳{page.sourceProduct.price.toLocaleString()} · {page.sourceProduct.status}</p>
-            </div>
-            <Link
-              href={`/products/${page.sourceProduct.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800"
-            >
-              View product <ExternalLink className="h-3 w-3" />
-            </Link>
-          </div>
-        ) : (
-          <p className="text-xs text-slate-400">Custom landing page — no source product. Link products from the Products section below.</p>
-        )}
-      </AdminFormSection>
-
       <LandingSectionsPanel
         pageId={page.id}
         sections={page.sections}
-        links={page.products}
-        sourceProduct={page.sourceProduct}
+        items={page.items}
         onChanged={() => setRefreshKey((k) => k + 1)}
       />
     </AdminPageShell>

@@ -2,14 +2,13 @@ import { NextRequest } from "next/server"
 import { success, error } from "@/lib/api-response"
 import { rateLimitByIpFor } from "@/lib/rate-limit"
 import { landingCheckoutQuoteSchema } from "@/lib/validations"
-import { resolveLandingOffer, resolveBestOfferForSelection, resolveLandingProductPrices } from "@/lib/landing-pages/offer-pricing"
+import { resolveBestOfferForSelection, resolveLandingItemPrices } from "@/lib/landing-pages/offer-pricing"
 import { getDeliveryFeeByDistrict } from "@/lib/delivery"
 import { getDistrictById } from "@/lib/bangladesh-address"
 import { prisma } from "@/lib/prisma"
 import type { DeliveryZone } from "@/types"
 
 // Authoritative delivery/total estimate for the landing checkout UI.
-// Supports both product-based and offer-based flows.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -43,49 +42,29 @@ export async function POST(
       zone = calc.zone
     }
 
-    // Product-based flow
-    if (parsed.data.selectedProductIds && parsed.data.selectedProductIds.length > 0) {
-      const productPrices = await resolveLandingProductPrices(id, parsed.data.selectedProductIds)
-      if (!productPrices) {
-        return error("Selected products are not available", 409)
-      }
-
-      const matchedOffer = await resolveBestOfferForSelection(id, parsed.data.selectedProductIds)
-      const offerPrice = matchedOffer?.offerPrice ?? productPrices.regularTotal
-      const savings = Math.max(0, productPrices.regularTotal - offerPrice)
-
-      return success({
-        regularTotal: productPrices.regularTotal,
-        offerPrice,
-        savings,
-        savingsPercent: productPrices.regularTotal > 0 ? Math.round((savings * 100) / productPrices.regularTotal) : 0,
-        matchedOfferId: matchedOffer?.offerId ?? null,
-        matchedOfferName: matchedOffer?.offerName ?? null,
-        deliveryFee,
-        zone,
-        total: offerPrice + deliveryFee,
-      })
+    if (!parsed.data.selectedItemIds || parsed.data.selectedItemIds.length === 0) {
+      return error("selectedItemIds is required", 400)
     }
 
-    // Legacy offer-based flow
-    if (!parsed.data.offerId) {
-      return error("Either selectedProductIds or offerId is required", 400)
+    const itemPrices = await resolveLandingItemPrices(id, parsed.data.selectedItemIds)
+    if (!itemPrices) {
+      return error("Selected items are not available", 409)
     }
 
-    const resolved = await resolveLandingOffer(id, parsed.data.offerId)
-    if (!resolved || !resolved.valid) {
-      return error(resolved?.invalidReason ?? "Offer is not available", 409)
-    }
+    const matchedOffer = await resolveBestOfferForSelection(id, parsed.data.selectedItemIds)
+    const offerPrice = matchedOffer?.offerPrice ?? itemPrices.regularTotal
+    const savings = Math.max(0, itemPrices.regularTotal - offerPrice)
 
     return success({
-      offerId: resolved.offerId,
-      regularTotal: resolved.regularTotal,
-      offerPrice: resolved.offerPrice,
-      savings: resolved.savings,
-      savingsPercent: resolved.savingsPercent,
+      regularTotal: itemPrices.regularTotal,
+      offerPrice,
+      savings,
+      savingsPercent: itemPrices.regularTotal > 0 ? Math.round((savings * 100) / itemPrices.regularTotal) : 0,
+      matchedOfferId: matchedOffer?.offerId ?? null,
+      matchedOfferName: matchedOffer?.offerName ?? null,
       deliveryFee,
       zone,
-      total: resolved.offerPrice + deliveryFee,
+      total: offerPrice + deliveryFee,
     })
   } catch {
     return error("Failed to calculate totals")

@@ -9,8 +9,10 @@ import { prisma } from "@/lib/prisma"
 // the client here — the caller resolves them authoritatively first.
 
 export type CommerceOrderLine = {
-  productId: string
+  productId: string | null
   variantId: string | null
+  landingPageItemId: string | null
+  landingPageItemVariantId: string | null
   name: string
   size: string | null
   color: string | null
@@ -133,8 +135,43 @@ export async function createCommerceOrder(input: CommerceOrderInput) {
       otpVerifiedAtValue = new Date()
     }
 
+    // Reserve stock for each line item
     for (const item of lines) {
-      if (item.variantId) {
+      if (item.landingPageItemId) {
+        // Landing page item: reserve on LandingPageItemVariant or LandingPageItem
+        if (item.landingPageItemVariantId) {
+          const result = await tx.$executeRaw`
+            UPDATE "LandingPageItemVariant"
+            SET "reservedStock" = "reservedStock" + ${item.quantity}
+            WHERE id = ${item.landingPageItemVariantId}
+              AND "landingPageItemId" = ${item.landingPageItemId}
+              AND ("stock" - "reservedStock") >= ${item.quantity}
+          `
+          if (result === 0) {
+            const variant = await tx.landingPageItemVariant.findUnique({ where: { id: item.landingPageItemVariantId } })
+            const availableStock = variant ? Math.max(0, variant.stock - variant.reservedStock) : 0
+            throw new Error(
+              `Insufficient stock for "${item.name}". Available: ${availableStock}, requested: ${item.quantity}`
+            )
+          }
+        } else {
+          // No variant — reserve on the LandingPageItem itself
+          const result = await tx.$executeRaw`
+            UPDATE "LandingPageItem"
+            SET "reservedStock" = "reservedStock" + ${item.quantity}
+            WHERE id = ${item.landingPageItemId}
+              AND ("stock" - "reservedStock") >= ${item.quantity}
+          `
+          if (result === 0) {
+            const lpItem = await tx.landingPageItem.findUnique({ where: { id: item.landingPageItemId } })
+            const availableStock = lpItem ? Math.max(0, lpItem.stock - lpItem.reservedStock) : 0
+            throw new Error(
+              `Insufficient stock for "${item.name}". Available: ${availableStock}, requested: ${item.quantity}`
+            )
+          }
+        }
+      } else if (item.variantId) {
+        // Catalog product variant
         const result = await tx.$executeRaw`
           UPDATE "ProductVariant"
           SET "reservedStock" = "reservedStock" + ${item.quantity}
@@ -221,6 +258,8 @@ export async function createCommerceOrder(input: CommerceOrderInput) {
             return {
               productId: item.productId,
               variantId: item.variantId ?? null,
+              landingPageItemId: item.landingPageItemId ?? null,
+              landingPageItemVariantId: item.landingPageItemVariantId ?? null,
               name: item.name,
               size: item.size ?? null,
               color: item.color ?? null,
@@ -261,8 +300,9 @@ export async function createCommerceOrder(input: CommerceOrderInput) {
       }
     }
 
+    // Create stock movement records for catalog product variants
     for (const item of lines) {
-      if (item.variantId) {
+      if (!item.landingPageItemId && item.variantId && item.productId) {
         const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } })
         if (variant) {
           await tx.stockMovement.create({

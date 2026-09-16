@@ -15,7 +15,7 @@ export async function PATCH(
     const { id, offerId } = await params
     const offer = await prisma.landingPageOffer.findFirst({
       where: { id: offerId, landingPageId: id },
-      include: { items: { select: { landingPageProductId: true, quantity: true } } },
+      include: { items: { select: { landingPageItemId: true, quantity: true } } },
     })
     if (!offer) {
       return NextResponse.json({ success: false, error: "Offer not found" }, { status: 404 })
@@ -32,30 +32,29 @@ export async function PATCH(
 
     const { name, badge, matchType, minQuantity, offerPrice, enabled, items } = parsed.data
 
-    // Final item set after this update (provided or currently stored).
-    const finalItems = items ?? offer.items.map((i) => ({ landingPageProductId: i.landingPageProductId, quantity: i.quantity }))
+    const finalItems = items ?? offer.items.map((i) => ({ landingPageItemId: i.landingPageItemId, quantity: i.quantity }))
     const finalPrice = offerPrice ?? offer.offerPrice
     const finalMatchType = matchType ?? offer.matchType
     const finalMinQuantity = matchType === "QUANTITY_TIER" ? minQuantity : (matchType !== undefined ? null : offer.minQuantity)
 
     if (items) {
-      const linkIds = items.map((i) => i.landingPageProductId)
-      if (new Set(linkIds).size !== linkIds.length) {
-        return NextResponse.json({ success: false, error: "Duplicate product in offer items" }, { status: 400 })
+      const itemIds = items.map((i) => i.landingPageItemId)
+      if (new Set(itemIds).size !== itemIds.length) {
+        return NextResponse.json({ success: false, error: "Duplicate item in offer items" }, { status: 400 })
       }
-      const links = await prisma.landingPageProduct.findMany({
-        where: { landingPageId: id, id: { in: linkIds } },
+      const landingItems = await prisma.landingPageItem.findMany({
+        where: { landingPageId: id, id: { in: itemIds } },
         select: { id: true },
       })
-      if (links.length !== linkIds.length) {
-        return NextResponse.json({ success: false, error: "One or more products do not belong to this landing page" }, { status: 400 })
+      if (landingItems.length !== itemIds.length) {
+        return NextResponse.json({ success: false, error: "One or more items do not belong to this landing page" }, { status: 400 })
       }
     }
 
     if (items || offerPrice !== undefined) {
       const regularTotal = await computeRegularTotal(id, finalItems)
       if (regularTotal === null) {
-        return NextResponse.json({ success: false, error: "A linked product is no longer available" }, { status: 400 })
+        return NextResponse.json({ success: false, error: "A linked item is no longer available" }, { status: 400 })
       }
       if (finalPrice > regularTotal) {
         return NextResponse.json(
@@ -82,7 +81,7 @@ export async function PATCH(
         await tx.landingPageOfferItem.createMany({
           data: items.map((i) => ({
             offerId,
-            landingPageProductId: i.landingPageProductId,
+            landingPageItemId: i.landingPageItemId,
             quantity: i.quantity,
           })),
         })
@@ -113,7 +112,6 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Offer not found" }, { status: 404 })
     }
 
-    // Offer items cascade; the landing page and products are untouched.
     await prisma.landingPageOffer.delete({ where: { id: offerId } })
     return NextResponse.json({ success: true })
   } catch {

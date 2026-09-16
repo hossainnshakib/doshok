@@ -266,6 +266,8 @@ export async function POST(request: NextRequest) {
       lines: validatedItems.map((item) => ({
         productId: item.product.id,
         variantId: item.variant?.id ?? null,
+        landingPageItemId: null,
+        landingPageItemVariantId: null,
         name: item.product.name,
         size: item.variant?.size ?? null,
         color: item.variant?.color ?? null,

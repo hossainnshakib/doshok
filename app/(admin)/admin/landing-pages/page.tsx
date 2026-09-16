@@ -4,8 +4,8 @@ import { requireAdminPagePermission } from "@/lib/auth/admin-page"
 import { requireAdminPermission } from "@/lib/auth/admin"
 import { AdminPageHeader, AdminPageShell, AdminStatusBadge, AdminTableShell } from "@/components/admin/admin-ui"
 import { ConfirmSubmitButton } from "@/components/admin/confirm-button"
-import { Plus, Eye, Edit, Archive, Trash2, Search } from "lucide-react"
-import { redirect } from "next/navigation"
+import { DeleteLandingPageButton } from "@/components/admin/delete-landing-page-button"
+import { Plus, Eye, Edit, Archive, Search } from "lucide-react"
 import { revalidatePath } from "next/cache"
 
 async function publishAction(formData: FormData) {
@@ -49,26 +49,6 @@ async function archiveAction(formData: FormData) {
   revalidatePath("/admin/landing-pages")
 }
 
-async function deleteAction(formData: FormData) {
-  "use server"
-  const res = await requireAdminPermission("landing_pages")
-  if (res instanceof Response) return
-  const id = formData.get("id") as string
-  if (!id) return
-  const page = await prisma.landingPage.findUnique({ where: { id }, select: { status: true } })
-  if (!page) return
-  // Prefer archive for published pages; hard-delete drafts/archived only.
-  if (page.status === "published") {
-    await prisma.landingPage.update({
-      where: { id },
-      data: { status: "archived", archivedAt: new Date() },
-    })
-  } else {
-    await prisma.landingPage.delete({ where: { id } })
-  }
-  redirect("/admin/landing-pages")
-}
-
 const STATUS_FILTERS = ["all", "draft", "published", "archived"] as const
 
 export default async function LandingPagesPage({
@@ -102,8 +82,7 @@ export default async function LandingPagesPage({
       creationMode: true,
       publishedAt: true,
       updatedAt: true,
-      sourceProduct: { select: { id: true, name: true, slug: true } },
-      _count: { select: { products: true } },
+      _count: { select: { items: true, sections: true } },
     },
   })
 
@@ -169,7 +148,7 @@ export default async function LandingPagesPage({
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Slug</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mode</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Source Product</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Items</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Updated</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -187,14 +166,8 @@ export default async function LandingPagesPage({
                     </span>
                   </td>
                   <td className="px-4 py-3"><AdminStatusBadge status={page.status} /></td>
-                  <td className="px-4 py-3 text-xs text-slate-500 max-w-[160px] truncate" title={page.sourceProduct?.name ?? ""}>
-                    {page.sourceProduct ? (
-                      <Link href={`/products/${page.sourceProduct.slug}`} target="_blank" className="hover:text-slate-800 hover:underline">
-                        {page.sourceProduct.name}
-                      </Link>
-                    ) : (
-                      <span className="text-slate-300">—</span>
-                    )}
+                  <td className="px-4 py-3 text-xs text-slate-500">
+                    {page._count.items} item{page._count.items !== 1 ? "s" : ""}
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
                     {new Date(page.updatedAt).toLocaleDateString()}
@@ -253,16 +226,10 @@ export default async function LandingPagesPage({
                           </ConfirmSubmitButton>
                         </form>
                       )}
-                      <form action={deleteAction} className="inline">
-                          <input type="hidden" name="id" value={page.id} />
-                          <ConfirmSubmitButton
-                            message={page.status === "published" ? "Published pages are archived, not deleted. Archive this page?" : "Delete this landing page?"}
-                            className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </ConfirmSubmitButton>
-                      </form>
+                      <DeleteLandingPageButton
+                        pageId={page.id}
+                        pageTitle={page.title}
+                      />
                     </div>
                   </td>
                 </tr>

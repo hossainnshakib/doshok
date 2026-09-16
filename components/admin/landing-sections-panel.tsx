@@ -24,38 +24,35 @@ export type LandingSectionRow = {
   content: unknown
 }
 
-export type LandingProductLink = {
+export type LandingPageItem = {
   id: string
   sortOrder: number
-  displayTitle: string | null
-  displayDescription: string | null
-  displayImage: string | null
+  name: string
+  description: string | null
+  shortDescription: string | null
+  price: number
+  compareAtPrice: number | null
+  images: string[]
+  sku: string | null
   ctaLabel: string | null
-  overridePrice: number | null
-  product: {
-    id: string
-    name: string
-    slug: string
-    images: string[]
-    price: number
-    oldPrice: number | null
-    status: string
-  }
+  active: boolean
+  isPrimary: boolean
+  stock: number
+  reservedStock: number
+  importedFromProductId: string | null
 }
 
-type ProductHit = { id: string; name: string; slug: string; price: number; images: string[]; status: string }
+type ProductHit = { id: string; name: string; price: number; images: string[]; status: string }
 
 export function LandingSectionsPanel({
   pageId,
   sections,
-  links,
-  sourceProduct,
+  items,
   onChanged,
 }: {
   pageId: string
   sections: LandingSectionRow[]
-  links: LandingProductLink[]
-  sourceProduct: { name: string; shortDescription: string | null; description: string | null; images: string[] } | null
+  items: LandingPageItem[]
   onChanged: () => void
 }) {
   const [busy, setBusy] = useState<string | null>(null)
@@ -63,7 +60,7 @@ export function LandingSectionsPanel({
 
   const ordered = [...sections].sort((a, b) => a.sortOrder - b.sortOrder)
   const hasGallery = ordered.some((s) => s.type === "GALLERY")
-  const linkOptions: ProductLinkOption[] = links.map((l) => ({ id: l.id, product: { id: l.product.id, name: l.product.name, slug: l.product.slug } }))
+  const linkOptions: ProductLinkOption[] = items.map((item) => ({ id: item.id, name: item.name }))
 
   async function patchSection(sectionId: string, body: Record<string, unknown>, action: string) {
     setBusy(action)
@@ -195,12 +192,11 @@ export function LandingSectionsPanel({
                   <SectionEditor
                     section={section}
                     links={linkOptions}
-                    fullLinks={links}
+                    fullItems={items}
                     pageId={pageId}
-                    sourceProduct={sourceProduct}
                     saving={busy !== null}
                     onSaveContent={(content) => patchSection(section.id, { content }, `save-${section.id}`)}
-                    onLinksChanged={onChanged}
+                    onItemsChanged={onChanged}
                   />
                 </div>
               )}
@@ -218,27 +214,25 @@ export function LandingSectionsPanel({
 }
 
 // ---------------------------------------------------------------------------
-// Per-type editor dispatch + linked-product management for PRODUCTS
+// Per-type editor dispatch + landing-item management for PRODUCTS
 // ---------------------------------------------------------------------------
 
 function SectionEditor({
   section,
   links,
-  fullLinks,
+  fullItems,
   pageId,
-  sourceProduct,
   saving,
   onSaveContent,
-  onLinksChanged,
+  onItemsChanged,
 }: {
   section: LandingSectionRow
   links: ProductLinkOption[]
-  fullLinks: LandingProductLink[]
+  fullItems: LandingPageItem[]
   pageId: string
-  sourceProduct: { name: string; shortDescription: string | null; description: string | null; images: string[] } | null
   saving: boolean
   onSaveContent: (content: unknown) => void
-  onLinksChanged: () => void
+  onItemsChanged: () => void
 }) {
   switch (section.type) {
     case "HERO": {
@@ -246,7 +240,7 @@ function SectionEditor({
         eyebrow: "", headline: "", subheadline: "", description: "", media: [], layout: "split",
         primaryCta: { label: "Shop Now", target: "products" }, secondaryCta: null, trustLine: "", showPrice: false,
       }
-      return <HeroEditor initial={parsed} links={links} sourceProduct={sourceProduct} onSave={onSaveContent} saving={saving} />
+      return <HeroEditor initial={parsed} links={links} onSave={onSaveContent} saving={saving} />
     }
     case "BENEFITS": {
       const parsed = parseSectionContent<BenefitsContent>("BENEFITS", section.content) ?? { heading: "", subheading: "", items: [] }
@@ -259,7 +253,7 @@ function SectionEditor({
       return (
         <div className="space-y-5">
           <ProductsEditor initial={parsed} onSave={onSaveContent} saving={saving} />
-          <LinkedProductsManager pageId={pageId} links={fullLinks} onChanged={onLinksChanged} />
+          <LandingItemsManager pageId={pageId} items={fullItems} onChanged={onItemsChanged} />
         </div>
       )
     }
@@ -271,7 +265,7 @@ function SectionEditor({
       const parsed = parseSectionContent<OffersContent>("OFFERS", section.content) ?? {
         heading: "Choose Your Bundle", subheading: "", layout: "cards", showRegularPrice: true, showSavings: true, selectionLabel: "Select", helperText: "",
       }
-      return <OffersEditor initial={parsed} pageId={pageId} links={fullLinks} onSave={onSaveContent} saving={saving} />
+      return <OffersEditor initial={parsed} pageId={pageId} items={fullItems} onSave={onSaveContent} saving={saving} />
     }
     case "REVIEWS": {
       const parsed = parseSectionContent<ReviewsContent>("REVIEWS", section.content) ?? { heading: "Customer Reviews", subheading: "", layout: "grid", items: [] }
@@ -295,24 +289,25 @@ function SectionEditor({
 }
 
 // ---------------------------------------------------------------------------
-// Linked products: add / remove / reorder / presentation edit
+// Landing items: add / remove / reorder / edit
 // ---------------------------------------------------------------------------
 
 const inputCls = "w-full rounded-lg border border-border bg-white px-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20"
 const areaCls = "w-full rounded-lg border border-border bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
 
-function LinkedProductsManager({ pageId, links, onChanged }: { pageId: string; links: LandingProductLink[]; onChanged: () => void }) {
+function LandingItemsManager({ pageId, items, onChanged }: { pageId: string; items: LandingPageItem[]; onChanged: () => void }) {
   const [busy, setBusy] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [mode, setMode] = useState<"manual" | "import" | null>(null)
   const [query, setQuery] = useState("")
   const [hits, setHits] = useState<ProductHit[]>([])
   const [searching, setSearching] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const ordered = [...links].sort((a, b) => a.sortOrder - b.sortOrder)
+  const ordered = [...items].sort((a, b) => a.sortOrder - b.sortOrder)
 
   useEffect(() => {
-    if (!adding) return
+    if (mode !== "import") return
     const t = setTimeout(async () => {
       setSearching(true)
       try {
@@ -326,24 +321,25 @@ function LinkedProductsManager({ pageId, links, onChanged }: { pageId: string; l
       }
     }, 300)
     return () => clearTimeout(t)
-  }, [query, adding])
+  }, [query, mode])
 
-  async function handleAdd(productId: string) {
+  async function handleImport(productId: string) {
     setBusy(true)
     try {
-      const res = await fetch(`/api/landing-pages/${pageId}/products`, {
+      const res = await fetch(`/api/landing-pages/${pageId}/items/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, sortOrder: ordered.length }),
       })
       const data = await res.json()
       if (data.success) {
-        toast.success("Product linked")
+        toast.success("Item imported")
         setAdding(false)
+        setMode(null)
         setQuery("")
         onChanged()
       } else {
-        toast.error(data.error ?? "Failed to link product")
+        toast.error(data.error ?? "Failed to import item")
       }
     } catch {
       toast.error("Something went wrong")
@@ -352,17 +348,22 @@ function LinkedProductsManager({ pageId, links, onChanged }: { pageId: string; l
     }
   }
 
-  async function handleRemove(linkId: string) {
-    if (!confirm("Remove this product from the landing page? The product itself is not affected.")) return
+  async function handleCreateManual(name: string) {
     setBusy(true)
     try {
-      const res = await fetch(`/api/landing-pages/${pageId}/products/${linkId}`, { method: "DELETE" })
+      const res = await fetch(`/api/landing-pages/${pageId}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, sortOrder: ordered.length }),
+      })
       const data = await res.json()
       if (data.success) {
-        toast.success("Product removed")
+        toast.success("Item created")
+        setAdding(false)
+        setMode(null)
         onChanged()
       } else {
-        toast.error(data.error ?? "Failed to remove product")
+        toast.error(data.error ?? "Failed to create item")
       }
     } catch {
       toast.error("Something went wrong")
@@ -371,22 +372,41 @@ function LinkedProductsManager({ pageId, links, onChanged }: { pageId: string; l
     }
   }
 
-  async function moveLink(link: LandingProductLink, dir: -1 | 1) {
-    const idx = ordered.findIndex((l) => l.id === link.id)
+  async function handleRemove(itemId: string) {
+    if (!confirm("Delete this landing page item?")) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/landing-pages/${pageId}/items/${itemId}`, { method: "DELETE" })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Item deleted")
+        onChanged()
+      } else {
+        toast.error(data.error ?? "Failed to delete item")
+      }
+    } catch {
+      toast.error("Something went wrong")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function moveItem(item: LandingPageItem, dir: -1 | 1) {
+    const idx = ordered.findIndex((l) => l.id === item.id)
     const j = idx + dir
     if (j < 0 || j >= ordered.length) return
     const next = [...ordered]
     ;[next[idx], next[j]] = [next[j], next[idx]]
     setBusy(true)
     try {
-      const res = await fetch(`/api/landing-pages/${pageId}/products/reorder`, {
+      const res = await fetch(`/api/landing-pages/${pageId}/items/reorder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderedIds: next.map((l) => l.id) }),
       })
       const data = await res.json()
       if (data.success) {
-        toast.success("Product order saved")
+        toast.success("Item order saved")
         onChanged()
       } else {
         toast.error(data.error ?? "Reorder failed")
@@ -400,55 +420,65 @@ function LinkedProductsManager({ pageId, links, onChanged }: { pageId: string; l
 
   return (
     <div className="rounded-xl border border-slate-200/70 p-4">
-      <p className="text-sm font-semibold text-slate-800">Linked products ({ordered.length})</p>
+      <p className="text-sm font-semibold text-slate-800">Landing items ({ordered.length})</p>
       <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-        Commerce always resolves to the real product. Presentation edits below never modify the product itself.
+        Manage the items available on this landing page. Each item has its own name, price, images and stock.
       </p>
       <div className="mt-3 space-y-2">
-        {ordered.length === 0 && <p className="text-xs text-slate-400">No products linked yet.</p>}
-        {ordered.map((lp, i) => (
-          <div key={lp.id} className="rounded-lg border border-slate-100">
+        {ordered.length === 0 && <p className="text-xs text-slate-400">No items yet.</p>}
+        {ordered.map((item, i) => (
+          <div key={item.id} className={cn("rounded-lg border", !item.active ? "border-amber-200 bg-amber-50/40" : "border-slate-100")}>
             <div className="flex items-center gap-2 p-2">
               <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-slate-100 text-[10px] font-bold text-slate-500 tabular-nums">{i + 1}</span>
-              {lp.product.images[0] ? (
-                <Image src={lp.product.images[0]} alt={lp.product.name} width={36} height={36} className="h-9 w-9 shrink-0 rounded-md object-cover" />
+              {item.images[0] ? (
+                <Image src={item.images[0]} alt={item.name} width={36} height={36} className="h-9 w-9 shrink-0 rounded-md object-cover" />
               ) : (
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-slate-100">
                   <Package className="h-4 w-4 text-slate-400" />
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-800">{lp.displayTitle || lp.product.name}</p>
-                <p className="font-mono text-[11px] text-slate-400">/{lp.product.slug} · ৳{lp.product.price.toLocaleString()} · {lp.product.status}</p>
+                <p className="flex items-center gap-1.5 truncate text-sm font-medium text-slate-800">
+                  {item.name}
+                  {!item.active && (
+                    <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">Inactive</span>
+                  )}
+                </p>
+                <p className="font-mono text-[11px] text-slate-400">৳{item.price.toLocaleString()} · Stock: {item.stock - item.reservedStock}</p>
               </div>
-              <button type="button" onClick={() => moveLink(lp, -1)} disabled={i === 0 || busy} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30" title="Move up" aria-label={`Move ${lp.product.name} up`}>
+              <button type="button" onClick={() => moveItem(item, -1)} disabled={i === 0 || busy} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30" title="Move up" aria-label={`Move ${item.name} up`}>
                 <ArrowUp className="h-3.5 w-3.5" />
               </button>
-              <button type="button" onClick={() => moveLink(lp, 1)} disabled={i === ordered.length - 1 || busy} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30" title="Move down" aria-label={`Move ${lp.product.name} down`}>
+              <button type="button" onClick={() => moveItem(item, 1)} disabled={i === ordered.length - 1 || busy} className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30" title="Move down" aria-label={`Move ${item.name} down`}>
                 <ArrowDown className="h-3.5 w-3.5" />
               </button>
-              <button type="button" onClick={() => setEditingId(editingId === lp.id ? null : lp.id)} className={cn("p-1.5 rounded-md transition-colors", editingId === lp.id ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100")} title="Edit presentation" aria-label={`Edit presentation for ${lp.product.name}`} aria-expanded={editingId === lp.id}>
+              <button type="button" onClick={() => setEditingId(editingId === item.id ? null : item.id)} className={cn("p-1.5 rounded-md transition-colors", editingId === item.id ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100")} title="Edit item" aria-label={`Edit ${item.name}`} aria-expanded={editingId === item.id}>
                 <Pencil className="h-3.5 w-3.5" />
               </button>
-              <button type="button" onClick={() => handleRemove(lp.id)} disabled={busy} className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30" title="Remove (product itself is untouched)" aria-label={`Remove ${lp.product.name} from landing page`}>
+              <button type="button" onClick={() => handleRemove(item.id)} disabled={busy} className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30" title="Delete item" aria-label={`Delete ${item.name}`}>
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
-            {editingId === lp.id && (
-              <LinkPresentationForm pageId={pageId} link={lp} busy={busy} setBusy={setBusy} onSaved={() => { setEditingId(null); onChanged() }} />
+            {editingId === item.id && (
+              <ItemEditForm pageId={pageId} item={item} busy={busy} setBusy={setBusy} onSaved={() => { setEditingId(null); onChanged() }} />
             )}
           </div>
         ))}
       </div>
       {!adding ? (
-        <Button type="button" variant="outline" size="sm" className="mt-3 rounded-lg" disabled={busy} onClick={() => setAdding(true)}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Link a product
-        </Button>
-      ) : (
+        <div className="mt-3 flex gap-2">
+          <Button type="button" variant="outline" size="sm" className="rounded-lg" disabled={busy} onClick={() => { setAdding(true); setMode("manual") }}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add item
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="rounded-lg" disabled={busy} onClick={() => { setAdding(true); setMode("import") }}>
+            <Search className="h-3.5 w-3.5 mr-1" /> Import from catalog
+          </Button>
+        </div>
+      ) : mode === "import" ? (
         <div className="mt-3 space-y-2 rounded-lg border border-slate-200 p-3">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products..." autoFocus className="w-full rounded-lg border border-border bg-white pl-8 pr-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search catalog products..." autoFocus className="w-full rounded-lg border border-border bg-white pl-8 pr-3 py-2 text-sm h-9 focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 rounded-lg border border-slate-100">
             {searching ? (
@@ -456,55 +486,79 @@ function LinkedProductsManager({ pageId, links, onChanged }: { pageId: string; l
             ) : hits.length === 0 ? (
               <p className="p-3 text-center text-xs text-slate-400">No products found.</p>
             ) : (
-              hits.filter((h) => !ordered.some((l) => l.product.id === h.id)).map((h) => (
-                <button key={h.id} type="button" disabled={busy} onClick={() => handleAdd(h.id)} className="flex w-full items-center gap-2 p-2 text-left hover:bg-slate-50 disabled:opacity-50">
+              hits.map((h) => (
+                <button key={h.id} type="button" disabled={busy} onClick={() => handleImport(h.id)} className="flex w-full items-center gap-2 p-2 text-left hover:bg-slate-50 disabled:opacity-50">
                   <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700">{h.name}</span>
                   <span className="shrink-0 text-[11px] text-slate-400">৳{h.price.toLocaleString()}</span>
                 </button>
               ))
             )}
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={() => { setAdding(false); setQuery("") }}>Cancel</Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setAdding(false); setMode(null); setQuery("") }}>Cancel</Button>
         </div>
+      ) : (
+        <ManualItemForm onSubmit={handleCreateManual} onCancel={() => { setAdding(false); setMode(null) }} busy={busy} />
       )}
     </div>
   )
 }
 
-function LinkPresentationForm({
+function ManualItemForm({ onSubmit, onCancel, busy }: { onSubmit: (name: string) => void; onCancel: () => void; busy: boolean }) {
+  const [name, setName] = useState("")
+  return (
+    <div className="mt-3 space-y-2 rounded-lg border border-slate-200 p-3">
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-slate-600">Item name</label>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Classic T-Shirt" className={inputCls} autoFocus />
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" className="rounded-lg bg-slate-900 hover:bg-slate-800" disabled={busy || !name.trim()} onClick={() => onSubmit(name.trim())}>
+          {busy ? "Creating..." : "Create"}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
+      </div>
+    </div>
+  )
+}
+
+function ItemEditForm({
   pageId,
-  link,
+  item,
   busy,
   setBusy,
   onSaved,
 }: {
   pageId: string
-  link: LandingProductLink
+  item: LandingPageItem
   busy: boolean
   setBusy: (v: boolean) => void
   onSaved: () => void
 }) {
-  const [displayTitle, setDisplayTitle] = useState(link.displayTitle ?? "")
-  const [displayDescription, setDisplayDescription] = useState(link.displayDescription ?? "")
-  const [displayImage, setDisplayImage] = useState(link.displayImage ?? "")
-  const [ctaLabel, setCtaLabel] = useState(link.ctaLabel ?? "")
+  const [name, setName] = useState(item.name)
+  const [price, setPrice] = useState(String(item.price))
+  const [compareAtPrice, setCompareAtPrice] = useState(item.compareAtPrice != null ? String(item.compareAtPrice) : "")
+  const [images, setImages] = useState<string[]>(item.images)
+  const [ctaLabel, setCtaLabel] = useState(item.ctaLabel ?? "")
+  const [active, setActive] = useState(item.active)
 
   async function handleSave() {
     setBusy(true)
     try {
-      const res = await fetch(`/api/landing-pages/${pageId}/products/${link.id}`, {
+      const res = await fetch(`/api/landing-pages/${pageId}/items/${item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          displayTitle: displayTitle || null,
-          displayDescription: displayDescription || null,
-          displayImage: displayImage || null,
+          name: name || undefined,
+          price: price ? parseInt(price, 10) : undefined,
+          compareAtPrice: compareAtPrice ? parseInt(compareAtPrice, 10) : null,
+          images,
           ctaLabel: ctaLabel || null,
+          active,
         }),
       })
       const data = await res.json()
       if (data.success) {
-        toast.success("Presentation saved — product unchanged")
+        toast.success("Item saved")
         onSaved()
       } else {
         toast.error(data.error ?? "Save failed")
@@ -518,27 +572,36 @@ function LinkPresentationForm({
 
   return (
     <div className="space-y-3 border-t border-slate-100 p-3">
-      <p className="text-[11px] text-slate-400">Landing-only overrides. Blank fields fall back to the real product. The live product price is always shown publicly.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-600">Display title</label>
-          <input value={displayTitle} maxLength={160} onChange={(e) => setDisplayTitle(e.target.value)} placeholder={link.product.name} className={inputCls} />
+          <label className="text-xs font-medium text-slate-600">Name</label>
+          <input value={name} maxLength={160} onChange={(e) => setName(e.target.value)} className={inputCls} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-600">Card button label</label>
+          <label className="text-xs font-medium text-slate-600">Price (৳)</label>
+          <input value={price} inputMode="numeric" onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, ""))} className={cn(inputCls, "tabular-nums")} />
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-slate-600">Compare at price (৳)</label>
+          <input value={compareAtPrice} inputMode="numeric" onChange={(e) => setCompareAtPrice(e.target.value.replace(/[^0-9]/g, ""))} placeholder="Optional" className={cn(inputCls, "tabular-nums")} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-slate-600">CTA button label</label>
           <input value={ctaLabel} maxLength={40} onChange={(e) => setCtaLabel(e.target.value)} placeholder="View" className={inputCls} />
         </div>
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Display description (plain text)</label>
-        <textarea value={displayDescription} rows={2} maxLength={1000} onChange={(e) => setDisplayDescription(e.target.value)} className={areaCls} />
+        <label className="text-xs font-medium text-slate-600">Images</label>
+        <ImageUploader images={images} onChange={setImages} label="" helperText="" folder="landing-pages" />
       </div>
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Display image</label>
-        <ImageUploader images={displayImage ? [displayImage] : []} onChange={(imgs) => setDisplayImage(imgs[0] || "")} single label="" helperText="" folder="landing-pages" />
+      <div className="flex items-center gap-2">
+        <Switch checked={active} onCheckedChange={setActive} aria-label="Item active" />
+        <span className="text-xs text-slate-600">Active</span>
       </div>
       <Button type="button" size="sm" className="rounded-lg bg-slate-900 hover:bg-slate-800" disabled={busy} onClick={handleSave}>
-        {busy ? "Saving..." : "Save presentation"}
+        {busy ? "Saving..." : "Save item"}
       </Button>
     </div>
   )

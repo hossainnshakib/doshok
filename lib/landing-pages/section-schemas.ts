@@ -182,7 +182,7 @@ export function defaultBenefitsContent(): BenefitsContent {
 }
 
 // ---------------------------------------------------------------------------
-// PRODUCTS (presentation layer over LandingPageProduct relations)
+// PRODUCTS (presentation layer over LandingPageItem relations)
 // ---------------------------------------------------------------------------
 
 export const productsContentSchema = z.object({

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAdminPermission } from "@/lib/auth/admin"
-import { LandingPageView, type PublicProductLink, type PublicReviewRef, type PublicSection } from "@/components/landing/landing-sections"
+import { LandingPageView, type PublicLandingItem, type PublicReviewRef, type PublicSection } from "@/components/landing/landing-sections"
 import { resolveLandingOffers } from "@/lib/landing-pages/offer-pricing"
 import { parseSectionContent } from "@/lib/landing-pages/section-schemas"
 import type { ResolvedOffer, ReviewsContent } from "@/lib/landing-pages/types"
@@ -24,7 +24,7 @@ type LandingPagePublic = {
   robotsIndex: boolean
   robotsFollow: boolean
   sections: PublicSection[]
-  products: PublicProductLink[]
+  items: PublicLandingItem[]
 }
 
 async function getLandingPage(slug: string, allowAnyStatus: boolean): Promise<LandingPagePublic | null> {
@@ -47,33 +47,78 @@ async function getLandingPage(slug: string, allowAnyStatus: boolean): Promise<La
         orderBy: { sortOrder: "asc" },
         select: { id: true, type: true, enabled: true, sortOrder: true, content: true },
       },
-      products: {
+      items: {
         orderBy: { sortOrder: "asc" },
+        where: { active: true },
         select: {
           id: true,
-          displayTitle: true,
-          displayDescription: true,
-          displayImage: true,
-          ctaLabel: true,
+          name: true,
+          description: true,
+          shortDescription: true,
+          price: true,
+          compareAtPrice: true,
+          images: true,
+          sku: true,
           sortOrder: true,
-          product: {
+          isPrimary: true,
+          ctaLabel: true,
+          stock: true,
+          reservedStock: true,
+          importedFromProductId: true,
+          variants: {
+            where: { active: true },
+            orderBy: { sortOrder: "asc" },
             select: {
+              id: true,
               name: true,
-              slug: true,
-              images: true,
-              price: true,
-              oldPrice: true,
-              status: true,
-              shortDescription: true,
-              description: true,
-              variants: { select: { stock: true, reservedStock: true } },
+              size: true,
+              color: true,
+              colorHex: true,
+              sku: true,
+              priceOverride: true,
+              stock: true,
+              reservedStock: true,
+              active: true,
+              sortOrder: true,
             },
           },
         },
       },
     },
   })
-  return page as LandingPagePublic | null
+  if (!page) return null as unknown as LandingPagePublic
+
+  const items: PublicLandingItem[] = page.items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    shortDescription: item.shortDescription,
+    price: item.price,
+    compareAtPrice: item.compareAtPrice,
+    images: item.images,
+    sku: item.sku,
+    ctaLabel: item.ctaLabel,
+    active: true,
+    isPrimary: item.isPrimary,
+    stock: item.stock,
+    reservedStock: item.reservedStock,
+    sortOrder: item.sortOrder,
+    displayTitle: item.name,
+    displayDescription: item.description,
+    displayImage: item.images[0] ?? null,
+    variants: item.variants.map((v) => ({
+      id: v.id,
+      name: v.name,
+      size: v.size,
+      color: v.color,
+      colorHex: v.colorHex,
+      stock: v.stock,
+      reservedStock: v.reservedStock,
+      active: v.active,
+    })),
+  }))
+
+  return { ...page, items } as LandingPagePublic
 }
 
 export async function generateMetadata({
@@ -99,7 +144,7 @@ export async function generateMetadata({
   const isPublic = page.status === "published" && !isPreview
   const title = (page.seoTitle || page.ogTitle || page.title).trim()
   const description = (page.seoDescription || page.ogDescription || "").trim() || undefined
-  const heroImage = page.ogImage || page.products[0]?.displayImage || page.products[0]?.product.images[0] || undefined
+  const heroImage = page.ogImage || page.items[0]?.displayImage || page.items[0]?.images[0] || undefined
   const canonical = page.canonicalUrl || `${SITE_URL}/l/${page.slug}`
   const ogDescription = (page.ogDescription || description || "").trim() || undefined
 
@@ -151,14 +196,9 @@ export default async function LandingPagePublicPage({
   const page = await getLandingPage(slug, isPreview && canPreview)
   if (!page) notFound()
 
-  // Server-authoritative offers (live prices, validity computed per render).
-  // Public visitors receive valid offers only; preview additionally receives
-  // invalid ones so admins can see why an offer is unavailable.
   const allOffers: ResolvedOffer[] = await resolveLandingOffers(page.id)
   const offers = isPreview ? allOffers : allOffers.filter((o) => o.valid)
 
-  // Live approved reviews backing "reference" entries. Only still-approved
-  // reviews resolve; anything else is skipped at render.
   const reviewIds = new Set<string>()
   for (const section of page.sections) {
     if (section.type !== "REVIEWS" || !section.enabled) continue
@@ -189,7 +229,7 @@ export default async function LandingPagePublicPage({
       pageId={page.id}
       title={page.title}
       sections={page.sections}
-      links={page.products}
+      items={page.items}
       offers={offers}
       liveReviews={liveReviews}
       isPreview={isPreview}

@@ -16,9 +16,9 @@ export async function GET(
       where: { id },
       include: {
         sourceProduct: { select: { id: true, name: true, slug: true, images: true, price: true, status: true, shortDescription: true, description: true } },
-        products: {
-          include: { product: { select: { id: true, name: true, slug: true, images: true, price: true, oldPrice: true, status: true, variants: { select: { stock: true } } } } },
+        items: {
           orderBy: { sortOrder: "asc" },
+          include: { variants: { orderBy: { sortOrder: "asc" } } },
         },
         sections: { orderBy: { sortOrder: "asc" } },
       },
@@ -83,7 +83,6 @@ export async function PATCH(
     // Handle status transitions
     if (status && status !== existing.status) {
       if (status === "published") {
-        // Validate publish readiness
         if (!title && !existing.title) {
           return NextResponse.json({ success: false, error: "Title is required to publish" }, { status: 400 })
         }
@@ -111,7 +110,7 @@ export async function PATCH(
       data: updateData,
       include: {
         sourceProduct: { select: { id: true, name: true, slug: true, images: true } },
-        products: { include: { product: { select: { id: true, name: true, slug: true } } } },
+        items: { orderBy: { sortOrder: "asc" } },
         sections: { orderBy: { sortOrder: "asc" } },
       },
     })
@@ -137,18 +136,51 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Landing page not found" }, { status: 404 })
     }
 
-    // Archive instead of delete for published pages
-    if (existing.status === "published") {
-      await prisma.landingPage.update({
-        where: { id },
-        data: { status: "archived", archivedAt: new Date() },
-      })
-      return NextResponse.json({ success: true })
-    }
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete offer items (depend on offers)
+      const offerIds = (
+        await tx.landingPageOffer.findMany({
+          where: { landingPageId: id },
+          select: { id: true },
+        })
+      ).map((o) => o.id)
 
-    await prisma.landingPage.delete({ where: { id } })
+      if (offerIds.length > 0) {
+        await tx.landingPageOfferItem.deleteMany({
+          where: { offerId: { in: offerIds } },
+        })
+      }
+
+      // 2. Delete offers
+      await tx.landingPageOffer.deleteMany({ where: { landingPageId: id } })
+
+      // 3. Delete item variants
+      const itemIds = (
+        await tx.landingPageItem.findMany({
+          where: { landingPageId: id },
+          select: { id: true },
+        })
+      ).map((i) => i.id)
+
+      if (itemIds.length > 0) {
+        await tx.landingPageItemVariant.deleteMany({
+          where: { landingPageItemId: { in: itemIds } },
+        })
+      }
+
+      // 4. Delete items
+      await tx.landingPageItem.deleteMany({ where: { landingPageId: id } })
+
+      // 5. Delete sections
+      await tx.landingPageSection.deleteMany({ where: { landingPageId: id } })
+
+      // 6. Delete the landing page itself
+      await tx.landingPage.delete({ where: { id } })
+    })
+
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error("[LANDING_PAGE_DELETE]", err)
     return NextResponse.json({ success: false, error: "Failed to delete landing page" }, { status: 500 })
   }
 }

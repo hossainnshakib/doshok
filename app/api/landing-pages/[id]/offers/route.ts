@@ -50,24 +50,22 @@ export async function POST(
 
     const { name, badge, pricingType, matchType, minQuantity, offerPrice, enabled, items } = parsed.data
 
-    const linkIds = items.map((i) => i.landingPageProductId)
-    if (new Set(linkIds).size !== linkIds.length) {
-      return NextResponse.json({ success: false, error: "Duplicate product in offer items" }, { status: 400 })
+    const itemIds = items.map((i) => i.landingPageItemId)
+    if (new Set(itemIds).size !== itemIds.length) {
+      return NextResponse.json({ success: false, error: "Duplicate item in offer items" }, { status: 400 })
     }
 
-    const links = await prisma.landingPageProduct.findMany({
-      where: { landingPageId: id, id: { in: linkIds } },
+    const landingItems = await prisma.landingPageItem.findMany({
+      where: { landingPageId: id, id: { in: itemIds } },
       select: { id: true },
     })
-    if (links.length !== linkIds.length) {
-      return NextResponse.json({ success: false, error: "One or more products do not belong to this landing page" }, { status: 400 })
+    if (landingItems.length !== itemIds.length) {
+      return NextResponse.json({ success: false, error: "One or more items do not belong to this landing page" }, { status: 400 })
     }
 
-    // Server-derived regular total from live Product prices. Client totals
-    // are never accepted.
     const regularTotal = await computeRegularTotal(id, items)
     if (regularTotal === null) {
-      return NextResponse.json({ success: false, error: "A linked product is no longer available" }, { status: 400 })
+      return NextResponse.json({ success: false, error: "A linked item is no longer available" }, { status: 400 })
     }
     if (offerPrice > regularTotal) {
       return NextResponse.json(
@@ -98,7 +96,7 @@ export async function POST(
       await tx.landingPageOfferItem.createMany({
         data: items.map((i) => ({
           offerId: offer.id,
-          landingPageProductId: i.landingPageProductId,
+          landingPageItemId: i.landingPageItemId,
           quantity: i.quantity,
         })),
       })

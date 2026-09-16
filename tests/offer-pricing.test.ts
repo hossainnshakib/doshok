@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-// Mock prisma before importing the module under test
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     landingPageOffer: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
     },
-    landingPageProduct: {
+    landingPageItem: {
       findMany: vi.fn(),
     },
   },
@@ -18,13 +17,12 @@ import {
   resolveLandingOffer,
   resolveLandingOffers,
   resolveBestOfferForSelection,
-  resolveLandingProductPrices,
+  resolveLandingItemPrices,
   computeRegularTotal,
 } from "@/lib/landing-pages/offer-pricing"
 
 const mockPrisma = vi.mocked(prisma)
 
-// Helper to create a mock offer with relations
 function makeOffer(overrides: {
   id?: string
   landingPageId?: string
@@ -35,19 +33,17 @@ function makeOffer(overrides: {
   enabled?: boolean
   items?: Array<{
     quantity: number
-    landingPageProductId: string
-    landingPageProduct?: {
+    landingPageItemId: string
+    landingPageItem?: {
       id: string
-      displayTitle: string | null
-      product: {
-        id: string
-        name: string
-        slug: string
-        images: string[]
-        price: number
-        status: string
-        variants: Array<{ id: string; size: string; color: string; stock: number; reservedStock: number }>
-      } | null
+      name: string
+      description: string | null
+      price: number
+      images: string[]
+      active: boolean
+      stock: number
+      reservedStock: number
+      variants: Array<{ id: string; size: string | null; color: string | null; colorHex: string | null; stock: number; reservedStock: number; active: boolean }>
     } | null
   }>
 } = {}) {
@@ -65,40 +61,36 @@ function makeOffer(overrides: {
     items: overrides.items ?? [
       {
         quantity: 1,
-        landingPageProductId: "lp-1",
-        landingPageProduct: {
-          id: "lp-1",
-          displayTitle: "Product A",
-          product: {
-            id: "prod-1",
-            name: "Product A",
-            slug: "product-a",
-            images: ["/img/a.jpg"],
-            price: 850,
-            status: "Active",
-            variants: [
-              { id: "v1", size: "Free", color: "Black", stock: 10, reservedStock: 0 },
-            ],
-          },
+        landingPageItemId: "item-1",
+        landingPageItem: {
+          id: "item-1",
+          name: "Item A",
+          description: null,
+          price: 850,
+          images: ["/img/a.jpg"],
+          active: true,
+          stock: 10,
+          reservedStock: 0,
+          variants: [
+            { id: "v1", size: "Free", color: "Black", colorHex: null, stock: 10, reservedStock: 0, active: true },
+          ],
         },
       },
       {
         quantity: 1,
-        landingPageProductId: "lp-2",
-        landingPageProduct: {
-          id: "lp-2",
-          displayTitle: "Product B",
-          product: {
-            id: "prod-2",
-            name: "Product B",
-            slug: "product-b",
-            images: ["/img/b.jpg"],
-            price: 790,
-            status: "Active",
-            variants: [
-              { id: "v2", size: "Free", color: "White", stock: 8, reservedStock: 0 },
-            ],
-          },
+        landingPageItemId: "item-2",
+        landingPageItem: {
+          id: "item-2",
+          name: "Item B",
+          description: null,
+          price: 790,
+          images: ["/img/b.jpg"],
+          active: true,
+          stock: 8,
+          reservedStock: 0,
+          variants: [
+            { id: "v2", size: "Free", color: "White", colorHex: null, stock: 8, reservedStock: 0, active: true },
+          ],
         },
       },
     ],
@@ -116,7 +108,7 @@ describe("resolveLandingOffer", () => {
     expect(result).not.toBeNull()
     expect(result!.offerId).toBe("offer-1")
     expect(result!.offerPrice).toBe(1500)
-    expect(result!.regularTotal).toBe(1640) // 850 + 790
+    expect(result!.regularTotal).toBe(1640)
     expect(result!.savings).toBe(140)
     expect(result!.valid).toBe(true)
   })
@@ -134,25 +126,23 @@ describe("resolveLandingOffer", () => {
     expect(result!.invalidReason).toContain("disabled")
   })
 
-  it("marks offer with inactive product as invalid", async () => {
+  it("marks offer with inactive item as invalid", async () => {
     mockPrisma.landingPageOffer.findFirst.mockResolvedValue(
       makeOffer({
         items: [
           {
             quantity: 1,
-            landingPageProductId: "lp-1",
-            landingPageProduct: {
-              id: "lp-1",
-              displayTitle: "Product A",
-              product: {
-                id: "prod-1",
-                name: "Product A",
-                slug: "product-a",
-                images: [],
-                price: 850,
-                status: "Inactive",
-                variants: [],
-              },
+            landingPageItemId: "item-1",
+            landingPageItem: {
+              id: "item-1",
+              name: "Item A",
+              description: null,
+              price: 850,
+              images: [],
+              active: false,
+              stock: 0,
+              reservedStock: 0,
+              variants: [],
             },
           },
         ],
@@ -187,7 +177,7 @@ describe("resolveBestOfferForSelection", () => {
     mockPrisma.landingPageOffer.findMany.mockResolvedValue([
       makeOffer({ id: "offer-1", matchType: "EXACT_COMBINATION", offerPrice: 1500 }),
     ] as any)
-    const result = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2"])
+    const result = await resolveBestOfferForSelection("page-1", ["item-1", "item-2"])
     expect(result).not.toBeNull()
     expect(result!.offerId).toBe("offer-1")
   })
@@ -196,8 +186,7 @@ describe("resolveBestOfferForSelection", () => {
     mockPrisma.landingPageOffer.findMany.mockResolvedValue([
       makeOffer({ id: "offer-1", matchType: "EXACT_COMBINATION", offerPrice: 1500 }),
     ] as any)
-    // Only selecting lp-1, but offer requires lp-1 + lp-2
-    const result = await resolveBestOfferForSelection("page-1", ["lp-1"])
+    const result = await resolveBestOfferForSelection("page-1", ["item-1"])
     expect(result).toBeNull()
   })
 
@@ -211,36 +200,32 @@ describe("resolveBestOfferForSelection", () => {
         items: [
           {
             quantity: 1,
-            landingPageProductId: "lp-1",
-            landingPageProduct: {
-              id: "lp-1",
-              displayTitle: "A",
-              product: { id: "p1", name: "A", slug: "a", images: [], price: 850, status: "Active", variants: [{ id: "v1", size: "Free", color: "Black", stock: 10, reservedStock: 0 }] },
+            landingPageItemId: "item-1",
+            landingPageItem: {
+              id: "item-1", name: "A", description: null, price: 850, images: [], active: true, stock: 10, reservedStock: 0,
+              variants: [{ id: "v1", size: "Free", color: "Black", colorHex: null, stock: 10, reservedStock: 0, active: true }],
             },
           },
           {
             quantity: 1,
-            landingPageProductId: "lp-2",
-            landingPageProduct: {
-              id: "lp-2",
-              displayTitle: "B",
-              product: { id: "p2", name: "B", slug: "b", images: [], price: 790, status: "Active", variants: [{ id: "v2", size: "Free", color: "White", stock: 8, reservedStock: 0 }] },
+            landingPageItemId: "item-2",
+            landingPageItem: {
+              id: "item-2", name: "B", description: null, price: 790, images: [], active: true, stock: 8, reservedStock: 0,
+              variants: [{ id: "v2", size: "Free", color: "White", colorHex: null, stock: 8, reservedStock: 0, active: true }],
             },
           },
           {
             quantity: 1,
-            landingPageProductId: "lp-3",
-            landingPageProduct: {
-              id: "lp-3",
-              displayTitle: "C",
-              product: { id: "p3", name: "C", slug: "c", images: [], price: 500, status: "Active", variants: [{ id: "v3", size: "Free", color: "Blue", stock: 5, reservedStock: 0 }] },
+            landingPageItemId: "item-3",
+            landingPageItem: {
+              id: "item-3", name: "C", description: null, price: 500, images: [], active: true, stock: 5, reservedStock: 0,
+              variants: [{ id: "v3", size: "Free", color: "Blue", colorHex: null, stock: 5, reservedStock: 0, active: true }],
             },
           },
         ],
       }) as any,
     ])
-    // Selecting 2 eligible products
-    const result = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2"])
+    const result = await resolveBestOfferForSelection("page-1", ["item-1", "item-2"])
     expect(result).not.toBeNull()
     expect(result!.offerId).toBe("offer-1")
   })
@@ -254,12 +239,11 @@ describe("resolveBestOfferForSelection", () => {
         offerPrice: 1500,
       }) as any,
     ])
-    // Only selecting 1 product, but minQuantity is 2
-    const result = await resolveBestOfferForSelection("page-1", ["lp-1"])
+    const result = await resolveBestOfferForSelection("page-1", ["item-1"])
     expect(result).toBeNull()
   })
 
-  it("does not match QUANTITY_TIER with ineligible product", async () => {
+  it("does not match QUANTITY_TIER with ineligible item", async () => {
     mockPrisma.landingPageOffer.findMany.mockResolvedValue([
       makeOffer({
         id: "offer-1",
@@ -269,18 +253,16 @@ describe("resolveBestOfferForSelection", () => {
         items: [
           {
             quantity: 1,
-            landingPageProductId: "lp-1",
-            landingPageProduct: {
-              id: "lp-1",
-              displayTitle: "A",
-              product: { id: "p1", name: "A", slug: "a", images: [], price: 850, status: "Active", variants: [{ id: "v1", size: "Free", color: "Black", stock: 10, reservedStock: 0 }] },
+            landingPageItemId: "item-1",
+            landingPageItem: {
+              id: "item-1", name: "A", description: null, price: 850, images: [], active: true, stock: 10, reservedStock: 0,
+              variants: [{ id: "v1", size: "Free", color: "Black", colorHex: null, stock: 10, reservedStock: 0, active: true }],
             },
           },
         ],
       }) as any,
     ])
-    // lp-2 is not in the offer's eligible items
-    const result = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2"])
+    const result = await resolveBestOfferForSelection("page-1", ["item-1", "item-2"])
     expect(result).toBeNull()
   })
 
@@ -289,7 +271,7 @@ describe("resolveBestOfferForSelection", () => {
       makeOffer({ id: "offer-expensive", matchType: "EXACT_COMBINATION", offerPrice: 2000 }),
       makeOffer({ id: "offer-cheap", matchType: "EXACT_COMBINATION", offerPrice: 1500 }),
     ] as any)
-    const result = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2"])
+    const result = await resolveBestOfferForSelection("page-1", ["item-1", "item-2"])
     expect(result!.offerId).toBe("offer-cheap")
   })
 
@@ -297,7 +279,7 @@ describe("resolveBestOfferForSelection", () => {
     mockPrisma.landingPageOffer.findMany.mockResolvedValue([
       makeOffer({ id: "offer-disabled", matchType: "EXACT_COMBINATION", offerPrice: 1500, enabled: false }),
     ] as any)
-    const result = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2"])
+    const result = await resolveBestOfferForSelection("page-1", ["item-1", "item-2"])
     expect(result).toBeNull()
   })
 
@@ -311,46 +293,40 @@ describe("resolveBestOfferForSelection", () => {
         items: [
           {
             quantity: 1,
-            landingPageProductId: "lp-1",
-            landingPageProduct: {
-              id: "lp-1",
-              displayTitle: "A",
-              product: { id: "p1", name: "A", slug: "a", images: [], price: 850, status: "Active", variants: [{ id: "v1", size: "Free", color: "Black", stock: 10, reservedStock: 0 }] },
+            landingPageItemId: "item-1",
+            landingPageItem: {
+              id: "item-1", name: "A", description: null, price: 850, images: [], active: true, stock: 10, reservedStock: 0,
+              variants: [{ id: "v1", size: "Free", color: "Black", colorHex: null, stock: 10, reservedStock: 0, active: true }],
             },
           },
           {
             quantity: 1,
-            landingPageProductId: "lp-2",
-            landingPageProduct: {
-              id: "lp-2",
-              displayTitle: "B",
-              product: { id: "p2", name: "B", slug: "b", images: [], price: 790, status: "Active", variants: [{ id: "v2", size: "Free", color: "White", stock: 8, reservedStock: 0 }] },
+            landingPageItemId: "item-2",
+            landingPageItem: {
+              id: "item-2", name: "B", description: null, price: 790, images: [], active: true, stock: 8, reservedStock: 0,
+              variants: [{ id: "v2", size: "Free", color: "White", colorHex: null, stock: 8, reservedStock: 0, active: true }],
             },
           },
           {
             quantity: 1,
-            landingPageProductId: "lp-3",
-            landingPageProduct: {
-              id: "lp-3",
-              displayTitle: "C",
-              product: { id: "p3", name: "C", slug: "c", images: [], price: 500, status: "Active", variants: [{ id: "v3", size: "Free", color: "Blue", stock: 5, reservedStock: 0 }] },
+            landingPageItemId: "item-3",
+            landingPageItem: {
+              id: "item-3", name: "C", description: null, price: 500, images: [], active: true, stock: 5, reservedStock: 0,
+              variants: [{ id: "v3", size: "Free", color: "Blue", colorHex: null, stock: 5, reservedStock: 0, active: true }],
             },
           },
         ],
       }) as any,
     ])
-    // A+B
-    const r1 = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2"])
+    const r1 = await resolveBestOfferForSelection("page-1", ["item-1", "item-2"])
     expect(r1!.offerId).toBe("offer-tier")
-    // A+C
-    const r2 = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-3"])
+    const r2 = await resolveBestOfferForSelection("page-1", ["item-1", "item-3"])
     expect(r2!.offerId).toBe("offer-tier")
-    // B+C
-    const r3 = await resolveBestOfferForSelection("page-1", ["lp-2", "lp-3"])
+    const r3 = await resolveBestOfferForSelection("page-1", ["item-2", "item-3"])
     expect(r3!.offerId).toBe("offer-tier")
   })
 
-  it("QUANTITY_TIER 3-product tier qualifies", async () => {
+  it("QUANTITY_TIER 3-item tier qualifies", async () => {
     mockPrisma.landingPageOffer.findMany.mockResolvedValue([
       makeOffer({
         id: "offer-tier3",
@@ -360,76 +336,130 @@ describe("resolveBestOfferForSelection", () => {
         items: [
           {
             quantity: 1,
-            landingPageProductId: "lp-1",
-            landingPageProduct: {
-              id: "lp-1",
-              displayTitle: "A",
-              product: { id: "p1", name: "A", slug: "a", images: [], price: 850, status: "Active", variants: [{ id: "v1", size: "Free", color: "Black", stock: 10, reservedStock: 0 }] },
+            landingPageItemId: "item-1",
+            landingPageItem: {
+              id: "item-1", name: "A", description: null, price: 850, images: [], active: true, stock: 10, reservedStock: 0,
+              variants: [{ id: "v1", size: "Free", color: "Black", colorHex: null, stock: 10, reservedStock: 0, active: true }],
             },
           },
           {
             quantity: 1,
-            landingPageProductId: "lp-2",
-            landingPageProduct: {
-              id: "lp-2",
-              displayTitle: "B",
-              product: { id: "p2", name: "B", slug: "b", images: [], price: 790, status: "Active", variants: [{ id: "v2", size: "Free", color: "White", stock: 8, reservedStock: 0 }] },
+            landingPageItemId: "item-2",
+            landingPageItem: {
+              id: "item-2", name: "B", description: null, price: 790, images: [], active: true, stock: 8, reservedStock: 0,
+              variants: [{ id: "v2", size: "Free", color: "White", colorHex: null, stock: 8, reservedStock: 0, active: true }],
             },
           },
           {
             quantity: 1,
-            landingPageProductId: "lp-3",
-            landingPageProduct: {
-              id: "lp-3",
-              displayTitle: "C",
-              product: { id: "p3", name: "C", slug: "c", images: [], price: 500, status: "Active", variants: [{ id: "v3", size: "Free", color: "Blue", stock: 5, reservedStock: 0 }] },
+            landingPageItemId: "item-3",
+            landingPageItem: {
+              id: "item-3", name: "C", description: null, price: 500, images: [], active: true, stock: 5, reservedStock: 0,
+              variants: [{ id: "v3", size: "Free", color: "Blue", colorHex: null, stock: 5, reservedStock: 0, active: true }],
             },
           },
         ],
       }) as any,
     ])
-    // All 3
-    const r1 = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2", "lp-3"])
+    const r1 = await resolveBestOfferForSelection("page-1", ["item-1", "item-2", "item-3"])
     expect(r1!.offerId).toBe("offer-tier3")
-    // Only 2 - should NOT match
-    const r2 = await resolveBestOfferForSelection("page-1", ["lp-1", "lp-2"])
+    const r2 = await resolveBestOfferForSelection("page-1", ["item-1", "item-2"])
     expect(r2).toBeNull()
   })
 })
 
-describe("resolveLandingProductPrices", () => {
+describe("resolveLandingItemPrices", () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it("returns null for empty selection", async () => {
-    const result = await resolveLandingProductPrices("page-1", [])
+    const result = await resolveLandingItemPrices("page-1", [])
     expect(result).toBeNull()
   })
 
-  it("returns regular total from live product prices", async () => {
-    mockPrisma.landingPageProduct.findMany.mockResolvedValue([
-      { id: "lp-1", product: { id: "p1", price: 850, status: "Active" } },
-      { id: "lp-2", product: { id: "p2", price: 790, status: "Active" } },
+  it("returns regular total from live item prices", async () => {
+    mockPrisma.landingPageItem.findMany.mockResolvedValue([
+      { id: "item-1", price: 850, active: true },
+      { id: "item-2", price: 790, active: true },
     ] as any)
-    const result = await resolveLandingProductPrices("page-1", ["lp-1", "lp-2"])
+    const result = await resolveLandingItemPrices("page-1", ["item-1", "item-2"])
     expect(result).not.toBeNull()
     expect(result!.regularTotal).toBe(1640)
+    expect(result!.items).toHaveLength(2)
+    expect(result!.items[0].landingPageItemId).toBe("item-1")
+    expect(result!.items[0].price).toBe(850)
   })
 
-  it("returns null if product not found", async () => {
-    mockPrisma.landingPageProduct.findMany.mockResolvedValue([
-      { id: "lp-1", product: { id: "p1", price: 850, status: "Active" } },
+  it("returns null if item not found", async () => {
+    mockPrisma.landingPageItem.findMany.mockResolvedValue([
+      { id: "item-1", price: 850, active: true },
     ] as any)
-    const result = await resolveLandingProductPrices("page-1", ["lp-1", "lp-2"])
+    const result = await resolveLandingItemPrices("page-1", ["item-1", "item-2"])
     expect(result).toBeNull()
   })
 
-  it("returns null if product is inactive", async () => {
-    mockPrisma.landingPageProduct.findMany.mockResolvedValue([
-      { id: "lp-1", product: { id: "p1", price: 850, status: "Inactive" } },
+  it("returns null if item is inactive", async () => {
+    mockPrisma.landingPageItem.findMany.mockResolvedValue([
+      { id: "item-1", price: 850, active: false },
     ] as any)
-    const result = await resolveLandingProductPrices("page-1", ["lp-1"])
+    const result = await resolveLandingItemPrices("page-1", ["item-1"])
     expect(result).toBeNull()
+  })
+})
+
+describe("computeRegularTotal", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("returns null for empty items", async () => {
+    const result = await computeRegularTotal("page-1", [])
+    expect(result).toBeNull()
+  })
+
+  it("returns total from live item prices", async () => {
+    mockPrisma.landingPageItem.findMany.mockResolvedValue([
+      { id: "item-1", price: 850, active: true },
+      { id: "item-2", price: 790, active: true },
+    ] as any)
+    const result = await computeRegularTotal("page-1", [
+      { landingPageItemId: "item-1", quantity: 1 },
+      { landingPageItemId: "item-2", quantity: 1 },
+    ])
+    expect(result).toBe(1640)
+  })
+
+  it("returns null if any item missing", async () => {
+    mockPrisma.landingPageItem.findMany.mockResolvedValue([
+      { id: "item-1", price: 850, active: true },
+    ] as any)
+    const result = await computeRegularTotal("page-1", [
+      { landingPageItemId: "item-1", quantity: 1 },
+      { landingPageItemId: "item-2", quantity: 1 },
+    ])
+    expect(result).toBeNull()
+  })
+
+  it("returns null if any item inactive", async () => {
+    mockPrisma.landingPageItem.findMany.mockResolvedValue([
+      { id: "item-1", price: 850, active: true },
+      { id: "item-2", price: 790, active: false },
+    ] as any)
+    const result = await computeRegularTotal("page-1", [
+      { landingPageItemId: "item-1", quantity: 1 },
+      { landingPageItemId: "item-2", quantity: 1 },
+    ])
+    expect(result).toBeNull()
+  })
+
+  it("multiplies quantity correctly", async () => {
+    mockPrisma.landingPageItem.findMany.mockResolvedValue([
+      { id: "item-1", price: 850, active: true },
+    ] as any)
+    const result = await computeRegularTotal("page-1", [
+      { landingPageItemId: "item-1", quantity: 3 },
+    ])
+    expect(result).toBe(2550)
   })
 })

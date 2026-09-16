@@ -22,7 +22,7 @@ export async function POST(
   if (!order) return error("Order not found", 404)
   if (order.userId !== session.user.id) return error("Forbidden", 403)
 
-  const productIds = [...new Set(order.items.map((i) => i.productId))]
+  const productIds = [...new Set(order.items.map((i) => i.productId).filter((id): id is string => id !== null))]
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
     select: {
@@ -67,6 +67,7 @@ export async function POST(
   }[] = []
 
   for (const item of order.items) {
+    if (!item.productId) continue
     const product = productMap.get(item.productId)
 
     if (!product) {
